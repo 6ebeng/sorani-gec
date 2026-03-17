@@ -1,0 +1,51 @@
+"""
+Step 4: Split Synthetic Data into Train / Dev / Test
+
+Usage:
+    python scripts/04_split_data.py [--input data/synthetic/annotations.jsonl] [--output data/splits]
+"""
+
+import argparse
+import logging
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from src.data.splitter import run_split
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Split synthetic GEC data")
+    parser.add_argument("--input", default="data/synthetic/annotations.jsonl")
+    parser.add_argument("--output", default="data/splits")
+    parser.add_argument("--train-ratio", type=float, default=0.8)
+    parser.add_argument("--dev-ratio", type=float, default=0.1)
+    parser.add_argument("--test-ratio", type=float, default=0.1)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--stratify", default="error_type",
+                        help="Key to stratify by (default: error_type)")
+    args = parser.parse_args()
+
+    stats = run_split(
+        input_path=Path(args.input),
+        output_dir=Path(args.output),
+        train_ratio=args.train_ratio,
+        dev_ratio=args.dev_ratio,
+        test_ratio=args.test_ratio,
+        seed=args.seed,
+        stratify_key=args.stratify,
+    )
+
+    logger.info("Split complete: %s", stats)
+
+
+if __name__ == "__main__":
+    main()

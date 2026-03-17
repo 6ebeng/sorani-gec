@@ -1,0 +1,214 @@
+FINDING #1 — Sorani Subject-Verb Agreement (Universality)
+FINDING #2 — Adjective-Gender Agreement in Kurmanji (not in Sorani)
+FINDING #3 — Case Roles (Fillmore Framework) with Kurdish Examples
+FINDING #4 — Middle Verbs / Causative Restriction
+FINDING #5 — Instrument-to-Subject Promotion
+FINDING #6 — Subject Selection Hierarchy
+FINDING #7 — Verb Classification by Case Frame
+FINDING #138 — Object Selection Constraints (Agent-to-Object Prohibition)
+FINDING #139 — Extended Subject Selection Hierarchy (7 Roles with Location & Time)
+FINDING #142 — Preposition Removal Requires Cascading Morphological Compensation
+FINDING #8 — Subject-Verb Agreement Rule (Formal Statement)
+FINDING #9 — Complete Clitic Paradigm (Three Sets)
+FINDING #11 — Verb Root System (Two Roots per Verb)
+FINDING #12 — Two Clitic Sets (Agreement vs. Possessive)
+FINDING #13 — Intransitive Verb Subtypes (Agentive vs. Patientive)
+FINDING #14 — Past Transitive Clitic Structure (Double Clitic)
+FINDING #15 — Complete Verb Conjugation Tables (All Tenses)
+FINDING #16 — Causative Formation Pattern
+FINDING #17 — 6+1 Irregular Present Stems
+FINDING #18 — Sentence Types Taxonomy
+FINDING #157 — Three-Mood System via Tense Morpheme Selection
+FINDING #158 — Optative (خۆزگەیی) — Complete Morphological Template with Dialectal Variants
+FINDING #161 — Seven Speech Act Types with Structural–Punctuation Diagnostics
+FINDING #162 — Strong vs. Polite Imperative: Obligatory Preparatory Phrase
+FINDING #19 — Every Verb Has Exactly One Root
+FINDING #20 — Two Clitic Sets Named and Fully Analyzed
+FINDING #21 — Critical Rule: Possessive Clitics Never Attach to Verb Root
+FINDING #22 — Clitic Role Switching by Tense
+FINDING #23 — Sentence = Root + Obligatory Components
+FINDING #24 — Intransitive Verb Classification with Exhaustive Lists
+FINDING #25 — Past Tense Morpheme Inventory
+FINDING #26 — Phonological Reduction / Clitic Fusion Rules
+FINDING #27 — Double ی in Past Tense of ی-Root Verbs
+FINDING #28 — 3sg Agreement Clitic is Ø (Not ە or ێ)
+FINDING #163 — Allophonic Orthographic Pairs: ح↔ع↔هـ and خ↔غ (Pass 2)
+FINDING #164 — و/وو Short-Long Vowel Orthographic Confusion (Pass 2)
+FINDING #165 — Extended ی/یی Orthographic Rules: Six Scenarios (Pass 2)
+FINDING #166 — Parts of Speech Deletability Hierarchy and ئاوەڵکات vs. ئاوەڵکار (Pass 2)
+FINDING #167 — Epenthetic ت: Non-Morphemic Consonant Insertion at Vowel Boundaries (Pass 3)
+FINDING #168 — خواردن Exception to Causative ا→ێ Alternation (Pass 3)
+FINDING #169 — ە+ە→ا Phonological Assimilation (وێکچوون) (Pass 3)
+FINDING #29 — Ergativity in Sorani Kurdish (Detailed Analysis)
+FINDING #30 — Morphosyntax: Kurdish as Agglutinative Language
+FINDING #31 — Pro-drop and Empty Subject
+FINDING #32 — Verb Argument Structure Types
+FINDING #33 — Preposition-Clitic Fusion (پێ, تێ, لێ)
+FINDING #33b — Two Clitic Pronoun Sets: Complete Paradigm Tables (Academy Committee)
+FINDING #34 — 3rd Person Singular: Zero Marker in Past Intransitive & Passive
+FINDING #36 — Causative Formation with اندن: Complete Rules
+FINDING #37 — Passive Formation: Complete Morphological Rules
+FINDING #38 — Complete Tense System: 8+ Distinct Forms
+FINDING #39 — Past Transitive Conjugation: Clitic Placement Rules
+FINDING #41 — Non-Past Formation: Stem Derivation Rules
+FINDING #42 — Imperative Formation: Complete Rules
+FINDING #43 — Negation Patterns Across All Tenses
+FINDING #44 — Verb Classification: Complete List of Intransitive/Transitive Pairs
+FINDING #47 — Set 2 Clitic Complete Paradigm with Proof
+FINDING #48 — 3rd Person Singular: NOT a Pronoun (Author's Key Argument)
+FINDING #49 — Ezafe Marker and Pronouns
+FINDING #50 — Set 2 Clitics on Non-Verbal Hosts (Verbless Sentences)
+FINDING #51 — Kurmanci vs. Sorani Pronoun Differences
+FINDING #52 — Two Clitics Together: Distribution Constraints
+FINDING #121 — Negative Concord: هیچ/چ Require Verb Negation
+FINDING #122 — ش/یش Ordering Asymmetry: Demonstratives vs خۆ
+FINDING #123 — Demonstrative+Preposition Contraction (ئە-Deletion)
+FINDING #124 — Possessive Pronoun هی/ئی Cannot Take Clitics or ش/یش
+FINDING #125 — Imperative Mood Clitic Restrictions (Transitive vs. Intransitive)
+FINDING #126 — Compound Verb (Noun+Verb) Clitic Insertion
+FINDING #127 — Causative Suffix Determines Clitic Position (-ەوە vs. -اندن)
+FINDING #128 — Reciprocal Pronoun یەکتر: Plural Subject Requirement and Clitic Attachment
+FINDING #53 — Word Class Criteria: Operational Tests
+FINDING #54 — VP Structure: Transitive vs. Intransitive Formulas
+FINDING #55 — Clitic Placement by Tense and Transitivity
+FINDING #57 — Default Word Order: SOV
+FINDING #58 — Verb Valency Types
+FINDING #115 — Definiteness Marker Migration: Descriptive vs Possessive NPs
+FINDING #117 — Pre-Head NP Determiners: No Ezafe Required
+FINDING #118 — Complement vs Adjunct: Obligatoriness Tests
+FINDING #119 — Interrogative Sentence Formation: Four Question Types
+FINDING #151 — Structural Ambiguity in Conjoined NP + Post-modifier Scope
+FINDING #152 — Indirect Object = Adverbial: Eight Shared Properties & IO Non-Promotability
+FINDING #153 — Adverbial Positional Freedom: Non-Error Tolerance Rule
+FINDING #154 — Commissive Speech Act (ڕاپەڕاندن) — First-Person Subject Restriction & Closed Verb Set
+FINDING #61 — Imperative Markers
+FINDING #62 — Negation Prefixes
+FINDING #63 — Tool Noun Formation and Causative Patterns
+FINDING #64 — Two Types of Agreement: Grammatical vs Semantic
+FINDING #65 — Government vs Concord (GB-Theory Distinction)
+FINDING #66 — Two Laws of Sentence-Level Agreement
+FINDING #67 — NP-Internal Agreement: Three Controlling Factors
+FINDING #68 — Mass Noun + Measure Word Agreement
+FINDING #69 — Collective Noun Dual Behavior
+FINDING #70 — Demonstrative Dual Behavior (Pro-form vs Determiner)
+FINDING #71 — Possessive Pronouns NEVER Agree with Verb
+FINDING #72 — Existential هەبوون: Three-Way Distinction
+FINDING #73 — Interrogative Pronouns Are Invariant (Complete Non-Agreement)
+FINDING #74 — Reciprocal & Reflexive Pronouns Are Invariant (Object Non-Agreement)
+FINDING #75 — Compound Subject: Familiarity Hierarchy
+FINDING #76 — Imperative + Vocative Number Agreement
+FINDING #77 — Quantifier/Numeral Always Plural Verb
+FINDING #78 — Semantic Anomaly Typology (Three Levels)
+FINDING #79 — Adjective Invariance: Complete Confirmation
+FINDING #80 — Split Ergativity: Agreement Direction Depends on Transitivity + Tense
+FINDING #81 — Case Determines Agreement Domain (Nominative ↔ External, Oblique ↔ Internal)
+FINDING #82 — Bare Noun: Person-Only Agreement (No Number)
+FINDING #83 — Two Pronoun Sets with Opposite Agreement Behavior
+FINDING #84~~ — _Merged into Finding #74 (Reciprocal & Reflexive Pronouns Are Invariant)_
+FINDING #85 — Negation Conjunction: First Conjunct Controls Agreement
+FINDING #86 — Proper Noun Morphological Constraints
+FINDING #87 — Familiarity Hierarchy: Strict Word Order in Compound Subjects
+FINDING #88 — Compound Noun Subjects Force Plural Verb
+FINDING #89 — Oblique Bare Noun: Zero Agreement
+FINDING #90 — No Definiteness Agreement in NP
+FINDING #91~~ — _Merged into Finding #73 (Interrogative Pronouns Are Invariant)_
+FINDING #92~~ — _Merged into Finding #74 (Reciprocal & Reflexive Pronouns Are Invariant)_
+FINDING #93 — Formal Coincidence vs. True Agreement
+FINDING #94 — Nominative Case Unifies Both Agreement Laws
+FINDING #202 — Vocative Case Triggers Full NP-Internal Adjective Agreement (Refines F#79)
+FINDING #203 — Gender Marker Morpheme Paradigm: Case-Conditioned Allomorphic Table
+FINDING #204 — Clitic Omission = Ungrammatical (Bound Agreement Is Mandatory)
+FINDING #205 — Inanimate Nouns Carry Arbitrary Grammatical Gender
+FINDING #206 — Post-Head Determiners Are Always in Nominative Case Internally
+FINDING #207 — Weak Verb (کاری بێهێز / هەبوون) Agreement with Pronoun Sets
+FINDING #95 — Present Root Derivation: Five-Class System + 32 Irregulars
+FINDING #97 — Optional 2sg/3sg ت Deletion Rule
+FINDING #98 — Complete 8-Tense Formation Formulas with Clitic Set Assignment
+FINDING #99 — Clitic Position: Set 1 Prefixal on Preverb, Set 2 Always Suffixal
+FINDING #208 — Complete 7+7 Clitic Role Table: Definitive Functional Inventory
+FINDING #209 — Present Tense Markers: ێ / Zero / ە (Contrasting with Past)
+FINDING #211 — Copula بوون: Three Tense Roots + Possessive vs Existential Split
+FINDING #212 — Onomatopoeia Verb Derivation via اندن/ێن: Sound-Noun to Verb
+FINDING #213 — Syntactic Causative: وا+لە Periphrastic Transitivization
+FINDING #214 — Imperative ـە Epenthesis: Consonant-Final Singular vs Universal Plural ن
+FINDING #215 — Past Conditional Clitic Ordering: Transitive/Intransitive Inversion
+FINDING #216 — Directional Postbound ـە: Verbs Without Preposition Counterpart
+FINDING #129 — Clitic (Nûsek) Phrase-Level Attachment: First-Element Rule
+FINDING #130 — Morpheme Collision Tolerance: Identical Stacking Permitted
+FINDING #131 — Derivational-before-Grammatical Affix Ordering (Universal)
+FINDING #132 — Preverb Transitivity Flip: هەڵ Changes Clitic Set Requirements
+FINDING #133 — Same-Set Clitic Exclusion in Simple Sentences
+FINDING #134 — Definiteness ەکە: Conjugated Verb Attachment Ban
+FINDING #136 — Definiteness ەکە Ordering Precedence: Always First Among Grammatical Suffixes
+FINDING #143 — Definiteness Marker Distribution: Coordination (و) vs. Ezafe (ی)
+FINDING #144 — Quantifier/Numeral Position Controls Verb Agreement
+FINDING #145 — Direct Object Must Precede Verb (Hard Constraint)
+FINDING #147 — Vocative Marker Targets Common Nouns Only, Not Proper Names
+FINDING #148 — Ten Verb-Deletion Contexts (Valid Verbless Sentences)
+FINDING #149 — Conditional بـ as Sole Root–Clitic Intervenor
+FINDING #150 — Subject–Verb Inversion Restricted to Emphatic Copular Sentences
+FINDING #170 — Compound Verb Morpheme Slot Templates: 8 Patterns for Past vs Present
+FINDING #171 — Default Constituent Ordering: S + Time + Place + DO + IO + V
+FINDING #172 — Two Types of ـی Morpheme: Possessive vs Attributive
+FINDING #173 — Superlative Adjective Forces Pre-Nominal Position (No Ezafe)
+FINDING #174 — ـەوە Postposition Obligatoriness with Source/Direction Verbs
+FINDING #175 — Coordination Requires Semantic Compatibility with Shared Predicate
+FINDING #176 — Title Nouns: Proper-Noun-Only and Temporal Ordering
+FINDING #177 — Sorani Kurdish Lacks Morphological Case Marking (Cross-Dialectal Confirmation)
+FINDING #178 — Obligatory Possessive ـی Between Noun and Possessor
+FINDING #179 — Possessor Must Be Definite (Pronoun or Proper Noun)
+FINDING #180 — Number and Quantifier Cannot Co-occur as NP Specifiers
+FINDING #181 — PP Components Are Inseparable (Preposition and Complement Both Required)
+FINDING #182 — Attributive Adjective Cannot Carry Determiners
+FINDING #183 — Bare Common Noun Cannot Function as NP (Subject or Object)
+FINDING #184 — Abstract Nouns Resist Determiners
+FINDING #185 — Demonstrative Cannot Modify Proper Noun (with Exceptions)
+FINDING #186 — Determiner Allomorphs Are Phonologically Conditioned
+FINDING #187 — Preposition→Postposition Systematic Conversion Table
+FINDING #188 — 3sg Clitic: Full 12-Allomorph Inventory
+FINDING #189 — 7 Formal Laws for Clitic Attachment (Priority + Ordering)
+FINDING #190 — Triple Clitic Ordering: DO + IO + Subject (Laws 5–6 Combined)
+FINDING #191 — Germian Dialect Clitic Variation: Set A for Both Tense-Object Roles
+FINDING #192 — Unified Present Root Derivation: Two-Step Rule Collapses 5 Rules
+FINDING #193 — Stress Disambiguates Compound-Verb Tense vs. Copula + Adjective
+FINDING #194 — (ێت)ی شێوێنەر: False Agreement Marker in ویستن-Derived Verbs
+FINDING #195 — ڕ Epenthesis Law: Appears Between Two Vowels in Compound Imperatives
+FINDING #197 — تی Portmanteau: 3sg Clitic + Copula ـە = Epenthetic (تی)
+FINDING #198 — Possessive هەبوون: Existential Verb Paradigm with Set 2
+FINDING #199 — Passive of Intransitive = Causative Inverse: Morphological Cycle
+FINDING #200 — Compound Verb Derivation: 13 Productivity Patterns
+FINDING #201 — Morphological vs. Syntactic Ambiguity (لێڵی): Six Disambiguation Categories
+FINDING #217 — Complete Sorani Simple Preposition Inventory with Semantic Classification
+FINDING #218 — Preposition لە: Seven-way Semantic Polysemy
+FINDING #219 — Preposition بە: Four Semantic Functions
+FINDING #220 — Duration Preposition Optionality (بۆ vs. Bare Duration)
+FINDING #221 — Preposition Substitutability and Cross-Linguistic Difference
+FINDING #222 — بۆ Four-Way Polysemy and Goal Overlap with بەرەو
+FINDING #223 — بێ (Privative) and تا (Limitative): Case Roles Outside Sa'id's System
+FINDING #224 — بە + Postbound Suffix Combinations (Parallel to لە)
+FINDING #225 — Nominal Preposition Temporal/Spatial Duality with Frame Alternation
+FINDING #226 — Free-Standing Vocative Particles with Gender Constraints
+FINDING #227 — هەرە Emphatic Superlative Prefix Stacking
+FINDING #228 — Purpose Subordinator Equivalence: بۆئەوەی ≈ تا ≈ تاوەکوو ≈ هەتاکوو
+FINDING #229 — بەڵکوو Corrective Conjunction: Correlative Requirement
+FINDING #230 — Sorani Conjunction Inventory with Positional Constraints
+FINDING #231 — و/وو-Final Nouns: Definite ەکە and Indefinite ێک Exception (Deep Pass)
+FINDING #232 — Plural ان Placement on Coordinated NPs: Last Noun Only (Deep Pass)
+FINDING #233 — ش Dual Function: Conjunction vs. Repetition Marker (Deep Pass)
+FINDING #234 — Interrogative چ Forces Indefinite Marker on Following Noun (Deep Pass)
+FINDING #236 — لەگەڵ vs. و: Different Subject–Verb Agreement Rules
+FINDING #237 — Compound Sentence Verb Tense Concordance
+FINDING #238 — Paired Conjunction Position Controls Subject Count
+FINDING #239 — Same-Element Ellipsis in Compound Sentences
+FINDING #241 — Three-Way Connective Classification with Dual-Function Instruments
+FINDING #242 — Preposition Postfix Allomorphy Conditioned by Final Segment _(deep pass)_
+FINDING #243 — ش/یش Attachment Position Determines Semantic Scope _(deep pass)_
+FINDING #244 — Negation Within و-Coordination Preserves Plural Agreement _(deep pass)_
+FINDING #245 — Complete Preposition-to-Bound-Form Transformation Table with Diagnostics
+FINDING #247 — Preposition Postfix Scoping in Coordinated NPs _(deep pass)_
+FINDING #248 — Demonstrative Circumfix Blocks Definite Article ەکە _(deep pass)_
+FINDING #249 — Binary Tense System: Past vs. Non-Past Only (No Morphological Future)
+FINDING #250 — Circumposition Pattern: Preposition + Obligatory Postposition
+FINDING #251 — Definite Article -ەکە: Unique Among All Living Iranian Languages
+FINDING #252 — Object Pro-Drop Constraint: Object Cannot Be Independently Dropped
+FINDING #253 — Germian Dialect Agreement Morpheme Order Reversal (Past Tense)

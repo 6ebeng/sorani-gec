@@ -1,0 +1,40 @@
+# Core
+torch>=2.0.0
+transformers>=4.35.0
+sentencepiece>=0.1.99
+datasets>=2.14.0
+tokenizers>=0.15.0
+
+# Kurdish NLP
+klpt>=0.1.5
+pyhunspell>=0.5.4
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+regex>=2023.10.3
+tqdm>=4.66.0
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+
+# Evaluation
+scikit-learn>=1.3.0
+scipy>=1.11.0
+
+# Configuration
+pyyaml>=6.0
+hydra-core>=1.3.0
+
+# Visualization
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# Development
+jupyter>=1.0.0
+pytest>=7.4.0
+black>=23.10.0
+isort>=5.12.0
+
+# Logging
+wandb>=0.16.0
+tensorboard>=2.15.0

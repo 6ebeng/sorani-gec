@@ -1,0 +1,120 @@
+# Default configuration for Sorani Kurdish GEC
+# ============================================
+
+project:
+  name: "sorani-gec"
+  description: "Agreement-Aware GEC for Sorani Kurdish"
+
+data:
+  raw_dir: "data/raw"
+  clean_dir: "data/clean"
+  synthetic_dir: "data/synthetic"
+  splits_dir: "data/splits"
+  
+  # Corpus settings
+  target_pairs: 50000
+  train_ratio: 0.8
+  dev_ratio: 0.1
+  test_ratio: 0.1
+  max_seq_length: 128
+  
+  # Normalization
+  normalize_arabic_script: true
+  remove_diacritics: false
+  
+  # Error generation
+  error_types:
+    - "subject_verb_number"
+    - "noun_adjective_ezafe"
+    - "clitic_form"
+    - "tense_agreement"
+    - "case_role_preposition"
+    - "dialectal_participle"
+    - "relative_clause_ezafe"
+    - "missing_adversative_connector"
+    - "participle_voice_swap"
+    - "orthography"
+    - "negative_concord"
+  error_rate: 0.15  # probability of injecting error per eligible position
+
+tokenizer:
+  model_type: "unigram"  # SentencePiece model type
+  vocab_size: 32000
+  character_coverage: 0.9995
+  model_prefix: "sorani_spm"
+
+model:
+  # Architecture
+  type: "transformer_seq2seq"  # or "edit_tagger"
+  d_model: 512
+  n_heads: 8
+  n_encoder_layers: 6
+  n_decoder_layers: 6
+  d_ff: 2048
+  dropout: 0.1
+  max_position: 512
+  
+  # Morphological features
+  use_morphology: true
+  morph_features:
+    - "person"         # 1st, 2nd, 3rd
+    - "number"         # singular, plural
+    - "tense"          # present, past, future
+    - "case"           # nominative, oblique, ezafe
+    - "definiteness"   # definite, indefinite
+    - "transitivity"   # transitive, intransitive
+    - "clitic_person"  # 1, 2, 3
+    - "clitic_number"  # singular, plural
+  morph_embed_dim: 64
+  
+  # Pretrained backbone (alternative to training from scratch)
+  pretrained: "google/byt5-small"  # byte-level, no tokenization issues
+  # pretrained: "google/mt5-small"  # alternative
+
+training:
+  batch_size: 32
+  learning_rate: 5.0e-5
+  weight_decay: 0.01
+  warmup_steps: 1000
+  max_epochs: 30
+  early_stopping_patience: 5
+  gradient_accumulation_steps: 4
+  fp16: true
+  
+  # Loss
+  label_smoothing: 0.1
+  agreement_loss_weight: 0.3  # auxiliary agreement prediction loss
+  
+  # Optimizer
+  optimizer: "adamw"
+  scheduler: "cosine_with_restarts"
+  
+  # Checkpointing
+  save_dir: "results/models"
+  save_top_k: 3
+  
+  # Logging
+  log_every_n_steps: 50
+  eval_every_n_steps: 500
+
+evaluation:
+  metrics:
+    - "f05"           # F₀.₅ (standard GEC)
+    - "precision"
+    - "recall"
+    - "agreement_accuracy"  # Sorani-specific
+  
+  human_eval:
+    n_sentences: 200
+    n_raters: 2
+  
+  ablation:
+    - "no_morphology"           # baseline without morph features
+    - "individual_features"     # one feature at a time
+    - "data_size_variation"     # 10K, 20K, 30K, 40K, 50K
+
+hardware:
+  device: "cuda"
+  gpu: "rtx3090"
+  num_workers: 4
+  pin_memory: true
