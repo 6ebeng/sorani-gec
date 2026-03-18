@@ -64,14 +64,37 @@ class AgreementGraph:
       Law 2 — Object-verb  (ergative alignment, past transitive only)
     """
 
+    # Valid feature names for edge validation
+    _VALID_FEATURES = frozenset({
+        "person", "number", "tense", "aspect", "case",
+        "definiteness", "transitivity",
+    })
+
     def __init__(self, tokens: list[str], features: list[MorphFeatures]):
         self.tokens = tokens
         self.features = features
         self.edges: list[AgreementEdge] = []
+        self._edge_keys: set[tuple[int, int, str]] = set()
+
+    def __len__(self) -> int:
+        """Return the number of edges in the graph."""
+        return len(self.edges)
 
     def add_edge(self, source: int, target: int,
                  agreement_type: str, features: list[str],
                  law: str = ""):
+        # Deduplicate: skip if same source-target-type already exists
+        key = (source, target, agreement_type)
+        if key in self._edge_keys:
+            return
+        # Validate feature names
+        for f in features:
+            if f not in self._VALID_FEATURES:
+                logger.warning(
+                    "Unknown feature '%s' in edge %s→%s (%s)",
+                    f, source, target, agreement_type,
+                )
+        self._edge_keys.add(key)
         self.edges.append(AgreementEdge(
             source_idx=source,
             target_idx=target,

@@ -19,6 +19,8 @@ import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
+from .sorani_detector import SoraniDetector
+
 logger = logging.getLogger(__name__)
 
 
@@ -29,6 +31,7 @@ class CorpusCollector:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.stats = {"sources": {}, "total_sentences": 0, "total_chars": 0}
+        self._detector = SoraniDetector()
     
     def collect_wikipedia(self, dump_path: Optional[str] = None) -> int:
         """Extract Sorani Kurdish text from Wikipedia.
@@ -130,7 +133,7 @@ class CorpusCollector:
             # Filter: keep only sentences with Kurdish characters and reasonable length
             sentences = [
                 s for s in sentences
-                if len(s) > 20 and len(s) < 500 and self._is_sorani(s)
+                if len(s) > 20 and len(s) < 500 and self._detector.is_sorani(s)
             ]
             
             return sentences
@@ -159,7 +162,7 @@ class CorpusCollector:
                 file_sentences = sentence_split(text)
                 sentences.extend([
                     s for s in file_sentences
-                    if len(s) > 20 and self._is_sorani(s)
+                    if len(s) > 20 and self._detector.is_sorani(s)
                 ])
         
         with open(output_file, "w", encoding="utf-8") as f:
@@ -173,20 +176,12 @@ class CorpusCollector:
     
     @staticmethod
     def _is_sorani(text: str) -> bool:
-        """Check if text is likely Sorani Kurdish (Arabic script with Kurdish chars)."""
-        # Kurdish-specific characters: ڕ ڵ ڤ ۆ ێ ە پ چ گ
-        kurdish_pattern = re.compile(r'[\u0695\u06B5\u06A4\u06C6\u06CE\u06D5\u067E\u0686\u06AF]')
-        # General Arabic script
-        arabic_pattern = re.compile(r'[\u0600-\u06FF]')
-        
-        arabic_chars = len(arabic_pattern.findall(text))
-        total_chars = len(text.replace(" ", ""))
-        
-        if total_chars == 0:
-            return False
-        
-        # At least 50% Arabic script and contains at least one Kurdish-specific char
-        return (arabic_chars / total_chars > 0.5) and bool(kurdish_pattern.search(text))
+        """Check if text is likely Sorani Kurdish.
+
+        Legacy static method kept for backward compatibility.
+        Prefer using SoraniDetector directly for richer diagnostics.
+        """
+        return SoraniDetector().is_sorani(text)
     
     def save_stats(self):
         """Save collection statistics."""

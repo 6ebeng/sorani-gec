@@ -122,6 +122,7 @@ class MorphologyAwareGEC(nn.Module):
         self.morph_projection = nn.Linear(
             hidden_dim + morph_embed_dim, hidden_dim
         )
+        self.morph_layer_norm = nn.LayerNorm(hidden_dim)
         
         # Auxiliary agreement predictor
         self.agreement_predictor = AgreementPredictor(
@@ -182,6 +183,39 @@ class MorphologyAwareGEC(nn.Module):
         # Additive bias: agreement-linked positions get a positive boost
         return bias.unsqueeze(1) * 2.0  # [batch, 1, seq_len, seq_len]
 
+    def _integrate_morph_features(
+        self,
+        hidden_states: torch.Tensor,
+        morph_features: torch.Tensor,
+    ) -> torch.Tensor:
+        """Integrate morphological embeddings into encoder hidden states.
+
+        Pads or truncates morph embeddings to match hidden_states length,
+        concatenates, projects, and applies LayerNorm.
+
+        Args:
+            hidden_states: [batch, seq_len, hidden_dim]
+            morph_features: [batch, word_len, num_features]
+
+        Returns:
+            [batch, seq_len, hidden_dim] updated hidden states
+        """
+        morph_emb = self.morph_embedding(morph_features)
+        target_len = hidden_states.size(1)
+        if morph_emb.size(1) != target_len:
+            if morph_emb.size(1) < target_len:
+                pad = torch.zeros(
+                    morph_emb.size(0),
+                    target_len - morph_emb.size(1),
+                    morph_emb.size(2),
+                    device=morph_emb.device,
+                )
+                morph_emb = torch.cat([morph_emb, pad], dim=1)
+            else:
+                morph_emb = morph_emb[:, :target_len, :]
+        combined = torch.cat([hidden_states, morph_emb], dim=-1)
+        return self.morph_layer_norm(self.morph_projection(combined))
+
     def forward(
         self,
         input_ids: torch.Tensor,
@@ -215,26 +249,7 @@ class MorphologyAwareGEC(nn.Module):
         
         # Integrate morphological features if provided
         if morph_features is not None:
-            morph_emb = self.morph_embedding(morph_features)
-            
-            # Handle sequence length mismatch (subword vs word-level features)
-            if morph_emb.size(1) != hidden_states.size(1):
-                # Pad or truncate morph embeddings to match
-                target_len = hidden_states.size(1)
-                if morph_emb.size(1) < target_len:
-                    pad = torch.zeros(
-                        morph_emb.size(0),
-                        target_len - morph_emb.size(1),
-                        morph_emb.size(2),
-                        device=morph_emb.device,
-                    )
-                    morph_emb = torch.cat([morph_emb, pad], dim=1)
-                else:
-                    morph_emb = morph_emb[:, :target_len, :]
-            
-            # Concatenate and project
-            combined = torch.cat([hidden_states, morph_emb], dim=-1)
-            hidden_states = self.morph_projection(combined)
+            hidden_states = self._integrate_morph_features(hidden_states, morph_features)
         
         # Agreement prediction (auxiliary task)
         agreement_logits = self.agreement_predictor(hidden_states)
@@ -323,21 +338,7 @@ class MorphologyAwareGEC(nn.Module):
             
             if morph_features is not None:
                 morph_features = morph_features.to(device)
-                morph_emb = self.morph_embedding(morph_features)
-                if morph_emb.size(1) != hidden_states.size(1):
-                    target_len = hidden_states.size(1)
-                    if morph_emb.size(1) < target_len:
-                        pad = torch.zeros(
-                            morph_emb.size(0),
-                            target_len - morph_emb.size(1),
-                            morph_emb.size(2),
-                            device=device,
-                        )
-                        morph_emb = torch.cat([morph_emb, pad], dim=1)
-                    else:
-                        morph_emb = morph_emb[:, :target_len, :]
-                combined = torch.cat([hidden_states, morph_emb], dim=-1)
-                hidden_states = self.morph_projection(combined)
+                hidden_states = self._integrate_morph_features(hidden_states, morph_features)
             
             # Apply agreement graph bias if provided
             if agreement_mask is not None:

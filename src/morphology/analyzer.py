@@ -169,6 +169,12 @@ COMPOUND_PREFIXES = {"وەر", "هەڵ", "لێ", "تێ", "دەر", "پێ"}
 MOOD_ASPECT_PREFIXES = {"دە", "ب", "ئە"}
 VOICE_SUFFIXES = {"ڕا", "ڕێ", "اند", "ێن"}  # passive-past, passive-present, causative-past, causative-present
 
+# Pre-sorted prefix/suffix lists (longest-first) — avoids re-sorting on every call
+_NEGATION_PREFIXES_SORTED = sorted(NEGATION_PREFIXES, key=len, reverse=True)
+_COMPOUND_PREFIXES_SORTED = sorted(COMPOUND_PREFIXES, key=len, reverse=True)
+_MOOD_ASPECT_PREFIXES_SORTED = sorted(MOOD_ASPECT_PREFIXES, key=len, reverse=True)
+_VOICE_SUFFIXES_SORTED = sorted(VOICE_SUFFIXES, key=len, reverse=True)
+
 # Infinitive suffix — Amin (2016), pp. 144-175
 # Sorani infinitives = past stem + allomorph + ن
 # Five ending patterns: ان, تن, دن, وون, ین (lexically determined by root)
@@ -176,6 +182,12 @@ INFINITIVE_SUFFIX = "ن"
 
 PRESENT_PERSON_SUFFIXES = {"م", "یت", "ێت", "ین", "ن", "ەم", "ەن", "ات", "ێ"}
 PAST_PERSON_SUFFIXES = {"م", "ت", "مان", "تان", "یان"}  # 3sg = zero
+
+# Pre-sorted person suffix lists (depend on PRESENT/PAST_PERSON_SUFFIXES above)
+_PERSON_SUFFIXES_SORTED = sorted(
+    PRESENT_PERSON_SUFFIXES | PAST_PERSON_SUFFIXES, key=len, reverse=True
+)
+_PRESENT_SUFFIXES_SORTED = sorted(PRESENT_PERSON_SUFFIXES, key=len, reverse=True)
 
 # Portmanteau suffix for 3sg transitive present perfect — Amin (2016), p. 56
 # Combines copula + 3sg agreement + transitive marking in one morph.
@@ -315,6 +327,26 @@ CLITIC_PERSON_MAP: dict[str, tuple[str, str]] = {
     "ت":   ("2", "sg"),
     "ی":   ("3", "sg"),
 }
+
+# Verb suffix → (person, number) mapping — static, used by analyzer
+_SUFFIX_PERSON_NUMBER: dict[str, tuple[str, str]] = {
+    "م": ("1", "sg"),
+    "ەم": ("1", "sg"),
+    "یت": ("2", "sg"),
+    "ت": ("2", "sg"),
+    "ێت": ("3", "sg"),
+    "ێ": ("3", "sg"),
+    "ات": ("3", "sg"),
+    "ین": ("1", "pl"),
+    "ن": ("3", "pl"),
+    "ەن": ("3", "pl"),
+    "مان": ("1", "pl"),
+    "تان": ("2", "pl"),
+    "یان": ("3", "pl"),
+}
+
+# Cached set difference: adverbial question words = QUESTION_WORDS - INTERROGATIVE_PRONOUNS
+_ADVERBIAL_QUESTION_WORDS = QUESTION_WORDS - INTERROGATIVE_PRONOUNS
 
 
 @dataclass
@@ -546,8 +578,7 @@ class MorphologicalAnalyzer:
         
         # --- Question words that function as adverbs ---
         # چۆن (how), کوا (where), کەی (when), بۆچی (why)
-        adverbial_question_words = QUESTION_WORDS - INTERROGATIVE_PRONOUNS
-        if token in adverbial_question_words:
+        if token in _ADVERBIAL_QUESTION_WORDS:
             features.pos = "ADV"
             features.lemma = token
             return True
@@ -617,7 +648,7 @@ class MorphologicalAnalyzer:
                 return
         
         # 1. Check negation prefix
-        for neg in sorted(NEGATION_PREFIXES, key=len, reverse=True):
+        for neg in _NEGATION_PREFIXES_SORTED:
             if remaining.startswith(neg):
                 features.negated = True
                 remaining = remaining[len(neg):]
@@ -627,7 +658,7 @@ class MorphologicalAnalyzer:
                 break
         
         # 2. Check compound verb prefix
-        for cpx in sorted(COMPOUND_PREFIXES, key=len, reverse=True):
+        for cpx in _COMPOUND_PREFIXES_SORTED:
             if remaining.startswith(cpx):
                 features.compound_prefix = cpx
                 remaining = remaining[len(cpx):]
@@ -635,7 +666,7 @@ class MorphologicalAnalyzer:
         
         # 3. Check mood/aspect prefix → determines tense
         has_mood_prefix = False
-        for mood in sorted(MOOD_ASPECT_PREFIXES, key=len, reverse=True):
+        for mood in _MOOD_ASPECT_PREFIXES_SORTED:
             if remaining.startswith(mood):
                 if mood == "دە":
                     if not features.tense:
@@ -652,38 +683,9 @@ class MorphologicalAnalyzer:
                     # Single-signal acceptance only for negation/compound
                     # (which are themselves strong verb indicators).
                     stem_after_b = remaining[1:]
-                    evidence_score = 0
-                    if features.negated or features.compound_prefix:
-                        evidence_score = 2  # strong: negation/compound already found
-                    else:
-                        # Check known present stems (strongest lexical evidence)
-                        if any(stem_after_b.startswith(s)
-                               for s in IRREGULAR_PRESENT_STEMS.values()):
-                            evidence_score += 2
-                        # Check past morpheme allomorph stems
-                        elif any(stem_after_b.startswith(s)
-                                 for stems in PAST_MORPHEME_ALLOMORPHS.values()
-                                 for s in stems):
-                            evidence_score += 1
-                        # Check ش→ژ alternation stems
-                        if any(stem_after_b.startswith(s)
-                               for s in SH_ZH_ALTERNATION.values()):
-                            evidence_score += 1
-                        # Check person suffix with stem core >= 2 chars
-                        for suf in sorted(PRESENT_PERSON_SUFFIXES,
-                                          key=len, reverse=True):
-                            if (stem_after_b.endswith(suf)
-                                    and len(stem_after_b) > len(suf)
-                                    and len(stem_after_b) - len(suf) >= 2):
-                                evidence_score += 1
-                                # Bonus: if the stem core (after removing suffix)
-                                # matches a known allomorph or present stem
-                                stem_core = stem_after_b[:-len(suf)]
-                                if (any(stem_core in stems
-                                        for stems in PAST_MORPHEME_ALLOMORPHS.values())
-                                        or stem_core in IRREGULAR_PRESENT_STEMS.values()):
-                                    evidence_score += 1
-                                break
+                    evidence_score = self._score_b_prefix_evidence(
+                        stem_after_b, features.negated, features.compound_prefix,
+                    )
                     
                     # Require score >= 2: either negation/compound (auto-2),
                     # or known present stem (2), or stem_match + suffix (1+1),
@@ -726,8 +728,11 @@ class MorphologicalAnalyzer:
             # Pattern fallback: vowel + ت + right_vowel for ALL environments
             # Catches rare stems not in EPENTHETIC_T_VERB_STEMS.
             # Anchored to remaining end to avoid substring false positives.
+            # Runs when verb evidence exists (mood prefix, negation, or
+            # compound prefix) to avoid false positives on nouns.
             if (not features.raw_analysis.get("has_epenthetic_t")
-                    and has_mood_prefix):
+                    and (has_mood_prefix or features.negated
+                         or features.compound_prefix)):
                 for left_v, right_v in EPENTHETIC_T_ENVIRONMENTS:
                     pat = left_v + "ت" + right_v
                     if remaining.endswith(pat) and len(remaining) > len(pat):
@@ -782,7 +787,7 @@ class MorphologicalAnalyzer:
                         features.tense = "present"
 
         # 5. Check voice suffixes (passive/causative) before person suffix
-        for voice_suf in sorted(VOICE_SUFFIXES, key=len, reverse=True):
+        for voice_suf in _VOICE_SUFFIXES_SORTED:
             if remaining.endswith(voice_suf) and len(remaining) > len(voice_suf):
                 if voice_suf in ("ڕا", "ڕێ"):
                     features.voice = "passive"
@@ -812,8 +817,7 @@ class MorphologicalAnalyzer:
             features.pos = features.pos or "VERB"
             features.raw_analysis["is_portmanteau_perfect"] = True
         else:
-            for suffix in sorted(PRESENT_PERSON_SUFFIXES | PAST_PERSON_SUFFIXES,
-                                 key=len, reverse=True):
+            for suffix in _PERSON_SUFFIXES_SORTED:
                 if remaining.endswith(suffix) and len(remaining) > len(suffix):
                     pn = self._suffix_to_person_number(suffix)
                     if pn:
@@ -931,22 +935,49 @@ class MorphologicalAnalyzer:
     @staticmethod
     def _suffix_to_person_number(suffix: str) -> tuple[str, str] | None:
         """Map a verb suffix to (person, number) tuple."""
-        mapping = {
-            "م": ("1", "sg"),
-            "ەم": ("1", "sg"),
-            "یت": ("2", "sg"),
-            "ت": ("2", "sg"),
-            "ێت": ("3", "sg"),
-            "ێ": ("3", "sg"),
-            "ات": ("3", "sg"),
-            "ین": ("1", "pl"),
-            "ن": ("3", "pl"),
-            "ەن": ("3", "pl"),
-            "مان": ("1", "pl"),
-            "تان": ("2", "pl"),
-            "یان": ("3", "pl"),
-        }
-        return mapping.get(suffix)
+        return _SUFFIX_PERSON_NUMBER.get(suffix)
+
+    @staticmethod
+    def _score_b_prefix_evidence(
+        stem_after_b: str, negated: bool, compound_prefix: str,
+    ) -> int:
+        """Score evidence that ب is a subjunctive/imperative prefix.
+
+        Returns an integer score; threshold of >= 2 indicates ب is
+        likely a verb prefix rather than part of a noun stem.
+
+        Evidence signals:
+          - Negation/compound prefix already found → 2 (strong)
+          - Known present stem → 2
+          - Past allomorph stem → 1
+          - ش→ژ alternation stem → 1
+          - Person suffix + stem core match → 1-2
+        """
+        if negated or compound_prefix:
+            return 2
+        score = 0
+        if any(stem_after_b.startswith(s)
+               for s in IRREGULAR_PRESENT_STEMS.values()):
+            score += 2
+        elif any(stem_after_b.startswith(s)
+                 for stems in PAST_MORPHEME_ALLOMORPHS.values()
+                 for s in stems):
+            score += 1
+        if any(stem_after_b.startswith(s)
+               for s in SH_ZH_ALTERNATION.values()):
+            score += 1
+        for suf in _PRESENT_SUFFIXES_SORTED:
+            if (stem_after_b.endswith(suf)
+                    and len(stem_after_b) > len(suf)
+                    and len(stem_after_b) - len(suf) >= 2):
+                score += 1
+                stem_core = stem_after_b[:-len(suf)]
+                if (any(stem_core in stems
+                        for stems in PAST_MORPHEME_ALLOMORPHS.values())
+                        or stem_core in IRREGULAR_PRESENT_STEMS.values()):
+                    score += 1
+                break
+        return score
     
     def analyze_sentence(self, sentence: str) -> list[MorphFeatures]:
         """Analyze all tokens in a sentence.

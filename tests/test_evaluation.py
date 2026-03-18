@@ -142,7 +142,7 @@ def test_agreement_checker_clitic_consistency():
     """Clitic consistency check runs (no crash) on normal sentence."""
     checker = AgreementChecker()
     result = checker.check_sentence("پارەکەم بردەوە")
-    assert result.checks_total == 4
+    assert result.checks_total == 5
     print(f"  Clitic check: violations={result.violations}")
 
 

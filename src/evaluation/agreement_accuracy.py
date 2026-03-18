@@ -20,7 +20,12 @@ from ..morphology.analyzer import (
     CLITIC_PERSON_MAP,
     PRESENT_PERSON_SUFFIXES,
 )
-from ..morphology.constants import SUBJECT_PRONOUNS
+from ..morphology.constants import SUBJECT_PRONOUNS, TRANSITIVE_PAST_STEMS
+from ..morphology.builder import (
+    _is_present_verb,
+    _is_past_verb,
+    _is_transitive_past,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +110,11 @@ class AgreementChecker:
         t_violations = self._check_tense_consistency(sentence)
         violations.extend(t_violations)
         total_checks += 1
+
+        # Check 5: Object-verb agreement (Law 2 — ergative past transitive)
+        ov_violations = self._check_object_verb_ergative(sentence)
+        violations.extend(ov_violations)
+        total_checks += 1
         
         passed = total_checks - min(len(violations), total_checks)
         
@@ -164,7 +174,7 @@ class AgreementChecker:
     
     def _check_clitic_consistency(self, sentence: str) -> list[str]:
         """Check for inconsistent clitic usage within a clause.
-        
+
         Rules enforced:
         - F#133: Same-set clitic exclusion — two clitics from the same set
           (e.g., two Set 1 clitics) cannot co-occur in a simple sentence.
@@ -174,30 +184,33 @@ class AgreementChecker:
         violations = []
         words = self._analyzer.tokenize(sentence)
         found_clitics: list[tuple[str, str, str]] = []  # (clitic, person, number)
-        
+
         for word in words:
-            # H2 fix: Set 2 verb suffixes (م/ت/ی on دەکەم etc.) are NOT
-            # Set 1 clitics. Skip words with present-tense verb prefixes.
-            if any(word.startswith(p) for p in _PRESENT_PREFIXES) or word.startswith(_NEGATION_PRESENT_PREFIX):
+            # Set 2 verb suffixes (م/ت/ی on دەکەم etc.) are NOT
+            # Set 1 clitics. Skip present-tense verbs entirely.
+            if _is_present_verb(word) or word.startswith(_NEGATION_PRESENT_PREFIX):
                 continue
+            # Skip possessive hosts: nouns with ezafe + clitic are Set 3,
+            # not Set 1. Detect by checking for ی before the clitic.
             for cl, (person, number) in CLITIC_PERSON_MAP.items():
                 if word.endswith(cl) and len(word) > len(cl) + 1:
+                    stem = word[: -len(cl)]
+                    # If stem ends with ezafe ی, this is a possessive (Set 3)
+                    if stem.endswith("ی"):
+                        continue
                     found_clitics.append((cl, person, number))
                     break
-        
-        # Same-set exclusion check: if we see two different clitics with
-        # different person values, and both are from Set 1 (suffixal position),
-        # that's a violation. In a simple sentence, only one Set 1 clitic is
-        # allowed — F#133 (Fatah & Qadir 2006, p. 42).
+
+        # Same-set exclusion check: if we see two different Set 1 clitics
+        # with different person values, that's a violation — F#133.
         if len(found_clitics) >= 2:
             persons_seen = {c[1] for c in found_clitics}
-            # Two different person clitics in same clause is suspicious
-            if len(persons_seen) >= 3:
+            if len(persons_seen) >= 2:
                 violations.append(
-                    f"Clitic inconsistency: {len(found_clitics)} clitics with "
-                    f"{len(persons_seen)} different persons in one clause"
+                    f"Clitic inconsistency: {len(found_clitics)} Set 1 clitics "
+                    f"with {len(persons_seen)} different persons in one clause"
                 )
-        
+
         return violations
     
     def _check_ezafe(self, sentence: str) -> list[str]:
@@ -287,25 +300,91 @@ class AgreementChecker:
     
     @staticmethod
     def _detect_clause_tense(words: list[str]) -> Optional[str]:
-        """Detect the dominant tense of a clause from verb morphology."""
+        """Detect the dominant tense of a clause from verb morphology.
+
+        Delegates to builder helpers for present-tense detection; falls back
+        to stem matching for past tense.
+        """
         for word in words:
-            if word.startswith("دە") or word.startswith("ئە"):
+            if _is_present_verb(word):
                 return "present"
-            if word.startswith(_NEGATION_PRESENT_PREFIX) and len(word) > 2:
-                return "present"
-            if word.startswith(_NEGATION_PAST_PREFIX) and len(word) > 2:
-                # نە + past stem → past
-                return "past"
+            # نا + verb stem = negated present (e.g. ناکات, نازانم).
+            # Guard against false positives on nouns like نانی by requiring
+            # a present-tense verb ending after the prefix.
+            if word.startswith(_NEGATION_PRESENT_PREFIX) and len(word) > 3:
+                remainder = word[len(_NEGATION_PRESENT_PREFIX):]
+                if any(remainder.endswith(s) for s in _PRESENT_ENDINGS):
+                    return "present"
             if word.startswith(_IMPERATIVE_PREFIX) and len(word) > 1:
-                return "present"  # imperative is non-past
-        # No prefix → could be past tense (past verbs have no prefix in Sorani)
-        # Only mark as past if we see common past patterns
+                return "present"
+        # Past: check for known transitive/intransitive past stems
         for word in words:
-            # Past verbs often end with past person suffixes without any prefix
-            # This is a heuristic — look for words ending in common past patterns
+            if _is_present_verb(word):
+                continue
+            for stem in TRANSITIVE_PAST_STEMS:
+                if word.startswith(stem) or (
+                    word.startswith(_NEGATION_PAST_PREFIX)
+                    and word[len(_NEGATION_PAST_PREFIX):].startswith(stem)
+                ):
+                    return "past"
             if any(word.endswith(p) for p in ("مان", "تان", "یان")) and len(word) > 4:
                 return "past"
         return None
+
+    def _check_object_verb_ergative(self, sentence: str) -> list[str]:
+        """Check object-verb agreement in past transitive clauses (Law 2).
+
+        In Sorani Kurdish, past transitive verbs agree with the object in
+        person and number — not the subject. This is the ergative split
+        described by Slevanayi (2001, pp. 60-61, 89) and implemented in
+        the builder as Step 3 (VS) and Step 7 (VO).
+
+        Checks: if a past transitive verb carries a Set 2 suffix whose
+        person/number conflicts with a nearby definite object NP, flag it.
+        """
+        violations = []
+        words = self._analyzer.tokenize(sentence)
+
+        for i, word in enumerate(words):
+            # Skip present-tense verbs
+            if _is_present_verb(word):
+                continue
+            if not _is_transitive_past(word):
+                continue
+
+            # Extract verb person/number from suffix
+            verb_pn = self._verb_ending_to_pn(word)
+            if verb_pn is None:
+                continue
+            verb_person, verb_number = verb_pn
+
+            # Scan backward for the nearest object candidate:
+            # definite nouns (ending in ەکە/ەکان) or pronouns
+            for j in range(i - 1, max(i - 6, -1), -1):
+                obj = words[j]
+                obj_person: str | None = None
+                obj_number: str | None = None
+
+                if obj in _PRONOUN_AGREEMENT:
+                    obj_person, obj_number = _PRONOUN_AGREEMENT[obj]
+                elif obj.endswith("ەکان") or obj.endswith("یەکان"):
+                    obj_person, obj_number = "3", "pl"
+                elif obj.endswith("ەکە") or obj.endswith("یەکە"):
+                    obj_person, obj_number = "3", "sg"
+                else:
+                    continue
+
+                if obj_person and (
+                    obj_person != verb_person or obj_number != verb_number
+                ):
+                    violations.append(
+                        f"Ergative mismatch (Law 2): object '{obj}' "
+                        f"({obj_person}{obj_number}) with past transitive "
+                        f"verb '{word}' ({verb_person}{verb_number})"
+                    )
+                break  # only check nearest object
+
+        return violations
 
 
 def evaluate_agreement_accuracy(

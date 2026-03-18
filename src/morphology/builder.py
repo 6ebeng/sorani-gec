@@ -358,6 +358,30 @@ def _resolve_compound_subject_person(person_numbers: list[tuple[str, str]]) -> t
     if not person_numbers:
         return ("3", "sg")
 
+
+def _is_eligible_noun_subject(token: str, features: MorphFeatures) -> bool:
+    """Check if a marked noun is eligible to be a subject.
+
+    Filters out oblique-cased nouns, interrogatives, reciprocals,
+    quantifiers, mass nouns, collectives, demonstratives, proper nouns,
+    and bare nouns. Used by Steps 2d and 3-VS to avoid duplication.
+
+    Source: Slevanayi (2001), pp. 55-56, 60-61.
+    """
+    if features.pos != "NOUN":
+        return False
+    if getattr(features, "case", "") == "obl":
+        return False
+    if _is_bare_noun(token, features):
+        return False
+    if _is_interrogative(token) or _is_reciprocal(token):
+        return False
+    if (_is_quantifier(token) or _is_mass_noun(token)
+            or _is_collective_noun(token) or _is_demonstrative(token)
+            or _is_proper_noun(token)):
+        return False
+    return True
+
     # Compound subject is always plural
     best_person = "3"
     for person, _ in person_numbers:
@@ -700,20 +724,10 @@ def build_agreement_graph(
     # These are not bare nouns (Step 2c) and not pronouns (Step 2).
     # Source: Slevanayi (2001), pp. 55-56, 60-61.
     for i, tok in enumerate(tokens):
-        if features[i].pos != "NOUN":
-            continue
-        if getattr(features[i], "case", "") == "obl":
+        if not _is_eligible_noun_subject(tok, features[i]):
             continue
         already_subject = any(i in s["indices"] for s in subject_spans)
         if already_subject:
-            continue
-        if _is_bare_noun(tok, features[i]):
-            continue
-        if _is_interrogative(tok) or _is_reciprocal(tok):
-            continue
-        if (_is_quantifier(tok) or _is_mass_noun(tok)
-                or _is_collective_noun(tok) or _is_demonstrative(tok)
-                or _is_proper_noun(tok)):
             continue
         # Marked noun (definite, plural, etc.) — check it precedes a verb
         for vi in verb_info:
@@ -772,8 +786,8 @@ def build_agreement_graph(
                     law="law2",
                 )
                 logger.debug(
-                    f"Law 2: Agent '{tokens[subj['indices'][0]]}' at "
-                    f"{subj['indices'][0]} → verb at {vi} (non-agreeing)"
+                    "Law 2: Agent '%s' at %d → verb at %d (non-agreeing)",
+                    tokens[subj['indices'][0]], subj['indices'][0], vi,
                 )
             # Closest to verb is the object (patient)
             obj = candidates[-1]
@@ -783,8 +797,8 @@ def build_agreement_graph(
                 law="law2",
             )
             logger.debug(
-                f"Law 2: Object '{tokens[obj['indices'][0]]}' at "
-                f"{obj['indices'][0]} → verb at {vi} (ergative agreement)"
+                "Law 2: Object '%s' at %d → verb at %d (ergative agreement)",
+                tokens[obj['indices'][0]], obj['indices'][0], vi,
             )
         else:
             # Single span — agent; object detected in Step 3a
@@ -794,8 +808,8 @@ def build_agreement_graph(
                 law="law2",
             )
             logger.debug(
-                f"Law 2: Agent '{tokens[candidates[0]['indices'][0]]}' at "
-                f"{candidates[0]['indices'][0]} → verb at {vi} (non-agreeing)"
+                "Law 2: Agent '%s' at %d → verb at %d (non-agreeing)",
+                tokens[candidates[0]['indices'][0]], candidates[0]['indices'][0], vi,
             )
 
     # ------------------------------------------------------------------
@@ -842,16 +856,7 @@ def build_agreement_graph(
                 )
                 break
             # H1 fix: definite/marked nouns in VS order (mirrors Step 2d)
-            if (features[j].pos == "NOUN"
-                    and not _is_bare_noun(tokens[j], features[j])
-                    and not _is_interrogative(tokens[j])
-                    and not _is_reciprocal(tokens[j])
-                    and getattr(features[j], "case", "") != "obl"
-                    and not _is_quantifier(tokens[j])
-                    and not _is_mass_noun(tokens[j])
-                    and not _is_collective_noun(tokens[j])
-                    and not _is_demonstrative(tokens[j])
-                    and not _is_proper_noun(tokens[j])):
+            if _is_eligible_noun_subject(tokens[j], features[j]):
                 graph.add_edge(
                     j, vi,
                     "backward_subject_verb", ["person", "number"],
@@ -910,8 +915,9 @@ def build_agreement_graph(
                     law="law2",
                 )
                 logger.debug(
-                    f"Finding #89: Detected bare noun object "
-                    f"'{tokens[j]}' at {j} → zero agreement with verb at {vi}"
+                    "Finding #89: Detected bare noun object '%s' at %d → "
+                    "zero agreement with verb at %d",
+                    tokens[j], j, vi,
                 )
                 break
             else:
@@ -1031,8 +1037,9 @@ def build_agreement_graph(
                             law="law1",
                         )
                         logger.debug(
-                            f"F#68: Mass noun '{tokens[i]}' at {i} — "
-                            f"no measure word, no agreement with verb at {vi}"
+                            "F#68: Mass noun '%s' at %d — no measure word, "
+                            "no agreement with verb at %d",
+                            tokens[i], i, vi,
                         )
                         break
         elif _is_collective_noun(tokens[i]):
@@ -1053,8 +1060,8 @@ def build_agreement_graph(
                             law="law1",
                         )
                         logger.debug(
-                            f"Collective+quantifier → plural edge: "
-                            f"{tokens[i]} at {i} → verb at {vi}"
+                            "Collective+quantifier → plural edge: %s at %d → verb at %d",
+                            tokens[i], i, vi,
                         )
                     else:
                         # Bare collective → singular (3sg default, person only)
@@ -1064,8 +1071,8 @@ def build_agreement_graph(
                             law="law1",
                         )
                         logger.debug(
-                            f"Bare collective → singular edge: "
-                            f"{tokens[i]} at {i} → verb at {vi}"
+                            "Bare collective → singular edge: %s at %d → verb at %d",
+                            tokens[i], i, vi,
                         )
                     break
         elif _is_demonstrative(tokens[i]):
@@ -1099,7 +1106,8 @@ def build_agreement_graph(
             if _is_invariant(modifier):
                 # Adjective/reflexive/etc. — no agreement edge (invariant)
                 logger.debug(
-                    f"Skipping invariant modifier '{modifier}' at position {i + 1}"
+                    "Skipping invariant modifier '%s' at position %d",
+                    modifier, i + 1,
                 )
             elif features[i + 1].pos == "ADJ":
                 # Finding #79: adjectives NEVER agree in number/gender.
@@ -1110,8 +1118,8 @@ def build_agreement_graph(
                     "adjective_invariant", [],
                 )
                 logger.debug(
-                    f"F#79: Adjective invariant edge for "
-                    f"'{modifier}' at position {i + 1}"
+                    "F#79: Adjective invariant edge for '%s' at position %d",
+                    modifier, i + 1,
                 )
             elif features[i + 1].pos in ("", "NOUN", "DET", "NUM"):
                 graph.add_edge(i, i + 1, "noun_det", ["number"])
@@ -1161,8 +1169,9 @@ def build_agreement_graph(
                         i, i, "possessive_no_agreement", [],
                     )
                     logger.debug(
-                        f"F#71: Possessive clitic '{cl}' on non-verb "
-                        f"'{tok}' at {i} — possessive_no_agreement edge"
+                        "F#71: Possessive clitic '%s' on non-verb '%s' at %d — "
+                        "possessive_no_agreement edge",
+                        cl, tok, i,
                     )
                     break
 
@@ -1205,8 +1214,8 @@ def build_agreement_graph(
                             law=verb_info[nearest_verb_idx]["law"] if nearest_verb_idx is not None else "",
                         )
                         logger.debug(
-                            f"Clitic edge: {clitic_role} from {j}→{i}, "
-                            f"clitic='{cl}' on '{tok}'"
+                            "Clitic edge: %s from %d→%d, clitic='%s' on '%s'",
+                            clitic_role, j, i, cl, tok,
                         )
                         break
                 break
@@ -1233,8 +1242,9 @@ def build_agreement_graph(
             if has_possessive:
                 # Possession: verb stays 3sg — no agreement edge to possessor
                 logger.debug(
-                    f"Existential-possession at {vi}: verb stays 3sg, "
-                    f"possessive pronoun does not agree"
+                    "Existential-possession at %d: verb stays 3sg, "
+                    "possessive pronoun does not agree",
+                    vi,
                 )
             elif vi not in verb_info:
                 # Existence use: add to verb_info as Law 1 intransitive
@@ -1311,8 +1321,8 @@ def build_agreement_graph(
             law=verb_info.get(rel_verb_idx, {}).get("law", "law1"),
         )
         logger.debug(
-            f"F#141: Relative clause edge: antecedent '{tokens[antecedent_idx]}' "
-            f"at {antecedent_idx} → verb '{tokens[rel_verb_idx]}' at {rel_verb_idx}"
+            "F#141: Relative clause edge: antecedent '%s' at %d → verb '%s' at %d",
+            tokens[antecedent_idx], antecedent_idx, tokens[rel_verb_idx], rel_verb_idx,
         )
 
     # ------------------------------------------------------------------
@@ -1337,8 +1347,9 @@ def build_agreement_graph(
                     i, i + 1, "noun_det", ["number"],
                 )
                 logger.debug(
-                    f"F#117: Pre-head '{tok}' at {i} has potential "
-                    f"spurious ezafe before '{next_tok}'"
+                    "F#117: Pre-head '%s' at %d has potential spurious ezafe "
+                    "before '%s'",
+                    tok, i, next_tok,
                 )
 
     # ------------------------------------------------------------------
@@ -1356,8 +1367,9 @@ def build_agreement_graph(
                         and features[i + 1].pos == "ADJ"):
                     # ەکە should be on the adjective, not the noun
                     logger.debug(
-                        f"F#115: Definite noun '{tok}' at {i} followed by "
-                        f"ADJ '{tokens[i + 1]}' — marker should migrate to modifier"
+                        "F#115: Definite noun '%s' at %d followed by ADJ '%s' — "
+                        "marker should migrate to modifier",
+                        tok, i, tokens[i + 1],
                     )
 
     # ------------------------------------------------------------------
@@ -1384,8 +1396,9 @@ def build_agreement_graph(
         # This corresponds to YI_DOUBLE_SCENARIOS[1] ("yi_final_plus_ezafe")
         if base.endswith(_yi) and not tok.endswith("یی"):
             logger.debug(
-                f"F#165: '{tok}' at {i} — ی-final base '{base}' "
-                f"needs double یی (scenario: {YI_DOUBLE_SCENARIOS[1]})"
+                "F#165: '%s' at %d — ی-final base '%s' needs double یی "
+                "(scenario: %s)",
+                tok, i, base, YI_DOUBLE_SCENARIOS[1],
             )
 
     # ------------------------------------------------------------------
@@ -1407,8 +1420,9 @@ def build_agreement_graph(
                         break
                 if not has_complement:
                     logger.debug(
-                        f"F#118: Complement-requiring verb '{verb_token}' "
-                        f"at {vi} has no prepositional complement detected"
+                        "F#118: Complement-requiring verb '%s' at %d has no "
+                        "prepositional complement detected",
+                        verb_token, vi,
                     )
                 break
 
@@ -1471,7 +1485,7 @@ def build_agreement_graph(
             break
 
     logger.debug(
-        f"Built agreement graph with {len(graph.edges)} edges for "
-        f"{len(tokens)} tokens"
+        "Built agreement graph with %d edges for %d tokens",
+        len(graph.edges), len(tokens),
     )
     return graph
