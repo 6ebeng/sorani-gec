@@ -74,6 +74,7 @@ class CorpusCollector:
         
         apcontinue = None
         articles_fetched = 0
+        seen_pageids: set[int] = set()
         
         try:
             while articles_fetched < max_articles:
@@ -85,7 +86,11 @@ class CorpusCollector:
                 
                 pages = data.get("query", {}).get("allpages", [])
                 for page in pages:
-                    page_sentences = self._fetch_wiki_page(base_url, page["pageid"])
+                    pid = page["pageid"]
+                    if pid in seen_pageids:
+                        continue
+                    seen_pageids.add(pid)
+                    page_sentences = self._fetch_wiki_page(base_url, pid)
                     sentences.extend(page_sentences)
                     articles_fetched += 1
                     
@@ -95,11 +100,15 @@ class CorpusCollector:
                 # Check for continuation
                 if "continue" in data:
                     apcontinue = data["continue"].get("apcontinue")
+                    if apcontinue is None:
+                        break
                 else:
                     break
                     
-        except Exception as e:
-            logger.warning("Wikipedia API error: %s", e)
+        except requests.RequestException as e:
+            logger.warning("Wikipedia API network error: %s", e)
+        except (KeyError, json.JSONDecodeError) as e:
+            logger.warning("Wikipedia API response parse error: %s", e)
         
         return sentences
     
@@ -138,7 +147,7 @@ class CorpusCollector:
             
             return sentences
             
-        except Exception as e:
+        except (requests.RequestException, KeyError, ValueError) as e:
             logger.debug("Failed to fetch page %s: %s", pageid, e)
             return []
     

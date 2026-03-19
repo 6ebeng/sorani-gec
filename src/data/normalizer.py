@@ -151,6 +151,8 @@ class SoraniNormalizer:
     
     def normalize_file(self, input_path: str, output_path: str) -> int:
         """Normalize a text file line by line. Returns number of lines processed."""
+        out = Path(output_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
         count = 0
         with open(input_path, "r", encoding="utf-8") as fin, \
              open(output_path, "w", encoding="utf-8") as fout:

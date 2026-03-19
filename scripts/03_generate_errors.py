@@ -9,6 +9,7 @@ import argparse
 import logging
 import os
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -30,7 +31,18 @@ def main():
     parser.add_argument("--corruption-ratio", type=float, default=0.7)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
-    
+
+    if not Path(args.input).exists():
+        logger.error("Input file not found: %s", args.input)
+        raise SystemExit(1)
+
+    if not (0.0 < args.error_rate <= 1.0):
+        logger.error("--error-rate must be in (0, 1], got %s", args.error_rate)
+        raise SystemExit(1)
+    if not (0.0 <= args.corruption_ratio <= 1.0):
+        logger.error("--corruption-ratio must be in [0, 1], got %s", args.corruption_ratio)
+        raise SystemExit(1)
+
     pipeline = ErrorPipeline(
         error_rate=args.error_rate,
         seed=args.seed,

@@ -34,6 +34,15 @@ def main():
                         help="Key to stratify by (default: error_type)")
     args = parser.parse_args()
 
+    ratio_sum = args.train_ratio + args.dev_ratio + args.test_ratio
+    if abs(ratio_sum - 1.0) > 1e-6:
+        logger.error("Split ratios must sum to 1.0, got %.6f", ratio_sum)
+        raise SystemExit(1)
+
+    if not Path(args.input).exists():
+        logger.error("Input file not found: %s", args.input)
+        raise SystemExit(1)
+
     stats = run_split(
         input_path=Path(args.input),
         output_dir=Path(args.output),

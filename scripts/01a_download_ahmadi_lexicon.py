@@ -1,5 +1,6 @@
 import os
 import urllib.request
+import urllib.error
 from pathlib import Path
 
 def download_lexicon():
@@ -11,10 +12,14 @@ def download_lexicon():
     
     print(f"Downloading Sina Ahmadi's Kurdish lexicon data to {dic_path}...")
     req = urllib.request.Request(base_url, headers={'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req) as response:
-        content = response.read()
-        with open(dic_path, "wb") as f:
-            f.write(content)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:
+            content = response.read()
+            with open(dic_path, "wb") as f:
+                f.write(content)
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
+        print(f"Error downloading lexicon: {e}")
+        raise SystemExit(1) from e
             
     print(f"Downloaded {len(content)} bytes.")
     print("Lexicon download complete. We can now use Sina Ahmadi's data purely in Python.")

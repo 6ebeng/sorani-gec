@@ -18,7 +18,6 @@ from ..morphology.analyzer import (
     MorphologicalAnalyzer,
     MorphFeatures,
     CLITIC_PERSON_MAP,
-    PRESENT_PERSON_SUFFIXES,
 )
 from ..morphology.constants import SUBJECT_PRONOUNS, TRANSITIVE_PAST_STEMS
 from ..morphology.builder import (
@@ -235,13 +234,16 @@ class AgreementChecker:
         
         in_dem_np = False
         dem_word = ""
+        dem_words_seen = 0
         for i, word in enumerate(words):
             if word in demonstratives:
                 in_dem_np = True
                 dem_word = word
+                dem_words_seen = 0
                 continue
             
             if in_dem_np:
+                dem_words_seen += 1
                 # Within a demonstrative NP, check for prohibited markers
                 has_def = any(word.endswith(m) for m in definite_markers)
                 has_indef = any(word.endswith(m) for m in indefinite_markers)
@@ -255,8 +257,10 @@ class AgreementChecker:
                         f"Demonstrative+indefinite co-occurrence: '{dem_word}' with "
                         f"indefinite marker on '{word}' (F#10/R4)"
                     )
-                # End the demonstrative NP tracking after the first noun
-                if not any(word.startswith(d) for d in demonstratives):
+                # Demonstrative NPs in Sorani can span up to ~3 words
+                # (dem + adj* + noun + closing -ə). End tracking after
+                # 3 non-demonstrative words or at a clause boundary.
+                if dem_words_seen >= 3 or word in {"و", "،", ".", "؟"}:
                     in_dem_np = False
         
         return violations
@@ -274,13 +278,22 @@ class AgreementChecker:
         violations = []
         words = self._analyzer.tokenize(sentence)
         
-        # Split on و to find coordinated clauses
+        # Split on و to find coordinated clauses, but only when و
+        # appears between verb-bearing segments (not NP-internal و).
         clauses: list[list[str]] = [[]]
         for word in words:
-            if word == "و":
+            if word == "و" and len(clauses[-1]) > 1:
                 clauses.append([])
             else:
                 clauses[-1].append(word)
+        
+        # Filter out clauses that contain no verb evidence (likely NP
+        # fragments from NP-internal و splits).
+        verb_prefixes = ("دە", "ئە", "نا", "بی", "بە", "ب")
+        clauses = [
+            c for c in clauses
+            if any(w.startswith(vp) for w in c for vp in verb_prefixes)
+        ] or clauses  # keep original if no verb clauses found
         
         # Determine tense of each clause
         clause_tenses: list[Optional[str]] = []

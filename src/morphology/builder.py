@@ -694,6 +694,9 @@ def build_agreement_graph(
     # in NEITHER person NOR number (Slevanayi 2001, pp. 55-56).
     for i, tok in enumerate(tokens):
         if _is_bare_noun(tok, features[i]):
+            # Not bare if preceded by a universal quantifier/determiner
+            if i > 0 and tokens[i - 1] in {"هەموو", "گشت", "هەر", "چەند"}:
+                continue
             # B2: Oblique-cased nouns are not subjects — they are
             # governed by a preposition and cannot control verb agreement.
             if getattr(features[i], "case", "") == "obl":
@@ -1201,8 +1204,8 @@ def build_agreement_graph(
                 else:
                     clitic_role = "clitic_agent"  # default
 
-                # Link to nearest preceding pronoun or noun (within 6 tokens)
-                for j in range(i - 1, max(i - 6, -1), -1):
+                # Link to nearest preceding pronoun or noun (within 8 tokens)
+                for j in range(i - 1, max(i - 8, -1), -1):
                     if _is_clause_boundary(tokens[j], features[j]):
                         break  # don't cross clause boundaries
                     if (tokens[j] in SUBJECT_PRONOUNS
@@ -1293,10 +1296,11 @@ def build_agreement_graph(
         if tok != RELATIVE_CLAUSE_MARKER:
             continue
         # Find antecedent: the nearest preceding noun (often has ezafe).
-        # Window of 4 positions handles modified NPs like
-        # "noun + adj + adj + کە" where the head noun is up to 4 tokens back.
+        # Window of 6 positions handles modified NPs like
+        # "noun + adj + adj + ezafe + dem + کە" where the head noun
+        # can be further back in complex NPs.
         antecedent_idx = None
-        for j in range(i - 1, max(i - 5, -1), -1):
+        for j in range(i - 1, max(i - 7, -1), -1):
             if features[j].pos in ("NOUN", "PRON"):
                 antecedent_idx = j
                 break

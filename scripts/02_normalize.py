@@ -41,7 +41,7 @@ def main():
     
     for txt_file in input_path.glob("*.txt"):
         logger.info("Processing %s...", txt_file.name)
-        with open(txt_file, "r", encoding="utf-8") as f:
+        with open(txt_file, "r", encoding="utf-8", errors="replace") as f:
             for line in f:
                 normalized = normalizer.normalize(line.strip())
                 if normalized and len(normalized) > 20:

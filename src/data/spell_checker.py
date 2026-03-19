@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import List, Optional
 import difflib
 
@@ -32,6 +33,9 @@ class SoraniSpellChecker:
         matches = difflib.get_close_matches(word, self._lexicon.words, n=self.max_suggestions, cutoff=0.7)
         return matches if matches else [word]
 
+    # Regex to split trailing Kurdish/Arabic punctuation from a word
+    _PUNCT_RE = re.compile(r'^(.+?)([.،؟!؛:»«\-]+)$')
+
     def correct_sentence(self, sentence: str) -> str:
         """Apply spell correction to each word in the sentence.
 
@@ -44,6 +48,13 @@ class SoraniSpellChecker:
         words = sentence.split()
         corrected = []
         for word in words:
-            suggestions = self.get_suggestions(word)
-            corrected.append(suggestions[0] if suggestions else word)
+            # Separate trailing punctuation so it doesn't interfere
+            # with dictionary lookup.
+            m = self._PUNCT_RE.match(word)
+            if m:
+                core, punct = m.group(1), m.group(2)
+            else:
+                core, punct = word, ""
+            suggestions = self.get_suggestions(core)
+            corrected.append((suggestions[0] if suggestions else core) + punct)
         return " ".join(corrected)

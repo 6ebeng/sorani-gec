@@ -157,6 +157,7 @@ class MorphologyAwareGEC(nn.Module):
         Returns:
             [batch, 1, seq_len, seq_len] additive attention bias
         """
+        agreement_mask = agreement_mask.to(self.edge_type_weights.device)
         if agreement_mask.dim() == 4:
             # Typed: apply learnable per-type weights then sum
             num_types = agreement_mask.size(1)
@@ -204,13 +205,14 @@ class MorphologyAwareGEC(nn.Module):
         target_len = hidden_states.size(1)
         if morph_emb.size(1) != target_len:
             if morph_emb.size(1) < target_len:
-                pad = torch.zeros(
-                    morph_emb.size(0),
-                    target_len - morph_emb.size(1),
-                    morph_emb.size(2),
-                    device=morph_emb.device,
-                )
-                morph_emb = torch.cat([morph_emb, pad], dim=1)
+                # Repeat-interpolate word-level embeddings to fill byte
+                # positions instead of zero-padding, which would dilute
+                # morphological signal for longer tokens.
+                morph_emb = torch.nn.functional.interpolate(
+                    morph_emb.transpose(1, 2),  # [B, dim, word_len]
+                    size=target_len,
+                    mode="nearest",
+                ).transpose(1, 2)  # [B, target_len, dim]
             else:
                 morph_emb = morph_emb[:, :target_len, :]
         combined = torch.cat([hidden_states, morph_emb], dim=-1)

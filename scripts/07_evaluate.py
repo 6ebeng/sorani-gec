@@ -37,8 +37,18 @@ def load_test_data(test_src: str, test_ref: str) -> tuple[list[str], list[str]]:
     if src_path.suffix == ".jsonl" and src_path.exists():
         sources, references = [], []
         with open(src_path, "r", encoding="utf-8") as f:
-            for line in f:
-                rec = json.loads(line.strip())
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    logger.warning("Skipping malformed JSON at line %d", line_num)
+                    continue
+                if "source" not in rec or "target" not in rec:
+                    logger.warning("Missing source/target at line %d", line_num)
+                    continue
                 sources.append(rec["source"])
                 references.append(rec["target"])
         return sources, references
@@ -100,7 +110,7 @@ def generate_hypotheses(model, sources: list[str], batch_size: int = 16,
                 for src in batch:
                     hyp = model.correct(src, num_beams=num_beams)
                     hypotheses.append(hyp)
-        if (i + batch_size) % 100 < batch_size:
+        if (i + batch_size) % 100 == 0 or i + batch_size >= len(sources):
             logger.info("Generated %d/%d corrections", min(i + batch_size, len(sources)), len(sources))
     return hypotheses
 

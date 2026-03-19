@@ -295,6 +295,13 @@ SH_ZH_ALTERNATION = {
     "هاوشت": "هاوێژ",   # throw: هاوشتن → دەهاوێژم
 }
 
+# Precomputed stem sets for O(1) lookup in _score_b_prefix_evidence
+_ALL_PRESENT_STEMS = frozenset(IRREGULAR_PRESENT_STEMS.values())
+_ALL_PAST_STEMS = frozenset(
+    s for stems in PAST_MORPHEME_ALLOMORPHS.values() for s in stems
+)
+_ALL_SH_ZH_STEMS = frozenset(SH_ZH_ALTERNATION.values())
+
 # Nominal morpheme units — Fatah & Qadir (2006), pp. 24-25
 # Each is a single-morpheme unit that can be segmented without semantic loss.
 EZAFE_MORPHEME = "ی"         # linking particle (single-morph morpheme)
@@ -968,14 +975,13 @@ class MorphologicalAnalyzer:
             return 2
         score = 0
         if any(stem_after_b.startswith(s)
-               for s in IRREGULAR_PRESENT_STEMS.values()):
+               for s in _ALL_PRESENT_STEMS):
             score += 2
         elif any(stem_after_b.startswith(s)
-                 for stems in PAST_MORPHEME_ALLOMORPHS.values()
-                 for s in stems):
+                 for s in _ALL_PAST_STEMS):
             score += 1
         if any(stem_after_b.startswith(s)
-               for s in SH_ZH_ALTERNATION.values()):
+               for s in _ALL_SH_ZH_STEMS):
             score += 1
         for suf in _PRESENT_SUFFIXES_SORTED:
             if (stem_after_b.endswith(suf)
@@ -983,9 +989,7 @@ class MorphologicalAnalyzer:
                     and len(stem_after_b) - len(suf) >= 2):
                 score += 1
                 stem_core = stem_after_b[:-len(suf)]
-                if (any(stem_core in stems
-                        for stems in PAST_MORPHEME_ALLOMORPHS.values())
-                        or stem_core in IRREGULAR_PRESENT_STEMS.values()):
+                if stem_core in _ALL_PAST_STEMS or stem_core in _ALL_PRESENT_STEMS:
                     score += 1
                 break
         return score
