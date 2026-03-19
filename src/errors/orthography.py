@@ -27,8 +27,8 @@ class OrthographicErrorGenerator(BaseErrorGenerator):
     def find_eligible_positions(self, sentence: str) -> list[dict]:
         positions = []
         
-        # Word boundary pattern
-        for match in re.finditer(r'\b[^\s]+\b', sentence):
+        # Match non-whitespace sequences (Arabic script doesn't work with \b)
+        for match in re.finditer(r'(?:^|(?<=\s))([^\s]+)(?=\s|$)', sentence):
             word = match.group()
             
             options = []
@@ -50,9 +50,7 @@ class OrthographicErrorGenerator(BaseErrorGenerator):
                 options.append(word.replace('و', 'وو', 1))
                 
             if options:
-                # Deterministically pick the first option for reproducibility
-                # Error Pipeline's error_rate will dictate if this actually gets applied.
-                swap_to = sorted(options)[0]
+                swap_to = self.rng.choice(options)
                 
                 positions.append({
                     "start": match.start(),

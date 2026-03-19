@@ -108,20 +108,9 @@ def evaluate_corpus(
     total_fn = 0
     
     for src, hyp, ref in zip(sources, hypotheses, references):
-        # Edits proposed by the system
-        hyp_edits = set()
-        src_words = _tok(src)
-        hyp_words = _tok(hyp)
-        for i, (s, h) in enumerate(zip(src_words, hyp_words)):
-            if s != h:
-                hyp_edits.add((i, s, h))
-        
-        # Gold edits
-        ref_edits = set()
-        ref_words = _tok(ref)
-        for i, (s, r) in enumerate(zip(src_words, ref_words)):
-            if s != r:
-                ref_edits.add((i, s, r))
+        # Use LCS-based edit extraction to handle variable-length corrections
+        hyp_edits = set(sentence_level_edits(src, hyp, tokenize=_tok))
+        ref_edits = set(sentence_level_edits(src, ref, tokenize=_tok))
         
         # TP: edits in both hyp and ref
         tp = len(hyp_edits & ref_edits)

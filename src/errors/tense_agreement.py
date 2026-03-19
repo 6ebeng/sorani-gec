@@ -331,7 +331,7 @@ class TenseAgreementErrorGenerator(BaseErrorGenerator):
             # Match: optional negation prefix + optional compound prefix + past stem + optional suffixes
             neg_alt = "|".join(re.escape(p) for p in PAST_NEGATION_PREFIXES)
             pattern = re.compile(
-                rf'\b((?:{neg_alt})?\w*{re.escape(past_verb)}\w*)\b'
+                rf'(?:^|(?<=\s))((?:{neg_alt})?\w*{re.escape(past_verb)}\w*)(?=\s|$)'
             )
             
             for match in pattern.finditer(sentence):

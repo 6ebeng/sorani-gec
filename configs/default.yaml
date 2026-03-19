@@ -35,6 +35,9 @@ data:
     - "participle_voice_swap"
     - "orthography"
     - "negative_concord"
+    - "vocative_imperative"
+    - "conditional_agreement"
+    - "adverb_verb_tense"
   error_rate: 0.15  # probability of injecting error per eligible position
 
 tokenizer:
@@ -60,6 +63,7 @@ model:
     - "person"         # 1st, 2nd, 3rd
     - "number"         # singular, plural
     - "tense"          # present, past, future
+    - "aspect"         # perfective, imperfective, progressive
     - "case"           # nominative, oblique, ezafe
     - "definiteness"   # definite, indefinite
     - "transitivity"   # transitive, intransitive

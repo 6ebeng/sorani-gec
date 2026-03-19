@@ -48,7 +48,7 @@ class ParticipleSwapErrorGenerator(BaseErrorGenerator):
         positions = []
         
         # Build regex to match any of the words
-        pattern = r'\b(' + '|'.join(self.ALL_WORDS) + r')\b'
+        pattern = r'(?:^|(?<=\s))(' + '|'.join(self.ALL_WORDS) + r')(?=\s|$)'
         
         for match in re.finditer(pattern, sentence):
             # Check overlap

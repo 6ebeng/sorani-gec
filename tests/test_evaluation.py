@@ -85,7 +85,9 @@ def test_evaluate_corpus_multiple_sentences():
     references = ["من دەچم",  "تۆ دەچیت", "ئەو باشە"]
 
     metrics = evaluate_corpus(sources, hypotheses, references)
-    assert metrics.tp == 2   # two correct fixes
+    # LCS-based edit extraction decomposes each word substitution into
+    # a deletion + insertion, so 2 substitutions → 4 edit operations.
+    assert metrics.tp == 4   # two word substitutions = 4 LCS edits
     assert metrics.fn == 0   # no missed errors
     assert metrics.fp == 0   # no spurious
     print(f"  Multiple sentences: {metrics}")

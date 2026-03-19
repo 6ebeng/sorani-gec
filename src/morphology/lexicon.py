@@ -197,6 +197,8 @@ class SoraniLexicon:
                 continue
 
             parts = line.split()
+            if not parts:
+                continue
             word_part = parts[0]
 
             surface = word_part

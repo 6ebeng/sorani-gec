@@ -35,7 +35,7 @@ class RelativeClauseErrorGenerator(BaseErrorGenerator):
         # We find "ەکەی کە" (aka -aka-y ka)
         # We will replace "ەکەی کە" with "ەکە" (erroneous deletion of both 'کە' and 'ی')
         
-        pattern = r'(\S+ەکە)ی\s+کە\b'
+        pattern = r'(\S+ەکە)ی\s+کە(?=\s|$)'
         
         for match in re.finditer(pattern, sentence):
             positions.append({

@@ -105,17 +105,17 @@ _PERSIAN_FUNCTION_WORDS = frozenset({
 
 # Present-tense verb prefixes (diagnostic for Sorani)
 _SORANI_VERB_PREFIX_RE = re.compile(
-    r"\b(?:دە|ئە|نا|بی?)\S{2,}"
+    r"(?:^|(?<=\s))(?:دە|ئە|نا|بی?)\S{2,}"
 )
 
 # Definiteness markers (Sorani -ەکە/-ەکان, absent in Kurmanji)
 _SORANI_DEFINITE_RE = re.compile(
-    r"\S+(?:ەکە|یەکە|ەکان|یەکان)\b"
+    r"\S+(?:ەکە|یەکە|ەکان|یەکان)(?=\s|$)"
 )
 
 # Indefinite markers (Sorani -ێک/-ێکی)
 _SORANI_INDEFINITE_RE = re.compile(
-    r"\S+(?:ێک|ێکی)\b"
+    r"\S+(?:ێک|ێکی)(?=\s|$)"
 )
 
 # Sorani ezafe marker (ی between noun-adjective; very frequent)
@@ -296,7 +296,7 @@ class SoraniDetector:
         if not words:
             return 0.0, None
 
-        lower_words = set(words)
+        lower_words = set(w.lower() for w in words)
         word_count = len(words)
 
         sorani_hits = len(lower_words & _SORANI_FUNCTION_WORDS)

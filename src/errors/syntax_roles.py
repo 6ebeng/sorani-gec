@@ -33,7 +33,7 @@ class CaseRoleErrorGenerator(BaseErrorGenerator):
         # 1. Agent markers (Finding #137 - Passive Agent)
         # Note: Often "لەلایەن" is paired with the enclitic "ەوە" later in the phrase,
         # but replacing the proposition itself is sufficient for a syntax error.
-        for match in re.finditer(r'\b(لەلایەن|لە لایەن)\b', sentence):
+        for match in re.finditer(r'(?:^|(?<=\s))(لەلایەن|لە لایەن)(?=\s|$)', sentence):
             positions.append({
                 "start": match.start(),
                 "end": match.end(),
@@ -43,7 +43,7 @@ class CaseRoleErrorGenerator(BaseErrorGenerator):
             
         # 2. Instrument & Experiencer markers (Finding #137)
         # Matching standalone "بە" and "بۆ".
-        for match in re.finditer(r'\b(بە|بۆ)\b', sentence):
+        for match in re.finditer(r'(?:^|(?<=\s))(بە|بۆ)(?=\s|$)', sentence):
             # Avoid overlap with previously found tokens
             overlap = any(pos["start"] <= match.start() < pos["end"] for pos in positions)
             if not overlap:

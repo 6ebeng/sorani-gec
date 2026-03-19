@@ -271,7 +271,9 @@ class MorphologyAwareGEC(nn.Module):
             # backbone handles padding, but store biased states.
             # ByT5 does not expose a head-level mask parameter, so we
             # bake the bias into the hidden states via a residual gate.
-            gate = torch.sigmoid(agr_bias.squeeze(1).mean(dim=-1, keepdim=True))
+            # Gate is per-position (vector-level) rather than scalar for
+            # finer-grained modulation.
+            gate = torch.sigmoid(agr_bias.squeeze(1).mean(dim=-1, keepdim=True))  # [batch, seq, 1]
             hidden_states = hidden_states * (1.0 + gate)
             encoder_outputs.last_hidden_state = hidden_states
         
@@ -282,7 +284,7 @@ class MorphologyAwareGEC(nn.Module):
             labels=labels,
         )
         
-        total_loss = outputs.loss if outputs.loss is not None else torch.tensor(0.0)
+        total_loss = outputs.loss if outputs.loss is not None else torch.tensor(0.0, device=hidden_states.device)
         
         # Agreement auxiliary loss — with optional per-edge-type weighting
         if agreement_labels is not None:
@@ -296,9 +298,12 @@ class MorphologyAwareGEC(nn.Module):
                 sample_weights = torch.ones_like(agr_labels_flat, dtype=torch.float)
                 for edge_type, w in self.edge_type_loss_weights.items():
                     # Find the label class for this edge type (1-indexed)
-                    if edge_type in EDGE_TYPE_ORDER:
+                    try:
                         cls_idx = EDGE_TYPE_ORDER.index(edge_type) + 1
-                        sample_weights[agr_labels_flat == cls_idx] = w
+                    except ValueError:
+                        logger.warning("Unknown edge type in loss weights: %s", edge_type)
+                        continue
+                    sample_weights[agr_labels_flat == cls_idx] = w
                 loss_fn_unreduced = nn.CrossEntropyLoss(reduction="none")
                 per_token_loss = loss_fn_unreduced(agr_logits_flat, agr_labels_flat)
                 agreement_loss = (per_token_loss * sample_weights).mean()

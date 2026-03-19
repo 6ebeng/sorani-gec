@@ -133,8 +133,11 @@ def main():
     # Optimizer + Scheduler
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
     total_steps = (len(train_loader) // args.grad_accum_steps) * args.epochs
-    from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-    scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=max(1, total_steps // 3))
+    from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, LinearLR, SequentialLR
+    warmup_steps = min(1000, total_steps // 10)
+    warmup_scheduler = LinearLR(optimizer, start_factor=0.1, total_iters=max(1, warmup_steps))
+    cosine_scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=max(1, (total_steps - warmup_steps) // 3))
+    scheduler = SequentialLR(optimizer, [warmup_scheduler, cosine_scheduler], milestones=[warmup_steps])
 
     scaler = GradScaler(enabled=args.fp16 and device.type == "cuda")
 

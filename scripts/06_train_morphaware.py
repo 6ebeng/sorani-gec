@@ -137,7 +137,12 @@ def main():
     logger.info("Loaded %d train, %d dev pairs", len(train_sources), len(dev_sources))
 
     def make_agreement_labels(source: str, record: dict, tokenizer, max_length: int) -> list[int]:
-        """Generate per-byte agreement labels from error metadata."""
+        """Generate per-byte agreement labels from error metadata.
+
+        Uses word-level error span information when available, falling back
+        to byte-level diff.  Handles insertions/deletions by capping at
+        the shorter of the two byte sequences.
+        """
         encoded = tokenizer(source, max_length=max_length, truncation=True,
                             padding="max_length", return_tensors="pt")
         seq_len = encoded["input_ids"].size(1)
@@ -148,17 +153,29 @@ def main():
         edge_type = _LEGACY_ERROR_MAP.get(error_type, error_type)
         label_class = ERROR_TYPE_MAP.get(edge_type, 0)
         if label_class:
-            target_text = record.get("target", "")
-            src_bytes = source.encode("utf-8")
-            tgt_bytes = target_text.encode("utf-8")
-            # Mark ALL differing byte positions (not just the first)
-            for i in range(min(len(src_bytes), len(tgt_bytes))):
-                if i < seq_len and src_bytes[i] != tgt_bytes[i]:
-                    labels[i] = label_class
-            # If lengths differ, mark trailing positions in the longer string
-            if len(src_bytes) < len(tgt_bytes):
-                for i in range(len(src_bytes), min(len(tgt_bytes), seq_len)):
-                    labels[i] = label_class
+            # Use error span positions if available (from ErrorAnnotation)
+            errors = record.get("errors", [])
+            if errors:
+                src_bytes = source.encode("utf-8")
+                for err in errors:
+                    err_edge = _LEGACY_ERROR_MAP.get(err.get("type", ""), err.get("type", ""))
+                    err_cls = ERROR_TYPE_MAP.get(err_edge, label_class)
+                    # Convert character start/end to byte offsets
+                    char_start = err.get("start", 0)
+                    char_end = err.get("end", char_start)
+                    byte_start = len(source[:char_start].encode("utf-8"))
+                    byte_end = len(source[:char_end].encode("utf-8"))
+                    for bi in range(byte_start, min(byte_end, seq_len)):
+                        labels[bi] = err_cls
+            else:
+                # Fallback: byte-level diff (capped at shorter length)
+                target_text = record.get("target", "")
+                src_bytes = source.encode("utf-8")
+                tgt_bytes = target_text.encode("utf-8")
+                common_len = min(len(src_bytes), len(tgt_bytes), seq_len)
+                for i in range(common_len):
+                    if src_bytes[i] != tgt_bytes[i]:
+                        labels[i] = label_class
         return labels
 
     # --- Dataset ---
@@ -192,6 +209,8 @@ def main():
             # Extract morphological features via FeatureExtractor (H3 fix)
             if self.feature_extractor is not None:
                 morph_feats = self.feature_extractor.extract_features(src)
+                if morph_feats is None:
+                    morph_feats = []
             else:
                 tokens = self.analyzer.tokenize(src)
                 morph_feats = []
@@ -211,24 +230,29 @@ def main():
             num_types = len(EDGE_TYPE_ORDER)
             n_words = len(graph.tokens)
 
-            # Build word-to-byte mapping for alignment (H5 fix)
-            # Each Kurdish character is typically 2 bytes in UTF-8.
-            # The ByT5 tokenizer encodes each byte as a separate token.
+            # Build word-to-byte mapping for alignment
+            # Use character-level offset tracking instead of str.find() to avoid
+            # issues with repeated words in Arabic script.
             word_tokens = self.analyzer.tokenize(src)
             byte_offsets: list[tuple[int, int]] = []  # (start_byte, end_byte) per word
-            cursor = 0
-            src_bytes = src.encode("utf-8")
+            char_cursor = 0
             for w in word_tokens:
-                w_bytes = w.encode("utf-8")
-                # Find the word boundary in the byte stream
-                pos = src_bytes.find(w_bytes, cursor)
-                if pos >= 0:
-                    byte_offsets.append((pos, pos + len(w_bytes)))
-                    cursor = pos + len(w_bytes)
+                # Skip whitespace between words
+                while char_cursor < len(src) and src[char_cursor] in (' ', '\t', '\n'):
+                    char_cursor += 1
+                # Find this word starting at char_cursor
+                idx = src.find(w, char_cursor)
+                if idx >= 0:
+                    byte_start = len(src[:idx].encode("utf-8"))
+                    byte_end = byte_start + len(w.encode("utf-8"))
+                    byte_offsets.append((byte_start, byte_end))
+                    char_cursor = idx + len(w)
                 else:
-                    # Fallback: use cursor position
-                    byte_offsets.append((cursor, cursor + len(w_bytes)))
-                    cursor += len(w_bytes)
+                    # Fallback: estimate from cursor position
+                    byte_start = len(src[:char_cursor].encode("utf-8"))
+                    byte_end = byte_start + len(w.encode("utf-8"))
+                    byte_offsets.append((byte_start, byte_end))
+                    char_cursor += len(w)
 
             # Pad typed adjacency to [num_types, max_length, max_length]
             # mapped from word-level to byte-level positions

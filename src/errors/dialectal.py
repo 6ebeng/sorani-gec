@@ -46,7 +46,7 @@ class DialectalParticipleErrorGenerator(BaseErrorGenerator):
         
         # Capture 'و' or 'وو' followed by 'ە', 'ەم', 'ەت', 'مان', etc.
         # But specifically focusing on the morph "وە" at the end of a word or before clitics.
-        pattern = r'([^\s]+)(ووە|وە)\b'
+        pattern = r'([^\s]+)(ووە|وە)(?=\s|$)'
         
         for match in re.finditer(pattern, sentence):
             stem = match.group(1)

@@ -66,7 +66,7 @@ class VocativeImperativeErrorGenerator(BaseErrorGenerator):
 
         # Match imperative verbs: (preverb?)(بـ|مەـ)(stem)(ە|ن)
         pattern = re.compile(
-            rf'\b((?:{preverb_alt})?(?:ب|مە))(\w+?)(ە|ن)\b'
+            rf'(?:^|(?<=\s))((?:{preverb_alt})?(?:ب|مە))(\w+?)(ە|ن)(?=\s|$)'
         )
 
         for match in pattern.finditer(sentence):
@@ -114,17 +114,17 @@ class VocativeImperativeErrorGenerator(BaseErrorGenerator):
     def _detect_vocative_number(sentence: str) -> Optional[str]:
         """Return 'sg' or 'pl' if a vocative-marked noun is found, else None."""
         # Check plural vocative first (ـینۆ is longer, avoid false sg match)
-        if re.search(r'\w' + re.escape(VOCATIVE_PL_SUFFIX) + r'\b', sentence):
+        if re.search(r'[^\s]' + re.escape(VOCATIVE_PL_SUFFIX) + r'(?=\s|$)', sentence):
             return "pl"
 
         # Check singular vocative suffixes (ـۆ or ـێ after a stem)
         for suf in VOCATIVE_SG_SUFFIXES:
-            if re.search(r'\w' + re.escape(suf) + r'\b', sentence):
+            if re.search(r'[^\s]' + re.escape(suf) + r'(?=\s|$)', sentence):
                 return "sg"
 
         # Check free-standing vocative particles — default singular
         for particle in VOCATIVE_PARTICLES:
-            if re.search(rf'\b{re.escape(particle)}\b', sentence):
+            if re.search(rf'(?:^|(?<=\s)){re.escape(particle)}(?=\s|$)', sentence):
                 return "sg"
 
         return None

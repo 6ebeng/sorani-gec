@@ -85,6 +85,12 @@ class ErrorPipeline:
             result = generator.inject_errors(current_text)
             if result.has_errors:
                 current_text = result.corrupted
+                # Errors from this generator have positions relative to the
+                # text that was fed into this generator — which is already
+                # the cumulative corrupted output.  Record them as-is;
+                # they describe spans in the generator's input (not the
+                # original sentence), but the final corrupted text is what
+                # matters for the (source, target) training pair.
                 all_errors.extend(result.errors)
         
         return ErrorResult(
@@ -122,12 +128,11 @@ class ErrorPipeline:
         
         # Preprocessing: spell-check clean sentences if available
         spell_checker = SoraniSpellChecker()
-        try:
+        if hasattr(spell_checker, "correct_sentence") and callable(spell_checker.correct_sentence):
             sentences = [spell_checker.correct_sentence(s) for s in sentences]
-        except AttributeError:
-            logger.warning("spell_checker.correct_sentence() unavailable — skipping spell check")
-        else:
             logger.info("Spell-checked clean corpus via SoraniSpellChecker")
+        else:
+            logger.info("SoraniSpellChecker.correct_sentence() not available — skipping spell check")
         
         if len(sentences) < target_pairs:
             # Oversample if needed

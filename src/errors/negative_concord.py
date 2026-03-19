@@ -27,16 +27,16 @@ class NegativeConcordErrorGenerator(BaseErrorGenerator):
         positions = []
         
         # Check if sentence has 'هیچ' (possibly with clitic) or standalone 'چ'
-        neg_pron_match = re.search(r'\b(هیچ)\S*\b|\b(چ)\b', sentence)
+        neg_pron_match = re.search(r'(?:^|(?<=\s))(هیچ)\S*(?=\s|$)|(?:^|(?<=\s))(چ)(?=\s|$)', sentence)
         if not neg_pron_match:
             return positions
 
         neg_pron_pos = neg_pron_match.start()
         # Clause boundaries: comma, و, کە, semicolon
-        clause_boundary_re = re.compile(r'[،؛,]\s*|\bو\b|\bکە\b')
+        clause_boundary_re = re.compile(r'[،؛,]\s*|(?:^|(?<=\s))و(?=\s|$)|(?:^|(?<=\s))کە(?=\s|$)')
             
         # Find verbs with negative prefixes: نا (na-), نە (ne-)
-        for match in re.finditer(r'\b(نا|نە)(\S+)\b', sentence):
+        for match in re.finditer(r'(?:^|(?<=\s))(نا|نە)(\S+)(?=\s|$)', sentence):
             prefix = match.group(1)
             stem = match.group(2)
             

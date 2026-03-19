@@ -27,7 +27,11 @@ def load_pairs(path: Path) -> list[dict]:
             line = line.strip()
             if not line:
                 continue
-            record = json.loads(line)
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as e:
+                logger.warning("Line %d invalid JSON: %s — skipped", line_num, e)
+                continue
             if "source" not in record or "target" not in record:
                 logger.warning("Line %d missing source/target — skipped", line_num)
                 continue

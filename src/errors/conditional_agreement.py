@@ -66,7 +66,7 @@ class ConditionalAgreementErrorGenerator(BaseErrorGenerator):
 
         # Sentence must contain a conditional marker
         cond_alt = "|".join(re.escape(m) for m in CONDITIONAL_MARKERS)
-        cond_match = re.search(rf'\b({cond_alt})\b', sentence)
+        cond_match = re.search(rf'(?:^|(?<=\s))({cond_alt})(?=\s|$)', sentence)
         if cond_match is None:
             return positions
 
@@ -84,7 +84,7 @@ class ConditionalAgreementErrorGenerator(BaseErrorGenerator):
 
         # --- Pattern A: subjunctive verb  بـ + stem + ending ---------------
         subj_pattern = re.compile(
-            rf'\b((?:{neg_alt})?(?:{preverb_alt})?)(ب)(\w+?)(م|یت|ێت|ێ|ین|ن|ە|ات)\b'
+            rf'(?:^|(?<=\s))((?:{neg_alt})?(?:{preverb_alt})?)(ب)(\w+?)(م|یت|ێت|ێ|ین|ن|ە|ات)(?=\s|$)'
         )
         for match in subj_pattern.finditer(protasis):
             full_start = cond_end + match.start()
@@ -104,7 +104,7 @@ class ConditionalAgreementErrorGenerator(BaseErrorGenerator):
 
         # --- Pattern B: present verb  دە/ئە + stem + ending ----------------
         pres_pattern = re.compile(
-            rf'\b((?:{neg_alt})?(?:{preverb_alt})?)((?:{pres_alt}))(\w+?)(م|یت|ێت|ێ|ین|ن|ات)\b'
+            rf'(?:^|(?<=\s))((?:{neg_alt})?(?:{preverb_alt})?)((?:{pres_alt}))(\w+?)(م|یت|ێت|ێ|ین|ن|ات)(?=\s|$)'
         )
         for match in pres_pattern.finditer(protasis):
             full_start = cond_end + match.start()

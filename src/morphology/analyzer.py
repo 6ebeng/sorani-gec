@@ -61,6 +61,17 @@ from .constants import (
 
 logger = logging.getLogger(__name__)
 
+# Pre-compiled tokenizer regex — avoids re-compilation per call.
+_TOKENIZE_PATTERN = re.compile(
+    r'[\u0621-\u063A\u0641-\u064A\u066E-\u06D3\u06D5-\u06EF'
+    r'\u06FA-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF'
+    r'\u200C'
+    r']+'
+    r'|[\u06F0-\u06F90-9]+'
+    r'|[a-zA-Z]+'
+    r'|[^\s]'
+)
+
 # Prepositions — Abbas & Sabir (2020), pp. 23-26 (Finding #217)
 SORANI_SIMPLE_PREPOSITIONS = frozenset({
     "لە", "بە", "بۆ", "بێ", "تا", "هەتا", "تاکو", "تاوەکو", "هەتاوەکو",
@@ -1031,16 +1042,7 @@ class MorphologicalAnalyzer:
         # 2. Split on whitespace, separating Arabic punctuation from words.
         # Arabic punctuation (٬060C, ؛061B, ؟061F, ۔06D4) must NOT merge
         # with adjacent Arabic letters. Use explicit letter ranges.
-        tokens = re.findall(
-            r'[\u0621-\u063A\u0641-\u064A\u066E-\u06D3\u06D5-\u06EF'
-            r'\u06FA-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF'
-            r'\u200C'  # ZWNJ (morpheme boundary)
-            r']+'
-            r'|[\u06F0-\u06F90-9]+'  # digits (Kurdish + Latin)
-            r'|[a-zA-Z]+'
-            r'|[^\s]',             # each punctuation mark as its own token
-            text
-        )
+        tokens = _TOKENIZE_PATTERN.findall(text)
         return [t for t in tokens if t.strip()]
     
     def build_feature_vocabulary(self) -> dict[str, int]:

@@ -241,7 +241,7 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
         # Pattern 1: Noun + ezafe (ی) + adjective
         # Source: Fatah & Qadir (2006) — ezafe as single-morph morpheme
         ezafe_pattern = re.compile(
-            r'\b(\w+)(ی\s+)(\w+)\b',
+            r'(?:^|(?<=\s))(\S+)(ی\s+)(\S+)(?=\s|$)',
         )
 
         for match in ezafe_pattern.finditer(sentence):
@@ -269,7 +269,7 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
 
         # Pattern 2: Definite noun (ەکە/ەکان) — can swap definiteness
         def_pattern = re.compile(
-            r'(\w+?)(ەکە|ەکان)\b'
+            r'(\S+?)(ەکە|ەکان)(?=\s|$)'
         )
 
         for match in def_pattern.finditer(sentence):
@@ -307,7 +307,7 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
         # Pattern 3: Determiner co-occurrence restriction (Rule R4)
         # Source: Wrya Omar Amin (1986) — ئەم/ئەو cannot co-occur with ەکە/ێک
         dem_pattern = re.compile(
-            r'\b(ئەم|ئەو)\s+(\w+?)(ەکە|ێک|یەکە)(ە?)\b'
+            r'(?:^|(?<=\s))(ئەم|ئەو)\s+(\S+?)(ەکە|ێک|یەکە)(ە?)(?=\s|$)'
         )
         for match in dem_pattern.finditer(sentence):
             positions.append({
@@ -324,7 +324,7 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
 
         # Pattern 4: Plural allomorphy — vowel-final stems (Finding #59)
         # Correct: قوتابییان; Error: قوتابیان (missing ی)
-        plural_pattern = re.compile(r'(\w+[یێۆ])(ان)\b')
+        plural_pattern = re.compile(r'(\S+[یێۆ])(ان)(?=\s|$)')
         for match in plural_pattern.finditer(sentence):
             stem = match.group(1)
             if len(stem) < 2:
@@ -352,7 +352,7 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
         # pluralisation (error generation adds a plural suffix).
         for mass_noun in MASS_NOUNS:
             mass_bare_pattern = re.compile(
-                rf'\b({re.escape(mass_noun)})\b'
+                rf'(?:^|(?<=\s))({re.escape(mass_noun)})(?=\s|$)'
             )
             for match in mass_bare_pattern.finditer(sentence):
                 # Skip if a plural suffix is already attached (the regex
@@ -385,7 +385,7 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
         # suffix attachment (error generation adds an illegal suffix).
         for proper in PROPER_NOUNS:
             pn_pattern = re.compile(
-                rf'\b({re.escape(proper)})\b'
+                rf'(?:^|(?<=\s))({re.escape(proper)})(?=\s|$)'
             )
             for match in pn_pattern.finditer(sentence):
                 end = match.end()

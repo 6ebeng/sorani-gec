@@ -525,7 +525,7 @@ class CliticErrorGenerator(BaseErrorGenerator):
 
         # Match word + clitic at word boundary
         pattern = re.compile(
-            rf'(\w+?)({clitic_pattern})\b'
+            rf'(\w+?)({clitic_pattern})(?=\s|$)'
         )
 
         for match in pattern.finditer(sentence):
@@ -568,6 +568,8 @@ class CliticErrorGenerator(BaseErrorGenerator):
             return None
 
         alternatives, weights = CLITIC_SWAPS_WEIGHTED[current_clitic]
+        if not alternatives:
+            return None
 
         # Use weighted random selection
         # random.choices returns a list, take first element

@@ -319,7 +319,7 @@ class SubjectVerbErrorGenerator(BaseErrorGenerator):
         # Pattern 1: Present-tense verbs (with optional negation)
         # Matches: دەچم, نادەچم, ئەچم, نەدەچم, هەڵدەکەوم, etc.
         present_pattern = re.compile(
-            rf'((?:نە|نا)?(?:{compound_alt})?(?:دە|ئە))(\w+?)(م|یت|ی|ێت|ێ|ات|ین|ن|ەم|ەن)\b'
+            rf'((?:نە|نا)?(?:{compound_alt})?(?:دە|ئە))(\w+?)(م|یت|ی|ێت|ێ|ات|ین|ن|ەم|ەن)(?=\s|$)'
         )
 
         for match in present_pattern.finditer(sentence):
@@ -348,7 +348,7 @@ class SubjectVerbErrorGenerator(BaseErrorGenerator):
         # Pattern 2: Imperative verbs (ب- or مە- prefix + stem + ە/ن)
         # Source: Amin (2016), pp. 34-35
         imperative_pattern = re.compile(
-            rf'((?:{compound_alt})?(?:ب|مە))(\w+?)(ە|ن)\b'
+            rf'((?:{compound_alt})?(?:ب|مە))(\w+?)(ە|ن)(?=\s|$)'
         )
 
         for match in imperative_pattern.finditer(sentence):
@@ -397,7 +397,7 @@ class SubjectVerbErrorGenerator(BaseErrorGenerator):
         for past_stem in TRANSITIVE_PAST_STEMS:
             # Match: (optional neg)(optional compound)(stem)(optional ending)
             pattern = re.compile(
-                rf'\b((?:{neg_alt})?(?:{compound_alt})?)({re.escape(past_stem)})({past_endings_alt})?\b'
+                rf'(?:^|(?<=\s))((?:{neg_alt})?(?:{compound_alt})?)({re.escape(past_stem)})({past_endings_alt})?(?=\s|$)'
             )
 
             for match in pattern.finditer(sentence):

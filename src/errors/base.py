@@ -116,6 +116,7 @@ class BaseErrorGenerator(ABC):
             return ErrorResult(original=sentence, corrupted=sentence, errors=[])
         
         # Sort by position (reverse) to apply replacements from end to start
+        # This ensures earlier positions' indices remain valid.
         selected.sort(key=lambda p: p["start"], reverse=True)
         
         corrupted = sentence
@@ -126,12 +127,10 @@ class BaseErrorGenerator(ABC):
             if error_text is None:
                 continue
             
-            # Apply replacement
+            # Apply replacement (right-to-left keeps upstream positions stable)
             corrupted = corrupted[:pos["start"]] + error_text + corrupted[pos["end"]:]
-            # Clean up potential double spaces left from deletions 
-            # (only if we replaced something with empty string or similar)
-            corrupted = re.sub(r' +', ' ', corrupted).replace(' ,', ',').replace(' .', '.').strip()
 
+            # Record the error with positions in the ORIGINAL sentence
             errors.append(ErrorAnnotation(
                 error_type=self.error_type,
                 original_span=pos["original"],
@@ -140,5 +139,8 @@ class BaseErrorGenerator(ABC):
                 end_pos=pos["end"],
                 description=f"{self.error_type}: '{pos['original']}' → '{error_text}'",
             ))
+        
+        # Clean up whitespace ONCE after all replacements are applied
+        corrupted = re.sub(r' +', ' ', corrupted).replace(' ,', ',').replace(' .', '.').strip()
         
         return ErrorResult(original=sentence, corrupted=corrupted, errors=errors)

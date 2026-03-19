@@ -358,6 +358,14 @@ def _resolve_compound_subject_person(person_numbers: list[tuple[str, str]]) -> t
     if not person_numbers:
         return ("3", "sg")
 
+    # Compound subject is always plural
+    best_person = "3"
+    for person, _ in person_numbers:
+        if PERSON_HIERARCHY.get(person, 2) < PERSON_HIERARCHY.get(best_person, 2):
+            best_person = person
+
+    return (best_person, "pl")
+
 
 def _is_eligible_noun_subject(token: str, features: MorphFeatures) -> bool:
     """Check if a marked noun is eligible to be a subject.
@@ -381,14 +389,6 @@ def _is_eligible_noun_subject(token: str, features: MorphFeatures) -> bool:
             or _is_proper_noun(token)):
         return False
     return True
-
-    # Compound subject is always plural
-    best_person = "3"
-    for person, _ in person_numbers:
-        if PERSON_HIERARCHY.get(person, 2) < PERSON_HIERARCHY.get(best_person, 2):
-            best_person = person
-
-    return (best_person, "pl")
 
 
 def build_agreement_graph(

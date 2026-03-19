@@ -97,9 +97,9 @@ class AdverbVerbTenseErrorGenerator(BaseErrorGenerator):
             for stem in PAST_STEMS:
                 clitic_alt = "|".join(re.escape(c) for c in PAST_CLITICS)
                 pattern = re.compile(
-                    rf'\b((?:{neg_alt})?(?:{preverb_alt})?)'
+                    rf'(?:^|(?<=\s))((?:{neg_alt})?(?:{preverb_alt})?)'
                     rf'({re.escape(stem)})'
-                    rf'({clitic_alt})?\b'
+                    rf'({clitic_alt})?(?=\s|$)'
                 )
                 for match in pattern.finditer(sentence):
                     overlap = any(p["start"] <= match.start() < p["end"] for p in positions)
@@ -124,10 +124,10 @@ class AdverbVerbTenseErrorGenerator(BaseErrorGenerator):
         elif adverb_tense == "present":
             # Adverb is present/future → look for present-tense verbs (flip to past)
             pres_pattern = re.compile(
-                rf'\b((?:{neg_alt})?(?:{preverb_alt})?)'
+                rf'(?:^|(?<=\s))((?:{neg_alt})?(?:{preverb_alt})?)'
                 rf'({pres_alt})'
                 rf'(\w+?)'
-                rf'({ending_alt})\b'
+                rf'({ending_alt})(?=\s|$)'
             )
             for match in pres_pattern.finditer(sentence):
                 overlap = any(p["start"] <= match.start() < p["end"] for p in positions)
@@ -158,8 +158,11 @@ class AdverbVerbTenseErrorGenerator(BaseErrorGenerator):
             return ctx["prefix"] + "دە" + ctx["stem"] + ending
 
         else:
-            # Present → past: strip the present prefix, drop ending, bare stem
-            return ctx["prefix"] + ctx["stem"]
+            # Present → past: strip the present prefix, use stem + past clitic
+            # Map the present ending back to a past-tense clitic to produce
+            # a grammatical (but tense-mismatched) past form.
+            past_clitic = self._present_ending_to_past_clitic(ctx["ending"])
+            return ctx["prefix"] + ctx["stem"] + past_clitic
 
     # ------------------------------------------------------------------
     # Helpers
@@ -168,10 +171,10 @@ class AdverbVerbTenseErrorGenerator(BaseErrorGenerator):
     def _detect_adverb_tense(self, sentence: str) -> Optional[str]:
         """Return 'past' or 'present' based on the temporal adverb found."""
         for adv in PAST_ADVERBS:
-            if re.search(rf'\b{re.escape(adv)}\b', sentence):
+            if re.search(rf'(?:^|(?<=\s)){re.escape(adv)}(?=\s|$)', sentence):
                 return "past"
         for adv in PRESENT_FUTURE_ADVERBS:
-            if re.search(rf'\b{re.escape(adv)}\b', sentence):
+            if re.search(rf'(?:^|(?<=\s)){re.escape(adv)}(?=\s|$)', sentence):
                 return "present"
         return None
 
@@ -188,3 +191,19 @@ class AdverbVerbTenseErrorGenerator(BaseErrorGenerator):
             "": "ێت",      # bare 3sg default
         }
         return mapping.get(clitic, "ێت")
+
+    @staticmethod
+    def _present_ending_to_past_clitic(ending: str) -> str:
+        """Map a present-tense ending to an approximate past-tense clitic."""
+        mapping = {
+            "م": "م",      # 1sg
+            "ەم": "م",     # 1sg (epenthetic)
+            "یت": "ت",     # 2sg
+            "ێت": "",      # 3sg → zero morpheme
+            "ات": "",      # 3sg (after -a stems)
+            "ێ": "",       # 3sg (short form)
+            "ین": "مان",   # 1pl
+            "ن": "ن",      # 3pl
+            "ەن": "ن",     # 3pl (epenthetic)
+        }
+        return mapping.get(ending, "")

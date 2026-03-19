@@ -201,14 +201,18 @@ class AgreementChecker:
                     found_clitics.append((cl, person, number))
                     break
 
-        # Same-set exclusion check: if we see two different Set 1 clitics
-        # with different person values, that's a violation — F#133.
+        # Same-set exclusion check (F#133): two Set 1 clitics cannot
+        # co-occur in a simple sentence. Flag if we see two or more
+        # distinct clitics — either with different persons or the same
+        # clitic appearing on multiple hosts.
         if len(found_clitics) >= 2:
             persons_seen = {c[1] for c in found_clitics}
-            if len(persons_seen) >= 2:
+            distinct_clitics = {c[0] for c in found_clitics}
+            if len(persons_seen) >= 2 or len(distinct_clitics) >= 2:
                 violations.append(
                     f"Clitic inconsistency: {len(found_clitics)} Set 1 clitics "
-                    f"with {len(persons_seen)} different persons in one clause"
+                    f"with {len(distinct_clitics)} distinct forms and "
+                    f"{len(persons_seen)} person(s) in one clause (F#133)"
                 )
 
         return violations
@@ -290,7 +294,7 @@ class AgreementChecker:
             t2 = clause_tenses[i + 1]
             if t1 and t2:
                 # Non-past followed by past is blocked
-                if t1 in ("present", "future") and t2 == "past":
+                if t1 == "present" and t2 == "past":
                     violations.append(
                         f"Tense sequencing violation: non-past clause followed by "
                         f"past clause in و-coordination (F#254)"

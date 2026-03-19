@@ -83,16 +83,23 @@ def load_model(model_path: str, morphaware: bool, backbone: str, max_length: int
     return model
 
 
-def generate_hypotheses(model, sources: list[str], batch_size: int = 16) -> list[str]:
+def generate_hypotheses(model, sources: list[str], batch_size: int = 16,
+                        num_beams: int = 4) -> list[str]:
     """Generate corrections for all source sentences."""
     import torch
     hypotheses = []
+    # Use correct_batch if available for efficiency; fall back to single
+    has_batch = hasattr(model, "correct_batch") and callable(model.correct_batch)
     for i in range(0, len(sources), batch_size):
         batch = sources[i:i + batch_size]
-        for src in batch:
-            with torch.no_grad():
-                hyp = model.correct(src)
-            hypotheses.append(hyp)
+        with torch.no_grad():
+            if has_batch:
+                hyps = model.correct_batch(batch, num_beams=num_beams)
+                hypotheses.extend(hyps)
+            else:
+                for src in batch:
+                    hyp = model.correct(src, num_beams=num_beams)
+                    hypotheses.append(hyp)
         if (i + batch_size) % 100 < batch_size:
             logger.info("Generated %d/%d corrections", min(i + batch_size, len(sources)), len(sources))
     return hypotheses
@@ -107,6 +114,7 @@ def main():
     parser.add_argument("--test-ref", default="data/splits/test.tgt")
     parser.add_argument("--output", default="results/metrics")
     parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--num-beams", type=int, default=4)
     parser.add_argument("--max-length", type=int, default=128)
     args = parser.parse_args()
 
@@ -122,7 +130,7 @@ def main():
     model = load_model(args.model_path, args.morphaware, args.backbone, args.max_length)
 
     logger.info("Generating corrections...")
-    hypotheses = generate_hypotheses(model, sources, args.batch_size)
+    hypotheses = generate_hypotheses(model, sources, args.batch_size, args.num_beams)
     
     # Compute F₀.₅
     logger.info("Computing F₀.₅...")

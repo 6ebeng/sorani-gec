@@ -35,8 +35,8 @@ class AdversativeConnectorErrorGenerator(BaseErrorGenerator):
     def find_eligible_positions(self, sentence: str) -> list[dict]:
         positions = []
         
-        opener_regex = r'\b(' + '|'.join(self.OPENERS) + r')\b'
-        closer_regex = r'\b(' + '|'.join(self.CLOSERS) + r')\b'
+        opener_regex = r'(?:^|(?<=\s))(' + '|'.join(self.OPENERS) + r')(?=\s|$)'
+        closer_regex = r'(?:^|(?<=\s))(' + '|'.join(self.CLOSERS) + r')(?=\s|$)'
         
         for match in re.finditer(opener_regex, sentence):
             positions.append({
