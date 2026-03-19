@@ -72,9 +72,19 @@ class ConditionalAgreementErrorGenerator(BaseErrorGenerator):
 
         cond_end = cond_match.end()
 
-        # Identify apodosis boundary: look for a comma or semicolon
+        # Identify apodosis boundary: look for a comma, semicolon, or
+        # the first verb that uses a DIFFERENT mood marker (heuristic
+        # fallback when no punctuation exists).
         clause_boundary = re.search(r'[،,؛]\s*', sentence[cond_end:])
-        protasis_end = (cond_end + clause_boundary.start()) if clause_boundary else len(sentence)
+        if clause_boundary:
+            protasis_end = cond_end + clause_boundary.start()
+        else:
+            # Heuristic: if there is no punctuation, treat the protasis
+            # as ending at the first present-tense verb (دەـ/ئەـ) that
+            # follows a subjunctive verb, or vice versa.  When we can't
+            # distinguish, limit the protasis to the first verb match
+            # to avoid flipping ALL verbs in the sentence.
+            protasis_end = self._estimate_protasis_end(sentence, cond_end)
         protasis = sentence[cond_end:protasis_end]
 
         # Build alternation for preverbs
@@ -137,3 +147,35 @@ class ConditionalAgreementErrorGenerator(BaseErrorGenerator):
         else:
             # Present → subjunctive: replace دە/ئە with بـ
             return ctx["prefix"] + "ب" + stem + ctx["ending"]
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _estimate_protasis_end(self, sentence: str, cond_end: int) -> int:
+        """Estimate where the protasis ends when no punctuation boundary exists.
+
+        Heuristic: scan for verb-like tokens after the conditional marker.
+        The protasis typically contains one verb.  As soon as we find
+        the end of that verb span, treat subsequent text as apodosis.
+        We search for the first verb (subjunctive or present) in the
+        remainder and set the boundary right after it.
+        """
+        remainder = sentence[cond_end:]
+        preverb_alt = "|".join(re.escape(p) for p in COMPOUND_PREVERBS)
+        neg_alt = "|".join(re.escape(n) for n in NEGATION_PREFIXES)
+        pres_alt = "|".join(re.escape(p) for p in PRESENT_PREFIXES)
+
+        verb_pattern = re.compile(
+            rf'(?:^|(?<=\s))'
+            rf'(?:{neg_alt})?(?:{preverb_alt})?'
+            rf'(?:ب|{pres_alt})'
+            rf'\w+?'
+            rf'(?:م|یت|ێت|ێ|ین|ن|ە|ات)'
+            rf'(?=\s|$)'
+        )
+        match = verb_pattern.search(remainder)
+        if match:
+            return cond_end + match.end()
+        # Fallback: use the whole sentence
+        return len(sentence)

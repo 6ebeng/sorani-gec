@@ -304,20 +304,32 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
                 },
             })
 
-        # Pattern 3: Determiner co-occurrence restriction (Rule R4)
+        # Pattern 3: Demonstrative + bare noun — correct form to corrupt (Rule R4)
         # Source: Wrya Omar Amin (1986) — ئەم/ئەو cannot co-occur with ەکە/ێک
+        # We find the CORRECT form (ئەم/ئەو + noun + ە) and inject an
+        # incompatible definite marker to corrupt it.
         dem_pattern = re.compile(
-            r'(?:^|(?<=\s))(ئەم|ئەو)\s+(\S+?)(ەکە|ێک|یەکە)(ە?)(?=\s|$)'
+            r'(?:^|(?<=\s))(ئەم|ئەو)\s+(\S+?)(ە)(?=\s|$)'
         )
         for match in dem_pattern.finditer(sentence):
+            stem = match.group(2)
+            # Skip very short stems and avoid overlap
+            if len(stem) < 2:
+                continue
+            overlap = any(
+                match.start() >= p["start"] and match.start() < p["end"]
+                for p in positions
+            )
+            if overlap:
+                continue
             positions.append({
                 "start": match.start(),
                 "end": match.end(),
                 "original": match.group(0),
                 "context": {
                     "demonstrative": match.group(1),
-                    "stem": match.group(2),
-                    "incompat_suffix": match.group(3),
+                    "stem": stem,
+                    "dem_suffix": match.group(3),
                     "pattern_type": "det_cooccurrence",
                 },
             })
@@ -477,14 +489,13 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
                 else:
                     return None
         elif pattern_type == "det_cooccurrence":
-            # Strategy: inject incompatible determiner + definite marker
+            # Strategy: inject incompatible definite/indefinite marker
+            # into a correct demonstrative NP.
             # Source: Wrya Omar Amin (1986), Rule R4
-            # ئەم کوڕ → *ئەم کوڕەکە (error: demonstrative + definite)
+            # Correct: ئەم کتێبە → Error: *ئەم کتێبەکە
             dem = ctx["demonstrative"]
             stem = ctx["stem"]
-            bad_suffix = ctx["incompat_suffix"]
-            # Remove the incompatible suffix to produce the correct form
-            # (used in reverse — the found form IS the error, so we return it)
+            bad_suffix = self.rng.choice(INCOMPATIBLE_WITH_DEM)
             error = dem + " " + stem + bad_suffix
 
         elif pattern_type == "vowel_plural":

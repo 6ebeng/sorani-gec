@@ -358,25 +358,34 @@ class TenseAgreementErrorGenerator(BaseErrorGenerator):
         return positions
     
     def generate_error(self, position: dict) -> Optional[str]:
-        """Add wrong agreement suffix to a past-tense verb.
-        
-        Strategy: Add a present-tense-style ending to a past form,
-        creating a tense-agreement mismatch.
+        """Create a tense-agreement mismatch on a past-tense verb.
+
+        Strategy: use the known base_stem to locate the boundary between
+        stem and agreement suffix, strip the suffix, then attach a
+        present-tense (Law 1) ending.  This simulates a writer who
+        applies nominative agreement to an ergative context.
         """
         ctx = position["context"]
         verb = ctx["verb"]
-        
-        # Pick a random present-tense ending and append it
-        pn = self.rng.choice(list(PRESENT_ENDINGS.keys()))
-        ending = PRESENT_ENDINGS[pn]
-        
-        if not ending:
+        base_stem = ctx["base_stem"]
+
+        # Use the known base stem to determine stripping boundary.
+        # The verb word may have a prefix (e.g. negation نە) before
+        # the stem, followed by an agreement suffix after the stem.
+        idx = verb.find(base_stem)
+        if idx >= 0:
+            stripped = verb[: idx + len(base_stem)]
+        else:
+            stripped = verb
+
+        # Collect available present endings that differ from original
+        candidates = [
+            (pn, end) for pn, end in PRESENT_ENDINGS.items()
+            if end and stripped + end != verb
+        ]
+        if not candidates:
             return None
-        
-        # Add the incorrect ending
-        error_verb = verb + ending
-        
-        if error_verb == verb:
-            return None
-        
-        return error_verb
+
+        pn, ending = self.rng.choice(candidates)
+
+        return stripped + ending

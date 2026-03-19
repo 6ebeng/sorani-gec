@@ -1739,7 +1739,7 @@ FINDINGS_INDEX: dict[int, dict[str, str]] = {
     159: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Patient vs agent participle tense restriction", "ref": "PATIENT_PARTICIPLE_MORPHEME"},
     160: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Verb class dual-membership", "ref": "DUAL_CLASS_INTRANSITIVE_VERBS"},
     161: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "7 speech act types → punctuation", "ref": "SPEECH_ACT_PUNCTUATION"},
-    162: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Polite imperative preparatory phrases", "ref": "POLITE_IMPERATIVE_MARKERS"},
+    162: {"status": "ENCODED", "module": "polite_imperative.py", "desc": "Polite imperative preparatory phrases", "ref": "POLITE_IMPERATIVE_MARKERS"},
     163: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Allophonic pairs ح/ع↔هـ, خ↔غ", "ref": "ALLOPHONIC_PAIRS"},
     164: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "و/وو short-vs-long confusion", "ref": "SHORT_LONG_VOWEL_PAIRS"},
     165: {"status": "ENCODED", "module": "agreement.py, analyzer.py, agreement_accuracy.py", "desc": "ی/یی six scenarios", "ref": "YI_DOUBLE_SCENARIOS"},

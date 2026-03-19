@@ -15,6 +15,11 @@ from .negative_concord import NegativeConcordErrorGenerator
 from .vocative_imperative import VocativeImperativeErrorGenerator
 from .conditional_agreement import ConditionalAgreementErrorGenerator
 from .adverb_verb_tense import AdverbVerbTenseErrorGenerator
+from .preposition_fusion import PrepositionFusionErrorGenerator
+from .demonstrative_contraction import DemonstrativeContractionErrorGenerator
+from .quantifier_agreement import QuantifierAgreementErrorGenerator
+from .possessive_clitic import PossessiveCliticErrorGenerator
+from .polite_imperative import PoliteImperativeErrorGenerator
 from .pipeline import ErrorPipeline
 
 __all__ = [
@@ -33,5 +38,10 @@ __all__ = [
     "VocativeImperativeErrorGenerator",
     "ConditionalAgreementErrorGenerator",
     "AdverbVerbTenseErrorGenerator",
+    "PrepositionFusionErrorGenerator",
+    "DemonstrativeContractionErrorGenerator",
+    "QuantifierAgreementErrorGenerator",
+    "PossessiveCliticErrorGenerator",
+    "PoliteImperativeErrorGenerator",
     "ErrorPipeline",
 ]

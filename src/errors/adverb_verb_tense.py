@@ -56,7 +56,11 @@ PAST_STEMS = [
 NEGATION_PREFIXES = ["نە", "نا"]
 
 # Person/number clitics that can attach to past stems (Law 2 — ergative)
-PAST_CLITICS = ["م", "ت", "ی", "مان", "تان", "یان"]
+# Extended to include past intransitive (Law 1) suffixes that overlap
+# with present endings: past intransitive uses Set 2 endings (م, یت, ∅,
+# ین, ن) while past transitive uses Set 1 clitics (م, ت, ی, مان, تان,
+# یان).  We merge both sets for broader past-verb recognition.
+PAST_CLITICS = ["م", "ت", "ی", "مان", "تان", "یان", "ن", "ین", "یت"]
 
 # Present endings (Law 1 — nominative)
 PRESENT_ENDINGS = ["م", "یت", "ێت", "ێ", "ات", "ین", "ن", "ەم", "ەن"]
@@ -184,10 +188,13 @@ class AdverbVerbTenseErrorGenerator(BaseErrorGenerator):
         mapping = {
             "م": "م",      # 1sg
             "ت": "یت",     # 2sg
+            "یت": "یت",    # 2sg (past intransitive Set 2)
             "ی": "ێت",     # 3sg
             "مان": "ین",   # 1pl
+            "ین": "ین",    # 1pl (past intransitive Set 2)
             "تان": "ن",    # 2pl
             "یان": "ن",    # 3pl
+            "ن": "ن",      # 3pl (past intransitive Set 2)
             "": "ێت",      # bare 3sg default
         }
         return mapping.get(clitic, "ێت")

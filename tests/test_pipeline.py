@@ -12,9 +12,9 @@ from src.errors.base import ErrorResult
 
 
 def test_pipeline_init():
-    """Pipeline initializes with all 14 generators."""
+    """Pipeline initializes with all 18 generators."""
     pipeline = ErrorPipeline(error_rate=0.15, seed=42)
-    assert len(pipeline.generators) == 14
+    assert len(pipeline.generators) == 18
     print(f"  Pipeline initialized with {len(pipeline.generators)} generators")
 
 

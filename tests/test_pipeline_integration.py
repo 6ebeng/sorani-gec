@@ -41,7 +41,7 @@ SMALL_CORPUS = [
     # Present tense (simple)
     "من دەچم بۆ قوتابخانە.",
     "تۆ دەتوانیت بێیت.",
-    "ئەو کتێبەکەی خوێندەوە.",
+    "ئەو کتێبەکەی دەخوێنێتەوە.",
 
     # Past transitive (ergative agreement)
     "منداڵەکان نانیان خوارد.",
@@ -53,7 +53,7 @@ SMALL_CORPUS = [
 
     # Compound / complex
     "من دەچم بۆ بازاڕ و نان دەکڕم.",
-    "ئەگەر بارانی بارا ئێمە ناچین بۆ دەرەوە.",
+    "ئەگەر بارانی باری ئێمە ناچین بۆ دەرەوە.",
 
     # Noun phrases with demonstratives
     "ئەم شارانە زۆر کۆنن.",
@@ -74,10 +74,10 @@ SMALL_CORPUS = [
 # ============================================================================
 
 def test_pipeline_initializes_all_generators():
-    """ErrorPipeline creates exactly 14 generators on init."""
+    """ErrorPipeline creates exactly 18 generators on init."""
     pipeline = ErrorPipeline(error_rate=0.15, seed=42)
-    assert len(pipeline.generators) == 14, (
-        f"Expected 14 generators, got {len(pipeline.generators)}"
+    assert len(pipeline.generators) == 18, (
+        f"Expected 18 generators, got {len(pipeline.generators)}"
     )
     print(f"  test_pipeline_initializes_all_generators: PASSED ({len(pipeline.generators)})")
 

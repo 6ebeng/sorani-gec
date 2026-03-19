@@ -28,6 +28,11 @@ from .negative_concord import NegativeConcordErrorGenerator
 from .vocative_imperative import VocativeImperativeErrorGenerator
 from .conditional_agreement import ConditionalAgreementErrorGenerator
 from .adverb_verb_tense import AdverbVerbTenseErrorGenerator
+from .preposition_fusion import PrepositionFusionErrorGenerator
+from .demonstrative_contraction import DemonstrativeContractionErrorGenerator
+from .quantifier_agreement import QuantifierAgreementErrorGenerator
+from .possessive_clitic import PossessiveCliticErrorGenerator
+from .polite_imperative import PoliteImperativeErrorGenerator
 from ..data.spell_checker import SoraniSpellChecker
 
 logger = logging.getLogger(__name__)
@@ -62,6 +67,11 @@ class ErrorPipeline:
             VocativeImperativeErrorGenerator(error_rate=error_rate, seed=seed + 11),
             ConditionalAgreementErrorGenerator(error_rate=error_rate, seed=seed + 12),
             AdverbVerbTenseErrorGenerator(error_rate=error_rate, seed=seed + 13),
+            PrepositionFusionErrorGenerator(error_rate=error_rate, seed=seed + 14),
+            DemonstrativeContractionErrorGenerator(error_rate=error_rate, seed=seed + 15),
+            QuantifierAgreementErrorGenerator(error_rate=error_rate, seed=seed + 16),
+            PossessiveCliticErrorGenerator(error_rate=error_rate, seed=seed + 17),
+            PoliteImperativeErrorGenerator(error_rate=error_rate, seed=seed + 18),
         ]
         
         logger.info("Initialized pipeline with %d error generators", len(self.generators))

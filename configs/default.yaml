@@ -38,6 +38,11 @@ data:
     - "vocative_imperative"
     - "conditional_agreement"
     - "adverb_verb_tense"
+    - "preposition_fusion"
+    - "demonstrative_contraction"
+    - "quantifier_agreement"
+    - "possessive_clitic"
+    - "polite_imperative"
   error_rate: 0.15  # probability of injecting error per eligible position
 
 tokenizer:

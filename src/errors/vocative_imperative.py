@@ -36,6 +36,26 @@ VOCATIVE_PARTICLES = ["ئەی", "گەلا"]
 IMPERATIVE_SG_ENDING = "ە"
 IMPERATIVE_PL_ENDING = "ن"
 
+# Vowel-final present stems whose SG imperative has NO ـە epenthesis.
+# Source: Amin (2016), pp. 23-24 — Finding #214
+# These stems end in a vowel (ۆ, ێ, وو, ا) and take zero SG ending.
+# E.g., بچۆ (go-SG!), بدۆ (run-SG!), بخوا (eat-SG!).
+# PL always adds ن: بچن, بدن, بخون.
+VOWEL_FINAL_STEMS = [
+    "چۆ",       # go (present of چوون)
+    "دۆ",       # run (present of دوان)
+    "ڕۆ",       # go (dialectal, present of ڕۆیشتن)
+    "خوا",      # eat (present of خواردن)
+    "خۆ",       # eat (variant)
+    "ژوا",      # chew (present of ژواردن)
+    "وا",       # say (dialectal)
+    "ڕا",       # run
+    "کا",       # do (present of کردن)
+    "با",       # carry (present of بردن)
+    "دا",       # give (present of دان)
+    "ها",       # come (present of هاتن)
+]
+
 # Compound verb preverbs that appear before the imperative prefix
 COMPOUND_PREVERBS = ["وەر", "هەڵ", "لێ", "تێ", "دەر", "پێ"]
 
@@ -64,24 +84,21 @@ class VocativeImperativeErrorGenerator(BaseErrorGenerator):
         # Build alternation for preverbs
         preverb_alt = "|".join(re.escape(p) for p in COMPOUND_PREVERBS)
 
-        # Match imperative verbs: (preverb?)(بـ|مەـ)(stem)(ە|ن)
-        pattern = re.compile(
+        # --- Pattern A: consonant-final imperative verbs (بـ|مەـ)(stem)(ە|ن)
+        pattern_a = re.compile(
             rf'(?:^|(?<=\s))((?:{preverb_alt})?(?:ب|مە))(\w+?)(ە|ن)(?=\s|$)'
         )
 
-        for match in pattern.finditer(sentence):
+        for match in pattern_a.finditer(sentence):
             prefix = match.group(1)
             stem = match.group(2)
             ending = match.group(3)
 
-            # Skip very short stems (likely false positives)
             if len(stem) < 1:
                 continue
 
             imp_number = "sg" if ending == IMPERATIVE_SG_ENDING else "pl"
 
-            # Only flag if imperative number matches vocative number —
-            # we will flip it to *create* a mismatch error
             if imp_number == vocative_number:
                 positions.append({
                     "start": match.start(),
@@ -92,6 +109,42 @@ class VocativeImperativeErrorGenerator(BaseErrorGenerator):
                         "stem": stem,
                         "ending": ending,
                         "imp_number": imp_number,
+                        "vowel_final": False,
+                    },
+                })
+
+        # --- Pattern B: vowel-final SG imperatives (بـ|مەـ)(vowel-stem)
+        # These have ZERO SG ending (no ـە epenthesis per Finding #214).
+        vstem_alt = "|".join(re.escape(s) for s in VOWEL_FINAL_STEMS)
+        pattern_b = re.compile(
+            rf'(?:^|(?<=\s))((?:{preverb_alt})?(?:ب|مە))({vstem_alt})(?=\s|$)'
+        )
+        for match in pattern_b.finditer(sentence):
+            prefix = match.group(1)
+            stem = match.group(2)
+
+            # Avoid overlap with Pattern A matches
+            overlap = any(
+                match.start() >= p["start"] and match.start() < p["end"]
+                for p in positions
+            )
+            if overlap:
+                continue
+
+            # Vowel-final with no ending → singular
+            imp_number = "sg"
+
+            if imp_number == vocative_number:
+                positions.append({
+                    "start": match.start(),
+                    "end": match.end(),
+                    "original": match.group(),
+                    "context": {
+                        "prefix": prefix,
+                        "stem": stem,
+                        "ending": "",
+                        "imp_number": imp_number,
+                        "vowel_final": True,
                     },
                 })
 
@@ -103,7 +156,11 @@ class VocativeImperativeErrorGenerator(BaseErrorGenerator):
         if ctx["imp_number"] == "sg":
             new_ending = IMPERATIVE_PL_ENDING
         else:
-            new_ending = IMPERATIVE_SG_ENDING
+            if ctx.get("vowel_final"):
+                # pl → sg for vowel-final: drop ن, no ە
+                new_ending = ""
+            else:
+                new_ending = IMPERATIVE_SG_ENDING
         return ctx["prefix"] + ctx["stem"] + new_ending
 
     # ------------------------------------------------------------------
