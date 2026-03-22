@@ -61,6 +61,10 @@ def main():
     parser.add_argument("--patience", type=int, default=5)
     parser.add_argument("--fp16", action="store_true", default=False)
     parser.add_argument("--max-length", type=int, default=128)
+    parser.add_argument("--save-top-k", type=int, default=3,
+                        help="Keep the K best checkpoints by val loss")
+    parser.add_argument("--eval-every-n-steps", type=int, default=500,
+                        help="Run validation every N optimizer steps (0=epoch-only)")
     args = parser.parse_args()
 
     import torch
@@ -146,8 +150,31 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Checkpoint manager — keeps top-K checkpoints ranked by val loss
+    top_k = args.save_top_k
+    # List of (val_loss, path) sorted ascending by loss (best first)
+    saved_checkpoints: list[tuple[float, Path]] = []
+
+    def save_checkpoint(model_, val_loss_: float, tag: str) -> None:
+        """Save a checkpoint and evict the worst if we exceed top_k."""
+        ckpt_path = output_dir / f"checkpoint_{tag}_loss{val_loss_:.4f}.pt"
+        torch.save(model_.state_dict(), ckpt_path)
+        saved_checkpoints.append((val_loss_, ckpt_path))
+        saved_checkpoints.sort(key=lambda x: x[0])
+        while len(saved_checkpoints) > top_k:
+            _, evicted = saved_checkpoints.pop()  # worst (highest loss)
+            if evicted.exists():
+                evicted.unlink()
+                logger.info("Evicted checkpoint: %s", evicted.name)
+        # Always keep a symlink/copy as best_model.pt for convenience
+        best_path = output_dir / "best_model.pt"
+        if saved_checkpoints:
+            import shutil
+            shutil.copy2(str(saved_checkpoints[0][1]), str(best_path))
+
     best_loss = float("inf")
     patience_counter = 0
+    global_step = 0  # counts optimizer steps
 
     for epoch in range(args.epochs):
         model.train()
@@ -174,6 +201,30 @@ def main():
                 scaler.update()
                 optimizer.zero_grad()
                 scheduler.step()
+                global_step += 1
+
+                # Intra-epoch eval every N optimizer steps
+                if (args.eval_every_n_steps > 0
+                        and dev_loader
+                        and global_step % args.eval_every_n_steps == 0):
+                    model.eval()
+                    step_val_loss = 0
+                    with torch.no_grad():
+                        for vb in dev_loader:
+                            vb = {k: v.to(device) for k, v in vb.items()}
+                            vo = model(
+                                input_ids=vb["input_ids"],
+                                attention_mask=vb["attention_mask"],
+                                labels=vb["labels"],
+                            )
+                            step_val_loss += vo["loss"].item()
+                    step_val_loss /= max(len(dev_loader), 1)
+                    logger.info("Step %d val loss: %.4f", global_step, step_val_loss)
+                    save_checkpoint(model, step_val_loss, f"step{global_step}")
+                    if step_val_loss < best_loss:
+                        best_loss = step_val_loss
+                        patience_counter = 0
+                    model.train()
 
             total_loss += loss.item() * args.grad_accum_steps
 
@@ -210,11 +261,11 @@ def main():
             eval_loss = val_loss / max(len(dev_loader), 1)
             logger.info("Epoch %d val loss: %.4f", epoch + 1, eval_loss)
 
-            # Early stopping
+            # Early stopping + top-K checkpointing
+            save_checkpoint(model, eval_loss, f"epoch{epoch + 1}")
             if eval_loss < best_loss:
                 best_loss = eval_loss
                 patience_counter = 0
-                torch.save(model.state_dict(), output_dir / "best_model.pt")
                 logger.info("Saved best model (loss=%.4f)", best_loss)
             else:
                 patience_counter += 1
