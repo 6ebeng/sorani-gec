@@ -145,7 +145,6 @@ class AgreementGraph:
         matrix = [[0] * n for _ in range(n)]
         for edge in self.edges:
             matrix[edge.source_idx][edge.target_idx] = 1
-            matrix[edge.target_idx][edge.source_idx] = 1
         return matrix
 
     def to_typed_adjacency_matrices(self) -> dict[str, list[list[int]]]:
@@ -163,7 +162,6 @@ class AgreementGraph:
             if t not in types:
                 types[t] = [[0] * n for _ in range(n)]
             types[t][edge.source_idx][edge.target_idx] = 1
-            types[t][edge.target_idx][edge.source_idx] = 1
         return types
 
     def edge_type_counts(self) -> dict[str, int]:

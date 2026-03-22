@@ -68,6 +68,37 @@ PRESENT_ENDINGS = ["م", "یت", "ێت", "ێ", "ات", "ین", "ن", "ەم", "ە
 # Compound verb preverbs
 COMPOUND_PREVERBS = ["وەر", "هەڵ", "لێ", "تێ", "دەر", "پێ"]
 
+# Suppletive verb pairs: stem changes completely between past/present
+# Maps past stem → present stem (used for tense flipping)
+SUPPLETIVE_PAST_TO_PRESENT = {
+    "خوارد": "خۆ",      # eat
+    "بڕی": "بە",         # cut (past → present)
+    "ڕۆیشت": "ڕۆ",      # go
+    "هات": "ێ",          # come (present of هاتن)
+    "چوو": "چ",          # go (present of چوون)
+    "گوت": "ڵێ",         # say (present of گوتن)
+    "دا": "دە",          # give (present of دان)
+    "کرد": "کە",         # do (present of کردن)
+}
+SUPPLETIVE_PRESENT_TO_PAST = {v: k for k, v in SUPPLETIVE_PAST_TO_PRESENT.items()}
+
+# Pre-compiled regex patterns for past stems (avoid recompiling in loop)
+_PAST_STEM_PATTERNS: list[tuple[str, re.Pattern]] = []
+
+def _build_past_stem_patterns():
+    preverb_alt = "|".join(re.escape(p) for p in COMPOUND_PREVERBS)
+    neg_alt = "|".join(re.escape(n) for n in NEGATION_PREFIXES)
+    clitic_alt = "|".join(re.escape(c) for c in PAST_CLITICS)
+    for stem in PAST_STEMS:
+        pattern = re.compile(
+            rf'(?:^|(?<=\s))((?:{neg_alt})?(?:{preverb_alt})?)'
+            rf'({re.escape(stem)})'
+            rf'({clitic_alt})?(?=\s|$)'
+        )
+        _PAST_STEM_PATTERNS.append((stem, pattern))
+
+_build_past_stem_patterns()
+
 
 class AdverbVerbTenseErrorGenerator(BaseErrorGenerator):
     """Generate errors by swapping a verb's tense marker so it contradicts the temporal adverb.
@@ -98,13 +129,7 @@ class AdverbVerbTenseErrorGenerator(BaseErrorGenerator):
 
         if adverb_tense == "past":
             # Adverb is past → look for past-tense verbs (we will flip them to present)
-            for stem in PAST_STEMS:
-                clitic_alt = "|".join(re.escape(c) for c in PAST_CLITICS)
-                pattern = re.compile(
-                    rf'(?:^|(?<=\s))((?:{neg_alt})?(?:{preverb_alt})?)'
-                    rf'({re.escape(stem)})'
-                    rf'({clitic_alt})?(?=\s|$)'
-                )
+            for stem, pattern in _PAST_STEM_PATTERNS:
                 for match in pattern.finditer(sentence):
                     overlap = any(p["start"] <= match.start() < p["end"] for p in positions)
                     if overlap:

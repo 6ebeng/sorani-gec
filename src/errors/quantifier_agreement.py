@@ -74,6 +74,14 @@ class QuantifierAgreementErrorGenerator(BaseErrorGenerator):
         if not quant_indices:
             return positions
 
+        # Build word-to-offset mapping using cursor tracking
+        word_offsets: list[int] = []
+        cursor = 0
+        for w in words:
+            idx = sentence.find(w, cursor)
+            word_offsets.append(idx if idx >= 0 else cursor)
+            cursor = (idx if idx >= 0 else cursor) + len(w)
+
         # Look for plural verbs in the sentence (after the quantifier)
         for qi in quant_indices:
             for vi in range(qi + 1, len(words)):
@@ -84,7 +92,7 @@ class QuantifierAgreementErrorGenerator(BaseErrorGenerator):
                         # Verify it looks like a verb (has a prefix or stem)
                         stem = word[:-len(pl_end)]
                         if self._looks_like_verb_stem(stem):
-                            start = sentence.index(word, sum(len(words[j]) + 1 for j in range(vi)))
+                            start = word_offsets[vi]
                             positions.append({
                                 "start": start,
                                 "end": start + len(word),
@@ -103,7 +111,7 @@ class QuantifierAgreementErrorGenerator(BaseErrorGenerator):
                         if word.endswith(pl_end) and len(word) > len(pl_end) + 1:
                             stem = word[:-len(pl_end)]
                             if self._looks_like_verb_stem(stem):
-                                start = sentence.index(word, sum(len(words[j]) + 1 for j in range(vi)))
+                                start = word_offsets[vi]
                                 positions.append({
                                     "start": start,
                                     "end": start + len(word),

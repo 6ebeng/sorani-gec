@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Optional
 import random
 import re
+import unicodedata
 
 
 @dataclass
@@ -101,7 +102,7 @@ class BaseErrorGenerator(ABC):
         Returns:
             ErrorResult with original, corrupted text, and error annotations.
         """
-        positions = self.find_eligible_positions(sentence)
+        positions = self.find_eligible_positions(unicodedata.normalize("NFC", sentence))
         
         if not positions:
             return ErrorResult(original=sentence, corrupted=sentence, errors=[])
@@ -141,6 +142,7 @@ class BaseErrorGenerator(ABC):
             ))
         
         # Clean up whitespace ONCE after all replacements are applied
-        corrupted = re.sub(r' +', ' ', corrupted).replace(' ,', ',').replace(' .', '.').strip()
+        corrupted = re.sub(r' +', ' ', corrupted).replace(' ,', ',').replace(' .', '.')
+        corrupted = corrupted.replace(' ،', '،').replace(' ؛', '؛').strip()
         
         return ErrorResult(original=sentence, corrupted=corrupted, errors=errors)

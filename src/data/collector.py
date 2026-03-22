@@ -12,6 +12,7 @@ import os
 import re
 import json
 import logging
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -27,13 +28,22 @@ logger = logging.getLogger(__name__)
 class CorpusCollector:
     """Collect Sorani Kurdish text from multiple sources."""
     
-    def __init__(self, output_dir: str = "data/raw"):
+    def __init__(self, output_dir: str = "data/raw", rate_limit: float = 1.0):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.stats = {"sources": {}, "total_sentences": 0, "total_chars": 0}
         self._detector = SoraniDetector()
+        self._rate_limit = rate_limit  # minimum seconds between API calls
+        self._last_request_time: float = 0.0
+
+    def _throttle(self):
+        """Enforce rate limiting between API calls."""
+        elapsed = time.monotonic() - self._last_request_time
+        if elapsed < self._rate_limit:
+            time.sleep(self._rate_limit - elapsed)
+        self._last_request_time = time.monotonic()
     
-    def collect_wikipedia(self, dump_path: Optional[str] = None) -> int:
+    def collect_wikipedia(self, dump_path: Optional[str] = None, max_articles: int = 5000) -> int:
         """Extract Sorani Kurdish text from Wikipedia.
         
         Can use a local dump file or download articles via API.
@@ -47,7 +57,7 @@ class CorpusCollector:
             sentences = self._process_wiki_dump(dump_path)
         else:
             logger.info("Fetching Sorani Kurdish Wikipedia articles via API")
-            sentences = self._fetch_wiki_api()
+            sentences = self._fetch_wiki_api(max_articles=max_articles)
         
         # Write sentences
         with open(output_file, "w", encoding="utf-8") as f:
@@ -56,6 +66,7 @@ class CorpusCollector:
         
         self.stats["sources"]["wikipedia"] = len(sentences)
         self.stats["total_sentences"] += len(sentences)
+        self.stats["total_chars"] += sum(len(s) for s in sentences)
         logger.info("Collected %d sentences from Wikipedia", len(sentences))
         return len(sentences)
     
@@ -82,6 +93,7 @@ class CorpusCollector:
                     params["apcontinue"] = apcontinue
                 
                 resp = requests.get(base_url, params=params, timeout=30)
+                self._last_request_time = time.monotonic()
                 data = resp.json()
                 
                 pages = data.get("query", {}).get("allpages", [])
@@ -91,6 +103,7 @@ class CorpusCollector:
                         continue
                     seen_pageids.add(pid)
                     page_sentences = self._fetch_wiki_page(base_url, pid)
+                    self._throttle()
                     sentences.extend(page_sentences)
                     articles_fetched += 1
                     
@@ -180,6 +193,7 @@ class CorpusCollector:
         
         self.stats["sources"][source_name] = len(sentences)
         self.stats["total_sentences"] += len(sentences)
+        self.stats["total_chars"] += sum(len(s) for s in sentences)
         logger.info("Collected %d sentences from %s", len(sentences), source_name)
         return len(sentences)
     
@@ -201,6 +215,12 @@ class CorpusCollector:
 
 
 if __name__ == "__main__":
+    import argparse
     logging.basicConfig(level=logging.INFO)
-    collector = CorpusCollector()
-    print("Corpus collector initialized. Use collect_wikipedia() or collect_from_text_files() to start.")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--max-articles", type=int, default=5000)
+    parser.add_argument("--output-dir", default="data/raw")
+    cli_args = parser.parse_args()
+    collector = CorpusCollector(output_dir=cli_args.output_dir)
+    collector.collect_wikipedia(max_articles=cli_args.max_articles)
+    collector.save_stats()

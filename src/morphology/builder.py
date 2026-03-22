@@ -1092,7 +1092,7 @@ def build_agreement_graph(
             if next_is_nominal:
                 # Demonstrative as determiner (in NP): NP-internal edge only
                 # (Slevanayi 2001, pp. 83-86)
-                graph.add_edge(i, i + 1, "dem_det_noun", ["number"])
+                graph.add_edge(i + 1, i, "dem_det_noun", ["number"])
             else:
                 # Demonstrative as pro-form (standalone): verb agreement edge
                 # (Slevanayi 2001, pp. 83-86)
@@ -1125,7 +1125,7 @@ def build_agreement_graph(
                     modifier, i + 1,
                 )
             elif features[i + 1].pos in ("", "NOUN", "DET", "NUM"):
-                graph.add_edge(i, i + 1, "noun_det", ["number"])
+                graph.add_edge(i + 1, i, "noun_det", ["number"])
 
     # ------------------------------------------------------------------
     # Step 5: Clitic agreement edges — with Set 1/2/3 distinction
@@ -1348,7 +1348,7 @@ def build_agreement_graph(
             if has_spurious_ezafe and features[i + 1].pos in ("", "NOUN", "DET", "NUM"):
                 # e.g. "زۆری" before noun — spurious ezafe on pre-head
                 graph.add_edge(
-                    i, i + 1, "noun_det", ["number"],
+                    i + 1, i, "noun_det", ["number"],
                 )
                 logger.debug(
                     "F#117: Pre-head '%s' at %d has potential spurious ezafe "

@@ -65,7 +65,7 @@ def main():
 
     import torch
     from torch.utils.data import DataLoader, Dataset
-    from torch.cuda.amp import GradScaler
+    from torch.amp import GradScaler
 
     from src.model.baseline import BaselineGEC
 
@@ -132,14 +132,15 @@ def main():
 
     # Optimizer + Scheduler
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
-    total_steps = (len(train_loader) // args.grad_accum_steps) * args.epochs
+    import math
+    total_steps = math.ceil(len(train_loader) / args.grad_accum_steps) * args.epochs
     from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, LinearLR, SequentialLR
     warmup_steps = min(1000, total_steps // 10)
     warmup_scheduler = LinearLR(optimizer, start_factor=0.1, total_iters=max(1, warmup_steps))
     cosine_scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=max(1, (total_steps - warmup_steps) // 3))
     scheduler = SequentialLR(optimizer, [warmup_scheduler, cosine_scheduler], milestones=[warmup_steps])
 
-    scaler = GradScaler(enabled=args.fp16 and device.type == "cuda")
+    scaler = GradScaler("cuda", enabled=args.fp16 and device.type == "cuda")
 
     # Training loop
     output_dir = Path(args.output_dir)
@@ -181,11 +182,19 @@ def main():
                 logger.info("Epoch %d/%d | Batch %d | Loss: %.4f",
                             epoch + 1, args.epochs, batch_idx + 1, avg)
 
+        # Flush any remaining accumulated gradients
+        if (batch_idx + 1) % args.grad_accum_steps != 0:
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad()
+            scheduler.step()
+
         avg_train_loss = total_loss / max(len(train_loader), 1)
         logger.info("Epoch %d train loss: %.4f", epoch + 1, avg_train_loss)
 
         # Validation
-        eval_loss = avg_train_loss
         if dev_loader:
             model.eval()
             val_loss = 0
@@ -201,18 +210,21 @@ def main():
             eval_loss = val_loss / max(len(dev_loader), 1)
             logger.info("Epoch %d val loss: %.4f", epoch + 1, eval_loss)
 
-        # Early stopping
-        if eval_loss < best_loss:
-            best_loss = eval_loss
-            patience_counter = 0
-            torch.save(model.state_dict(), output_dir / "best_model.pt")
-            logger.info("Saved best model (loss=%.4f)", best_loss)
+            # Early stopping
+            if eval_loss < best_loss:
+                best_loss = eval_loss
+                patience_counter = 0
+                torch.save(model.state_dict(), output_dir / "best_model.pt")
+                logger.info("Saved best model (loss=%.4f)", best_loss)
+            else:
+                patience_counter += 1
+                logger.info("No improvement (%d/%d patience)", patience_counter, args.patience)
+                if patience_counter >= args.patience:
+                    logger.info("Early stopping triggered.")
+                    break
         else:
-            patience_counter += 1
-            logger.info("No improvement (%d/%d patience)", patience_counter, args.patience)
-            if patience_counter >= args.patience:
-                logger.info("Early stopping triggered.")
-                break
+            logger.warning("No dev set — early stopping disabled; saving latest model")
+            torch.save(model.state_dict(), output_dir / "best_model.pt")
 
     torch.save(model.state_dict(), output_dir / "final_model.pt")
     logger.info("Training complete. Best loss: %.4f", best_loss)

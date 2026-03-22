@@ -81,7 +81,7 @@ def load_model(model_path: str, morphaware: bool, backbone: str, max_length: int
 
     checkpoint = Path(model_path)
     if checkpoint.exists():
-        state = torch.load(checkpoint, map_location="cpu", weights_only=True)
+        state = torch.load(checkpoint, map_location="cpu", weights_only=False)
         model.load_state_dict(state)
         logger.info("Loaded checkpoint: %s", checkpoint)
     else:

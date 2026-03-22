@@ -47,9 +47,10 @@ _POLITE_PATTERN = re.compile(
     re.UNICODE,
 )
 
-# Imperative verb prefix — helps confirm the sentence is imperative
+# Imperative verb prefix — tightened to require stem + ending pattern
+# instead of matching any word starting with ب/مە
 _IMPERATIVE_PREFIX_RE = re.compile(
-    r'(?:^|(?<=\s))(?:ب|مە)\w{2,}(?=\s|$)', re.UNICODE,
+    r'(?:^|(?<=\s))(?:ب|مە)\w{2,}(?:ە|ن|ۆ|ێ)(?=\s|$)', re.UNICODE,
 )
 
 # Swap map: each marker → plausible wrong alternatives

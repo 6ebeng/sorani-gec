@@ -174,9 +174,9 @@ class VocativeImperativeErrorGenerator(BaseErrorGenerator):
         if re.search(r'[^\s]' + re.escape(VOCATIVE_PL_SUFFIX) + r'(?=\s|$)', sentence):
             return "pl"
 
-        # Check singular vocative suffixes (ـۆ or ـێ after a stem)
+        # Check singular vocative suffixes (ـۆ or ـێ after a stem of ≥2 chars)
         for suf in VOCATIVE_SG_SUFFIXES:
-            if re.search(r'[^\s]' + re.escape(suf) + r'(?=\s|$)', sentence):
+            if re.search(r'\S{2,}' + re.escape(suf) + r'(?=\s|$)', sentence):
                 return "sg"
 
         # Check free-standing vocative particles — default singular

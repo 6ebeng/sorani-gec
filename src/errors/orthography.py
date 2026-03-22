@@ -9,6 +9,7 @@ Targets:
 """
 
 import re
+import unicodedata
 from typing import Optional
 from .base import BaseErrorGenerator
 
@@ -19,6 +20,10 @@ class OrthographicErrorGenerator(BaseErrorGenerator):
     Native speakers frequently substitute Arabic loanword phones inconsistently 
     or under/over-double vowels like و.
     """
+
+    def __init__(self, *args, lexicon=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._lexicon = lexicon
 
     @property
     def error_type(self) -> str:
@@ -50,6 +55,16 @@ class OrthographicErrorGenerator(BaseErrorGenerator):
                 options.append(word.replace('و', 'وو', 1))
                 
             if options:
+                # Filter to swaps that produce non-words (if lexicon available)
+                if self._lexicon is not None:
+                    invalid_options = [
+                        o for o in options
+                        if not self._lexicon.lookup(unicodedata.normalize("NFC", o))
+                    ]
+                    if invalid_options:
+                        options = invalid_options
+                    # If all options are valid words, keep them anyway (fall through)
+
                 swap_to = self.rng.choice(options)
                 
                 positions.append({

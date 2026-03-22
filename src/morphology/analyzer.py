@@ -805,14 +805,19 @@ class MorphologicalAnalyzer:
                         features.tense = "present"
 
         # 5. Check voice suffixes (passive/causative) before person suffix
+        #    Voice suffix may precede person suffix in the word, so search
+        #    near the end rather than requiring endswith.
+        _MAX_PERSON_SUFFIX_LEN = 3  # longest person suffix (e.g. ێت, ین)
         for voice_suf in _VOICE_SUFFIXES_SORTED:
-            if remaining.endswith(voice_suf) and len(remaining) > len(voice_suf):
+            idx = remaining.rfind(voice_suf)
+            # Must have a non-empty stem before it, and be near the end
+            # (within person-suffix distance)
+            if idx > 0 and len(remaining) - (idx + len(voice_suf)) <= _MAX_PERSON_SUFFIX_LEN:
                 if voice_suf in ("ڕا", "ڕێ"):
                     features.voice = "passive"
                 elif voice_suf in ("اند", "ێن"):
                     features.voice = "causative"
                 features.pos = features.pos or "VERB"
-                # Don't strip voice suffix here; person suffix comes after
                 break
         
         # 6. Check person/number suffix (present set, longest first)

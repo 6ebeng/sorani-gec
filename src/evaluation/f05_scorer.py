@@ -63,20 +63,25 @@ def sentence_level_edits(
             else:
                 dp[i][j] = max(dp[i-1][j], dp[i][j-1])
     
-    # Backtrack to find edits
+    # Backtrack to find edits (including substitutions)
     i, j = m, n
+    raw_edits: list[tuple[str, str]] = []
     while i > 0 or j > 0:
         if i > 0 and j > 0 and src_words[i-1] == tgt_words[j-1]:
             i -= 1
             j -= 1
+        elif i > 0 and j > 0 and dp[i-1][j-1] >= dp[i-1][j] and dp[i-1][j-1] >= dp[i][j-1]:
+            raw_edits.append((src_words[i-1], tgt_words[j-1]))  # substitution
+            i -= 1
+            j -= 1
         elif j > 0 and (i == 0 or dp[i][j-1] >= dp[i-1][j]):
-            edits.append(("", tgt_words[j-1]))  # insertion
+            raw_edits.append(("", tgt_words[j-1]))  # insertion
             j -= 1
         else:
-            edits.append((src_words[i-1], ""))  # deletion
+            raw_edits.append((src_words[i-1], ""))  # deletion
             i -= 1
     
-    return edits
+    return raw_edits
 
 
 def evaluate_corpus(
@@ -109,15 +114,19 @@ def evaluate_corpus(
     
     for src, hyp, ref in zip(sources, hypotheses, references):
         # Use LCS-based edit extraction to handle variable-length corrections
-        hyp_edits = set(sentence_level_edits(src, hyp, tokenize=_tok))
-        ref_edits = set(sentence_level_edits(src, ref, tokenize=_tok))
+        # Use sorted lists (not sets) to preserve duplicate edits
+        hyp_edits = sorted(sentence_level_edits(src, hyp, tokenize=_tok))
+        ref_edits = sorted(sentence_level_edits(src, ref, tokenize=_tok))
         
-        # TP: edits in both hyp and ref
-        tp = len(hyp_edits & ref_edits)
-        # FP: edits in hyp but not in ref
-        fp = len(hyp_edits - ref_edits)
-        # FN: edits in ref but not in hyp
-        fn = len(ref_edits - hyp_edits)
+        # Count TP/FP/FN using list matching to handle duplicates
+        ref_remaining = list(ref_edits)
+        tp = 0
+        for edit in hyp_edits:
+            if edit in ref_remaining:
+                tp += 1
+                ref_remaining.remove(edit)
+        fp = len(hyp_edits) - tp
+        fn = len(ref_remaining)
         
         total_tp += tp
         total_fp += fp

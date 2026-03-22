@@ -17,7 +17,9 @@ from .base import BaseErrorGenerator
 # ---------------------------------------------------------------------------
 # Conditional markers
 # ---------------------------------------------------------------------------
-CONDITIONAL_MARKERS = ["ئەگەر", "ئەگەری", "ئەگەرنا", "هەر"]
+# هەر is excluded because it is multi-use (quantifier, focus particle,
+# conditional) and triggers too many false positives.
+CONDITIONAL_MARKERS = ["ئەگەر", "ئەگەری", "ئەگەرنا"]
 
 # ---------------------------------------------------------------------------
 # Tense morpheme patterns

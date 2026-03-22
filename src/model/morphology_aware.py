@@ -13,7 +13,7 @@ import torch
 import torch.nn as nn
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
-from src.morphology.graph import EDGE_TYPE_ORDER
+from src.morphology.graph import EDGE_TYPE_ORDER, AgreementGraph
 
 logger = logging.getLogger(__name__)
 
@@ -367,3 +367,175 @@ class MorphologyAwareGEC(nn.Module):
             )
         
         return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+    def _build_inference_tensors(
+        self,
+        text: str,
+        analyzer: "MorphologicalAnalyzer",
+        feature_extractor: "FeatureExtractor",
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Build morph_features and agreement_mask tensors for inference.
+
+        Args:
+            text: input sentence
+            analyzer: MorphologicalAnalyzer instance
+            feature_extractor: FeatureExtractor instance
+
+        Returns:
+            (morph_features, agreement_mask) tensors ready for correct()
+        """
+        from src.morphology.builder import build_agreement_graph
+
+        # Morphological features: [1, max_length, num_features]
+        morph_feats = feature_extractor.extract_features(text)
+        num_feat = feature_extractor.get_num_features()
+        while len(morph_feats) < self.max_length:
+            morph_feats.append([0] * num_feat)
+        morph_feats = morph_feats[:self.max_length]
+        morph_tensor = torch.tensor([morph_feats], dtype=torch.long)
+
+        # Agreement graph: [1, num_types, max_length, max_length]
+        graph = build_agreement_graph(text, analyzer)
+        stacked, _ = graph.to_typed_stacked_matrix()
+        num_types = len(EDGE_TYPE_ORDER)
+
+        # Word-to-byte mapping for alignment
+        word_tokens = analyzer.tokenize(text)
+        byte_offsets: list[tuple[int, int]] = []
+        char_cursor = 0
+        for w in word_tokens:
+            while char_cursor < len(text) and text[char_cursor] in (' ', '\t', '\n'):
+                char_cursor += 1
+            idx = text.find(w, char_cursor)
+            if idx >= 0:
+                byte_start = len(text[:idx].encode("utf-8"))
+                byte_end = byte_start + len(w.encode("utf-8"))
+                byte_offsets.append((byte_start, byte_end))
+                char_cursor = idx + len(w)
+            else:
+                byte_start = len(text[:char_cursor].encode("utf-8"))
+                byte_end = byte_start + len(w.encode("utf-8"))
+                byte_offsets.append((byte_start, byte_end))
+                char_cursor += len(w)
+
+        n_words = len(graph.tokens)
+        agr_mask = [[[0] * self.max_length for _ in range(self.max_length)]
+                    for _ in range(num_types)]
+        for t_idx in range(min(len(stacked), num_types)):
+            word_mat = stacked[t_idx]
+            for r in range(min(len(word_mat), n_words)):
+                for c in range(min(len(word_mat[r]), n_words)):
+                    if word_mat[r][c] == 0:
+                        continue
+                    if r < len(byte_offsets) and c < len(byte_offsets):
+                        r_start, r_end = byte_offsets[r]
+                        c_start, c_end = byte_offsets[c]
+                        for bi in range(r_start, min(r_end, self.max_length)):
+                            for bj in range(c_start, min(c_end, self.max_length)):
+                                agr_mask[t_idx][bi][bj] = 1
+
+        agr_tensor = torch.tensor([agr_mask], dtype=torch.int8)
+        return morph_tensor, agr_tensor
+
+    def correct_with_morphology(
+        self,
+        text: str,
+        analyzer: "MorphologicalAnalyzer",
+        feature_extractor: "FeatureExtractor",
+        num_beams: int = 4,
+    ) -> str:
+        """Correct a sentence using full morphological features and agreement graph.
+
+        This is the primary inference entry point; it constructs morphological
+        features and the agreement mask automatically from the raw text.
+
+        Args:
+            text: input sentence to correct
+            analyzer: MorphologicalAnalyzer instance
+            feature_extractor: FeatureExtractor instance
+            num_beams: beam search width
+
+        Returns:
+            Corrected sentence string
+        """
+        morph_tensor, agr_tensor = self._build_inference_tensors(
+            text, analyzer, feature_extractor
+        )
+        return self.correct(
+            text,
+            morph_features=morph_tensor,
+            agreement_mask=agr_tensor,
+            num_beams=num_beams,
+        )
+
+    def correct_batch(
+        self,
+        texts: list[str],
+        analyzer: "MorphologicalAnalyzer",
+        feature_extractor: "FeatureExtractor",
+        num_beams: int = 4,
+    ) -> list[str]:
+        """Correct a batch of sentences with morphological features.
+
+        Args:
+            texts: list of input sentences
+            analyzer: MorphologicalAnalyzer instance
+            feature_extractor: FeatureExtractor instance
+            num_beams: beam search width
+
+        Returns:
+            List of corrected sentences
+        """
+        if not texts:
+            return []
+
+        device = next(self.backbone.parameters()).device
+        num_feat = feature_extractor.get_num_features()
+        num_types = len(EDGE_TYPE_ORDER)
+
+        all_morph = []
+        all_agr = []
+        for text in texts:
+            morph_tensor, agr_tensor = self._build_inference_tensors(
+                text, analyzer, feature_extractor
+            )
+            all_morph.append(morph_tensor.squeeze(0))
+            all_agr.append(agr_tensor.squeeze(0))
+
+        morph_batch = torch.stack(all_morph).to(device)
+        agr_batch = torch.stack(all_agr).to(device)
+
+        inputs = self.tokenizer(
+            texts,
+            return_tensors="pt",
+            max_length=self.max_length,
+            truncation=True,
+            padding="max_length",
+        )
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            encoder_outputs = self.backbone.encoder(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+            )
+            hidden_states = encoder_outputs.last_hidden_state
+            hidden_states = self._integrate_morph_features(hidden_states, morph_batch)
+
+            agr_bias = self._build_agreement_bias(agr_batch, hidden_states.size(1))
+            gate = torch.sigmoid(agr_bias.squeeze(1).mean(dim=-1, keepdim=True))
+            hidden_states = hidden_states * (1.0 + gate)
+            encoder_outputs.last_hidden_state = hidden_states
+
+            outputs = self.backbone.generate(
+                encoder_outputs=encoder_outputs,
+                attention_mask=inputs["attention_mask"],
+                max_length=self.max_length,
+                num_beams=num_beams,
+                early_stopping=True,
+            )
+
+        return [
+            self.tokenizer.decode(o, skip_special_tokens=True)
+            for o in outputs
+        ]

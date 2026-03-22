@@ -207,7 +207,7 @@ class AgreementChecker:
         if len(found_clitics) >= 2:
             persons_seen = {c[1] for c in found_clitics}
             distinct_clitics = {c[0] for c in found_clitics}
-            if len(persons_seen) >= 2 or len(distinct_clitics) >= 2:
+            if len(persons_seen) >= 2 or len(distinct_clitics) >= 2 or len(found_clitics) > len(distinct_clitics):
                 violations.append(
                     f"Clitic inconsistency: {len(found_clitics)} Set 1 clitics "
                     f"with {len(distinct_clitics)} distinct forms and "

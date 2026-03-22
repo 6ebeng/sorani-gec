@@ -62,7 +62,7 @@ NOUN_SUFFIXES = ["ەکە", "ێک", "ەک", "انە", "ان"]
 
 # Common verb prefixes — if a word starts with these, it is likely a verb
 # and should NOT host a possessive clitic in standard grammar.
-VERB_PREFIXES = ("دە", "بـ", "نا", "نە", "مە", "بی")
+VERB_PREFIXES = ("دە", "ب", "نا", "نە", "مە", "بی")
 
 # Build regex for detecting noun+possessive patterns
 # Match: (noun_stem)(optional_noun_suffix)(possessive_clitic) at word boundary

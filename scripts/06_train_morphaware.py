@@ -69,9 +69,10 @@ def main():
     parser.add_argument("--max-length", type=int, default=128)
     args = parser.parse_args()
 
+    import math
     import torch
     from torch.utils.data import DataLoader, Dataset
-    from torch.cuda.amp import GradScaler
+    from torch.amp import GradScaler
 
     from src.model.morphology_aware import MorphologyAwareGEC
     from src.morphology.analyzer import MorphologicalAnalyzer
@@ -165,7 +166,8 @@ def main():
                     char_end = err.get("end", char_start)
                     byte_start = len(source[:char_start].encode("utf-8"))
                     byte_end = len(source[:char_end].encode("utf-8"))
-                    for bi in range(byte_start, min(byte_end, seq_len)):
+                    src_byte_len = len(src_bytes)
+                    for bi in range(byte_start, min(byte_end, src_byte_len, seq_len)):
                         labels[bi] = err_cls
             else:
                 # Fallback: byte-level diff (capped at shorter length)
@@ -284,7 +286,7 @@ def main():
                                                dtype=torch.long),
                 "agreement_labels": torch.tensor(agr_labels[:self.max_length],
                                                  dtype=torch.long),
-                "agreement_mask": torch.tensor(agr_mask, dtype=torch.long),
+                "agreement_mask": torch.tensor(agr_mask, dtype=torch.int8),
             }
 
     train_dataset = MorphAwareDataset(
@@ -308,7 +310,7 @@ def main():
     # --- Optimizer + Scheduler ---
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.01)
 
-    total_steps = (len(train_loader) // args.grad_accum_steps) * args.epochs
+    total_steps = math.ceil(len(train_loader) / args.grad_accum_steps) * args.epochs
     warmup_steps = min(1000, total_steps // 10)
     from torch.optim.lr_scheduler import LinearLR, CosineAnnealingWarmRestarts, SequentialLR
     warmup_scheduler = LinearLR(optimizer, start_factor=0.1, total_iters=warmup_steps)
@@ -316,7 +318,7 @@ def main():
     scheduler = SequentialLR(optimizer, [warmup_scheduler, cosine_scheduler],
                              milestones=[warmup_steps])
 
-    scaler = GradScaler(enabled=args.fp16 and device.type == "cuda")
+    scaler = GradScaler("cuda", enabled=args.fp16 and device.type == "cuda")
 
     # --- Training loop ---
     output_dir = Path(args.output_dir)
@@ -362,6 +364,15 @@ def main():
                             epoch + 1, args.epochs, batch_idx + 1, avg,
                             optimizer.param_groups[0]["lr"])
 
+        # Flush any remaining accumulated gradients
+        if (batch_idx + 1) % args.grad_accum_steps != 0:
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad()
+            scheduler.step()
+
         avg_train_loss = total_loss / max(len(train_loader), 1)
         logger.info("Epoch %d train loss: %.4f", epoch + 1, avg_train_loss)
 
@@ -396,11 +407,9 @@ def main():
                     logger.info("Early stopping triggered.")
                     break
         else:
-            # No dev set — save based on train loss
-            if avg_train_loss < best_val_loss:
-                best_val_loss = avg_train_loss
-                torch.save(model.state_dict(), output_dir / "best_model.pt")
-                logger.info("Saved best model (train_loss=%.4f)", best_val_loss)
+            # No dev set — early stopping disabled; save latest model
+            logger.warning("No dev set — early stopping disabled; saving latest model")
+            torch.save(model.state_dict(), output_dir / "best_model.pt")
 
     # Save final model
     torch.save(model.state_dict(), output_dir / "final_model.pt")

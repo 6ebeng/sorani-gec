@@ -281,7 +281,7 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
 
             # Avoid overlap with ezafe matches
             overlap = any(
-                match.start() >= p["start"] and match.start() < p["end"]
+                not (match.end() <= p["start"] or match.start() >= p["end"])
                 for p in positions
             )
             if overlap:
@@ -317,7 +317,7 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
             if len(stem) < 2:
                 continue
             overlap = any(
-                match.start() >= p["start"] and match.start() < p["end"]
+                not (match.end() <= p["start"] or match.start() >= p["end"])
                 for p in positions
             )
             if overlap:
@@ -342,7 +342,7 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
             if len(stem) < 2:
                 continue
             overlap = any(
-                match.start() >= p["start"] and match.start() < p["end"]
+                not (match.end() <= p["start"] or match.start() >= p["end"])
                 for p in positions
             )
             if overlap:

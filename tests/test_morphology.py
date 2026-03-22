@@ -180,8 +180,8 @@ def test_agreement_graph_adjacency_matrix():
     graph.add_edge(0, 1, "subject_verb", ["number"])
 
     matrix = graph.to_adjacency_matrix()
-    assert matrix[0][1] == 1
-    assert matrix[1][0] == 1
+    assert matrix[0][1] == 1   # edge from source(0) → target(1)
+    assert matrix[1][0] == 0   # directional: no backward edge
     assert matrix[0][2] == 0
     print(f"  Adjacency matrix: {matrix}")
 
@@ -504,7 +504,7 @@ def test_typed_adjacency_matrices():
     assert "subject_verb" in typed
     mat = typed["subject_verb"]
     assert mat[0][1] == 1
-    assert mat[1][0] == 1  # symmetric
+    assert mat[1][0] == 0  # directional: no backward edge
     # No other edge types
     assert len(typed) == 1
     print("  to_typed_adjacency_matrices() works correctly")

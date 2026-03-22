@@ -252,7 +252,7 @@ class SoraniDetector:
         has_kurdish_only = kurdish_only_count > 0
 
         # Latin characters (signal for Kurmanji-Latin or English)
-        latin_count = sum(1 for c in non_space if "A" <= c <= "z")
+        latin_count = sum(1 for c in non_space if c.isascii() and c.isalpha())
         latin_ratio = latin_count / total
 
         # Scoring

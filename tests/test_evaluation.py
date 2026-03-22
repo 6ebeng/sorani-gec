@@ -85,9 +85,9 @@ def test_evaluate_corpus_multiple_sentences():
     references = ["من دەچم",  "تۆ دەچیت", "ئەو باشە"]
 
     metrics = evaluate_corpus(sources, hypotheses, references)
-    # LCS-based edit extraction decomposes each word substitution into
-    # a deletion + insertion, so 2 substitutions → 4 edit operations.
-    assert metrics.tp == 4   # two word substitutions = 4 LCS edits
+    # With substitution detection, each word substitution is a single edit
+    # (not decomposed into deletion + insertion).
+    assert metrics.tp == 2   # two word substitutions
     assert metrics.fn == 0   # no missed errors
     assert metrics.fp == 0   # no spurious
     print(f"  Multiple sentences: {metrics}")
@@ -201,6 +201,26 @@ def test_h2_verb_suffix_not_conflated_with_clitic():
     print(f"  H2: Verb suffixes not conflated with clitics — violations={result.violations}")
 
 
+def test_agreement_checker_object_verb_ergative():
+    """Object-verb ergative check (Law 2) runs and produces results."""
+    checker = AgreementChecker()
+    # Past transitive: object should agree with verb
+    result = checker.check_sentence("کتێبەکە بردم")
+    assert result.checks_total == 5, (
+        f"Expected 5 checks (including ergative), got {result.checks_total}"
+    )
+    print(f"  Ergative check: passed={result.checks_passed}/{result.checks_total}, "
+          f"violations={result.violations}")
+
+
+def test_agreement_checker_five_checks_counted():
+    """AgreementChecker must run exactly 5 checks per sentence."""
+    checker = AgreementChecker()
+    result = checker.check_sentence("من نانم خوارد")
+    assert result.checks_total == 5
+    print(f"  Five checks confirmed: {result.checks_total}")
+
+
 # ============================================================================
 # Run all tests
 # ============================================================================
@@ -236,5 +256,9 @@ if __name__ == "__main__":
 
     print("\n=== Round 18 High Gap Fix Tests — H2 (verb suffix not clitic) ===")
     test_h2_verb_suffix_not_conflated_with_clitic()
+
+    print("\n=== Object-Verb Ergative & Five-Check Tests ===")
+    test_agreement_checker_object_verb_ergative()
+    test_agreement_checker_five_checks_counted()
 
     print("\nAll evaluation tests passed!")
