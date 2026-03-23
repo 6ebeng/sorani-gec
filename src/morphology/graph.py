@@ -56,6 +56,56 @@ class AgreementEdge:
     law: str = ""         # "law1" (subject-verb) or "law2" (object-verb/ergative)
 
 
+# Role labels assigned to the *source* token of each edge type.
+# Used by token_roles() to derive per-token grammatical roles.
+EDGE_ROLE_SOURCE: dict[str, str] = {
+    "subject_verb": "subject",
+    "passive_subject_verb": "subject",
+    "backward_subject_verb": "subject",
+    "object_verb_ergative": "object",
+    "object_verb_ergative_zero": "object",
+    "agent_non_agreeing": "subject",
+    "clitic_agent": "clitic_subject",
+    "clitic_patient": "clitic_object",
+    "noun_det": "noun",
+    "det_noun": "determiner",
+    "adj_noun": "adjective",
+    "adjective_invariant": "adjective",
+    "dem_det_noun": "determiner",
+    "dem_proform_verb": "demonstrative",
+    "quantifier_verb": "quantifier",
+    "measure_word_verb": "measure",
+    "possessive_no_agreement": "possessor",
+    "oblique_no_agreement": "oblique",
+    "pro_drop_agreement": "pro_subject",
+    "vocative_imperative": "vocative",
+    "relative_clause": "relative",
+    "conditional_agreement": "conditional",
+    "collective_singular": "collective",
+    "collective_plural": "collective",
+    "mass_noun_no_agreement": "mass_noun",
+}
+
+# Role labels assigned to the *target* token of each edge type.
+EDGE_ROLE_TARGET: dict[str, str] = {
+    "subject_verb": "verb",
+    "passive_subject_verb": "verb",
+    "backward_subject_verb": "verb",
+    "object_verb_ergative": "verb",
+    "object_verb_ergative_zero": "verb",
+    "clitic_agent": "verb",
+    "clitic_patient": "verb",
+    "noun_det": "determiner",
+    "det_noun": "noun",
+    "adj_noun": "noun",
+    "dem_det_noun": "noun",
+    "dem_proform_verb": "verb",
+    "quantifier_verb": "verb",
+    "measure_word_verb": "verb",
+    "vocative_imperative": "verb",
+}
+
+
 class AgreementGraph:
     """Graph of agreement dependencies in a sentence.
 
@@ -191,3 +241,21 @@ class AgreementGraph:
                 matrices.append(typed[t])
                 type_names.append(t)
         return matrices, type_names
+
+    def token_roles(self) -> list[set[str]]:
+        """Derive grammatical role labels for each token from edges.
+
+        Returns a list (one entry per token) of sets of English role
+        strings such as ``{"subject"}``, ``{"verb"}``, or ``set()``
+        for tokens not participating in any agreement relation.
+        """
+        n = len(self.tokens)
+        roles: list[set[str]] = [set() for _ in range(n)]
+        for e in self.edges:
+            src_role = EDGE_ROLE_SOURCE.get(e.agreement_type)
+            tgt_role = EDGE_ROLE_TARGET.get(e.agreement_type)
+            if src_role and e.source_idx < n:
+                roles[e.source_idx].add(src_role)
+            if tgt_role and e.target_idx < n:
+                roles[e.target_idx].add(tgt_role)
+        return roles
