@@ -760,12 +760,15 @@ class MorphologicalAnalyzer:
         
         # 4. If no mood/aspect prefix found, check if remaining is a known
         #    past stem — past tense has no prefix in Sorani (Amin 2016, p. 51)
+        past_stem_len = 0  # length of matched stem+allomorph in remaining
         if not features.tense and not features.pos:
-            for stem_set in PAST_MORPHEME_ALLOMORPHS.values():
+            for allomorph, stem_set in PAST_MORPHEME_ALLOMORPHS.items():
                 for stem in stem_set:
-                    if remaining.startswith(stem) and len(remaining) >= len(stem):
+                    full_past = stem + allomorph
+                    if remaining.startswith(full_past):
                         features.tense = "past"
                         features.pos = "VERB"
+                        past_stem_len = len(full_past)
                         break
                 if features.tense == "past":
                     break
@@ -775,6 +778,7 @@ class MorphologicalAnalyzer:
                     if remaining.startswith(past_stem):
                         features.tense = "past"
                         features.pos = "VERB"
+                        past_stem_len = len(past_stem)
                         break
         
         # 4b. Ahmadi Lexical Data match for Transitivity and POS
@@ -842,6 +846,10 @@ class MorphologicalAnalyzer:
         else:
             for suffix in _PERSON_SUFFIXES_SORTED:
                 if remaining.endswith(suffix) and len(remaining) > len(suffix):
+                    # Don't let the person suffix consume the past-stem
+                    # allomorph (e.g. ت in ڕۆیشت = ڕۆیش + allomorph ت)
+                    if past_stem_len and len(remaining) - len(suffix) < past_stem_len:
+                        break
                     pn = self._suffix_to_person_number(suffix)
                     if pn:
                         features.person, features.number = pn
