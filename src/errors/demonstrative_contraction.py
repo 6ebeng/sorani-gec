@@ -20,22 +20,14 @@ import re
 from typing import Optional
 
 from .base import BaseErrorGenerator
+from ..morphology.constants import DEMONSTRATIVE_PREPOSITION_CONTRACTIONS
 
 
-# Contracted → (preposition, demonstrative) mapping [F#123]
+# Contracted → (preposition, demonstrative) mapping [F#123, Haji Marf 2014]
+# Derived from the canonical (prep, dem) → contracted mapping in constants.py.
 CONTRACTIONS: dict[str, tuple[str, str]] = {
-    "بەم": ("بە", "ئەم"),
-    "لەم": ("لە", "ئەم"),
-    "بەو": ("بە", "ئەو"),
-    "لەو": ("لە", "ئەو"),
-    "بەمە": ("بە", "ئەمە"),
-    "لەمە": ("لە", "ئەمە"),
-    "بەوە": ("بە", "ئەوە"),
-    "لەوە": ("لە", "ئەوە"),
-    "بەمانە": ("بە", "ئەمانە"),
-    "لەمانە": ("لە", "ئەمانە"),
-    "بەوانە": ("بە", "ئەوانە"),
-    "لەوانە": ("لە", "ئەوانە"),
+    contracted: (prep, dem)
+    for (prep, dem), contracted in DEMONSTRATIVE_PREPOSITION_CONTRACTIONS.items()
 }
 
 # Build regex: match contracted forms as whole words (longest first)
@@ -50,6 +42,9 @@ class DemonstrativeContractionErrorGenerator(BaseErrorGenerator):
 
     Correct:  لەم شارەدا
     Error:    *لە ئەم شارەدا  (uncontracted; incorrect segmentation)
+
+    F#312: DEMONSTRATIVE_MARKER_MIGRATION — demonstrative markers (ە/ان+ە)
+    migrate from the demonstrative to the head noun in standard Sorani.
     """
 
     @property

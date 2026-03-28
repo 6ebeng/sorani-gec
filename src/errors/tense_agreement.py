@@ -62,6 +62,11 @@ import re
 from typing import Optional
 
 from .base import BaseErrorGenerator
+from ..morphology.constants import (
+    AT_ALLOMORPH_STEMS,
+    PAST_ENDINGS,
+    PRESENT_ENDINGS,
+)
 
 
 # Past tense markers / patterns
@@ -161,42 +166,8 @@ PRESENT_PREFIXES = ["دە", "ئە"]
 # Source: Amin (2016), p. 51
 PAST_NEGATION_PREFIXES = ["نە"]
 
-# Past tense verb endings (agreement with object in transitive — ergative)
-# Source: Amin (2016), pp. 17-18; Saliqanai (2001), pp. 60-61
-PAST_ENDINGS = {
-    "1sg": "م",
-    "2sg": "ت",
-    "3sg": "",      # zero morpheme in past 3sg
-    "1pl": "مان",
-    "2pl": "تان",
-    "3pl": "یان",
-}
-
-# Present tense verb endings (agreement with subject — nominative)
-# Source: Amin (2016), pp. 17-18, 21-22
-PRESENT_ENDINGS = {
-    "1sg": "م",
-    "2sg": "یت",
-    "3sg": "ێت",
-    "1pl": "ین",
-    "2pl": "ن",
-    "3pl": "ن",
-}
-
-# Eight verbs whose 3SG present takes ات instead of ێت
-# Source: Amin (2016), pp. 21-22 — Finding #96
-# Rule: present roots ending in ۆ or ە take ات (ۆ→و before ات, ە deleted)
-# These are the combined stems (root + first vowel of ات) used for matching
-AT_ALLOMORPH_STEMS = {
-    "با",     # بردن → present root بە + ات → بات
-    "کا",     # کردن → present root کە + ات → کات
-    "خا",     # خستن → present root خە + ات → خات
-    "شوا",    # شوشتن → present root شۆ → شو + ات → شوات
-    "پوا",    # present root ends in ۆ → پو + ات → پوات
-    "خوا",    # خواردن → present root خۆ → خو + ات → خوات
-    "گا",     # گەیشتن → present root گە + ات → گات
-    "دا",     # دان → present root دە + ات → دات
-}
+# PAST_ENDINGS, PRESENT_ENDINGS, AT_ALLOMORPH_STEMS imported from
+# morphology.constants (single source of truth)
 
 # Exceptional verbs that show non-standard agreement (double-clitic pattern)
 # Source: Amin (2016), pp. 51-52 — Finding #101
@@ -327,8 +298,14 @@ class TenseAgreementErrorGenerator(BaseErrorGenerator):
         positions = []
         
         # Look for past tense verbs (common stems), including negated forms
+        # 6A.4: Added verb morphology filter — require that the word has
+        # verb-like prefix/suffix pattern, not just any word containing the
+        # stem substring. This prevents matching compound nouns and
+        # nominalized forms (e.g. "کردنەوە") as finite verbs.
+        _verb_suffixes = set(PAST_ENDINGS.values()) | {""}  # empty for 3sg zero
+        _neg_prefixes = set(PAST_NEGATION_PREFIXES)
+        _compound_preverbs = {"وەر", "هەڵ", "لێ", "تێ", "دەر", "پێ"}
         for past_verb in PAST_TENSE_MARKERS:
-            # Match: optional negation prefix + optional compound prefix + past stem + optional suffixes
             neg_alt = "|".join(re.escape(p) for p in PAST_NEGATION_PREFIXES)
             pattern = re.compile(
                 rf'(?:^|(?<=\s))((?:{neg_alt})?\w*{re.escape(past_verb)}\w*)(?=\s|$)'
@@ -339,6 +316,29 @@ class TenseAgreementErrorGenerator(BaseErrorGenerator):
                 
                 # Check it's not a present-tense verb (no present prefix)
                 if any(word.startswith(pref) for pref in PRESENT_PREFIXES):
+                    continue
+                
+                # 6A.4: Reject nominalized forms ending in ن/نەوە/تن
+                # (infinitives like کردن, کردنەوە are not finite verbs)
+                if word.endswith("ن") and (word.endswith("تن") or word.endswith("دن")):
+                    continue
+                if word.endswith("نەوە"):
+                    continue
+                
+                # 6A.4: Verify the word has a plausible verb structure:
+                # a known prefix (negation or preverb) OR ends with a
+                # known agreement suffix, OR the stem IS the entire word
+                # (3sg zero-morpheme).
+                strip_prefix = word
+                for pfx in sorted(_neg_prefixes | _compound_preverbs, key=len, reverse=True):
+                    if strip_prefix.startswith(pfx):
+                        strip_prefix = strip_prefix[len(pfx):]
+                        break
+                after_stem = strip_prefix[len(past_verb):] if past_verb in strip_prefix else ""
+                has_verb_suffix = after_stem == "" or any(
+                    after_stem.endswith(s) for s in _verb_suffixes if s
+                )
+                if not has_verb_suffix and len(after_stem) > 3:
                     continue
                 
                 # Flag exceptional verbs for possible special handling
@@ -372,15 +372,21 @@ class TenseAgreementErrorGenerator(BaseErrorGenerator):
         # Use the known base stem to determine stripping boundary.
         # The verb word may have a prefix (e.g. negation نە) before
         # the stem, followed by an agreement suffix after the stem.
-        idx = verb.find(base_stem)
-        if idx >= 0:
+        try:
+            idx = verb.index(base_stem)
             stripped = verb[: idx + len(base_stem)]
-        else:
+        except ValueError:
             stripped = verb
 
-        # Collect available present endings that differ from original
+        # Collect available present endings that differ from original.
+        # If the stem is an AT-allomorph verb (F#96), use ات for 3sg
+        # instead of the default ێت.
+        is_at_verb = any(base_stem.endswith(s) for s in AT_ALLOMORPH_STEMS)
+        endings = dict(PRESENT_ENDINGS)
+        if is_at_verb:
+            endings["3sg"] = "ات"
         candidates = [
-            (pn, end) for pn, end in PRESENT_ENDINGS.items()
+            (pn, end) for pn, end in endings.items()
             if end and stripped + end != verb
         ]
         if not candidates:

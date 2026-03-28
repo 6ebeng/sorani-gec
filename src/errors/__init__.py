@@ -20,6 +20,12 @@ from .demonstrative_contraction import DemonstrativeContractionErrorGenerator
 from .quantifier_agreement import QuantifierAgreementErrorGenerator
 from .possessive_clitic import PossessiveCliticErrorGenerator
 from .polite_imperative import PoliteImperativeErrorGenerator
+from .spelling_confusion import SpellingConfusionErrorGenerator
+from .word_order import WordOrderErrorGenerator
+from .whitespace_error import WhitespaceErrorGenerator
+from .punctuation_error import PunctuationErrorGenerator
+from .cross_clause_agreement import CrossClauseAgreementErrorGenerator
+from .morpheme_order import MorphemeOrderErrorGenerator
 from .pipeline import ErrorPipeline
 
 __all__ = [
@@ -43,5 +49,11 @@ __all__ = [
     "QuantifierAgreementErrorGenerator",
     "PossessiveCliticErrorGenerator",
     "PoliteImperativeErrorGenerator",
+    "SpellingConfusionErrorGenerator",
+    "WordOrderErrorGenerator",
+    "WhitespaceErrorGenerator",
+    "PunctuationErrorGenerator",
+    "CrossClauseAgreementErrorGenerator",
+    "MorphemeOrderErrorGenerator",
     "ErrorPipeline",
 ]

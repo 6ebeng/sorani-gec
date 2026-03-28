@@ -41,8 +41,8 @@ PRESENT_FUTURE_ADVERBS = [
 # ---------------------------------------------------------------------------
 # Verb morphology cues
 # ---------------------------------------------------------------------------
-# Present-tense prefixes
-PRESENT_PREFIXES = ["دە", "ئە"]
+# Present-tense prefixes (including negated present نا-)
+PRESENT_PREFIXES = ["دە", "ئە", "نا"]
 
 # Past tense stems (subset; enough for high-coverage detection)
 PAST_STEMS = [

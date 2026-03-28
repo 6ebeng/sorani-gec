@@ -53,6 +53,39 @@ class OrthographicErrorGenerator(BaseErrorGenerator):
                 options.append(word.replace('وو', 'و', 1)) 
             elif 'و' in word and 'وو' not in word:
                 options.append(word.replace('و', 'وو', 1))
+
+            # PIPE-22: Additional orthographic confusion pairs common
+            # in Sorani Kurdish writing (native speaker errors).
+            # ئ↔ی word-initially: initial glottal stop vs yeh
+            if word.startswith('ئ'):
+                options.append('ی' + word[1:])
+            elif word.startswith('ی'):
+                options.append('ئ' + word[1:])
+            # ع↔ئ: Arabic ʕayn vs glottal stop (loanword confusion)
+            if 'ع' in word:
+                options.append(word.replace('ع', 'ئ', 1))
+            if 'ئ' in word and not word.startswith('ئ'):
+                options.append(word.replace('ئ', 'ع', 1))
+            # ڵ↔ل: velarized lateral vs plain lateral
+            if 'ڵ' in word:
+                options.append(word.replace('ڵ', 'ل', 1))
+            if 'ل' in word:
+                options.append(word.replace('ل', 'ڵ', 1))
+            # ڕ↔ر: trilled r vs tap r
+            if 'ڕ' in word:
+                options.append(word.replace('ڕ', 'ر', 1))
+            if 'ر' in word:
+                options.append(word.replace('ر', 'ڕ', 1))
+            # ێ↔ی: long vowel vs short vowel
+            if 'ێ' in word:
+                options.append(word.replace('ێ', 'ی', 1))
+            if 'ی' in word and not word.startswith('ی'):
+                options.append(word.replace('ی', 'ێ', 1))
+            # ۆ↔و: rounded mid vowel vs high vowel
+            if 'ۆ' in word:
+                options.append(word.replace('ۆ', 'و', 1))
+            if 'و' in word and 'وو' not in word and 'ۆ' not in word:
+                options.append(word.replace('و', 'ۆ', 1))
                 
             if options:
                 # Filter to swaps that produce non-words (if lexicon available)
@@ -63,7 +96,12 @@ class OrthographicErrorGenerator(BaseErrorGenerator):
                     ]
                     if invalid_options:
                         options = invalid_options
-                    # If all options are valid words, keep them anyway (fall through)
+                    else:
+                        # 6A.7: ALL swaps produce valid Sorani words.
+                        # Injecting such a swap creates a false positive
+                        # ("corrupted" sentence that is actually correct).
+                        # Skip this word entirely.
+                        continue
 
                 swap_to = self.rng.choice(options)
                 

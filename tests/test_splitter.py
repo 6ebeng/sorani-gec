@@ -274,6 +274,29 @@ def test_run_split_end_to_end():
 
 
 # ============================================================================
+# Small-Dataset Split Tests (7D.5)
+# ============================================================================
+
+def test_split_pairs_n3_no_empty():
+    """7D.5: split_pairs with n=3 produces no empty splits."""
+    pairs = [{"source": str(i), "target": str(i)} for i in range(3)]
+    train, dev, test = split_pairs(pairs)
+    total = len(train) + len(dev) + len(test)
+    assert total == 3, f"Lost items: expected 3, got {total}"
+    # At least one split should be non-empty
+    assert max(len(train), len(dev), len(test)) > 0
+
+
+def test_split_pairs_n5_no_empty():
+    """7D.5: split_pairs with n=5 produces no empty splits."""
+    pairs = [{"source": str(i), "target": str(i)} for i in range(5)]
+    train, dev, test = split_pairs(pairs)
+    total = len(train) + len(dev) + len(test)
+    assert total == 5, f"Lost items: expected 5, got {total}"
+    assert len(train) >= 1, "Train split should have at least 1 item"
+
+
+# ============================================================================
 # Run all tests
 # ============================================================================
 

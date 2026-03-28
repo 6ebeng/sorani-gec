@@ -33,7 +33,15 @@ from .demonstrative_contraction import DemonstrativeContractionErrorGenerator
 from .quantifier_agreement import QuantifierAgreementErrorGenerator
 from .possessive_clitic import PossessiveCliticErrorGenerator
 from .polite_imperative import PoliteImperativeErrorGenerator
+from .spelling_confusion import SpellingConfusionErrorGenerator
+from .word_order import WordOrderErrorGenerator
+from .whitespace_error import WhitespaceErrorGenerator
+from .punctuation_error import PunctuationErrorGenerator
+from .cross_clause_agreement import CrossClauseAgreementErrorGenerator
+from ..data.tokenize import sorani_word_tokenize
+from .morpheme_order import MorphemeOrderErrorGenerator
 from ..data.spell_checker import SoraniSpellChecker
+from ..morphology.analyzer import MorphologicalAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -51,12 +59,17 @@ class ErrorPipeline:
         self.max_errors_per_sentence = max_errors_per_sentence
         self.rng = random.Random(seed)
         
-        # Initialize all generators
+        # Shared morphological analyzer for dynamic verb/noun recognition
+        analyzer = MorphologicalAnalyzer()
+
+        # Initialize all generators with frequency weights.
+        # Weights reflect realistic error frequency in learner data:
+        # agreement/clitic errors are far more common than stylistic ones.
         self.generators: list[BaseErrorGenerator] = [
-            SubjectVerbErrorGenerator(error_rate=error_rate, seed=seed),
-            NounAdjectiveErrorGenerator(error_rate=error_rate, seed=seed + 1),
-            CliticErrorGenerator(error_rate=error_rate, seed=seed + 2),
-            TenseAgreementErrorGenerator(error_rate=error_rate, seed=seed + 3),
+            SubjectVerbErrorGenerator(error_rate=error_rate, seed=seed, analyzer=analyzer),
+            NounAdjectiveErrorGenerator(error_rate=error_rate, seed=seed + 1, analyzer=analyzer),
+            CliticErrorGenerator(error_rate=error_rate, seed=seed + 2, analyzer=analyzer),
+            TenseAgreementErrorGenerator(error_rate=error_rate, seed=seed + 3, analyzer=analyzer),
             CaseRoleErrorGenerator(error_rate=error_rate, seed=seed + 4),
             DialectalParticipleErrorGenerator(error_rate=error_rate, seed=seed + 5),
             RelativeClauseErrorGenerator(error_rate=error_rate, seed=seed + 6),
@@ -65,35 +78,113 @@ class ErrorPipeline:
             OrthographicErrorGenerator(error_rate=error_rate, seed=seed + 9),
             NegativeConcordErrorGenerator(error_rate=error_rate, seed=seed + 10),
             VocativeImperativeErrorGenerator(error_rate=error_rate, seed=seed + 11),
-            ConditionalAgreementErrorGenerator(error_rate=error_rate, seed=seed + 12),
+            ConditionalAgreementErrorGenerator(error_rate=error_rate, seed=seed + 12, analyzer=analyzer),
             AdverbVerbTenseErrorGenerator(error_rate=error_rate, seed=seed + 13),
             PrepositionFusionErrorGenerator(error_rate=error_rate, seed=seed + 14),
             DemonstrativeContractionErrorGenerator(error_rate=error_rate, seed=seed + 15),
             QuantifierAgreementErrorGenerator(error_rate=error_rate, seed=seed + 16),
             PossessiveCliticErrorGenerator(error_rate=error_rate, seed=seed + 17),
             PoliteImperativeErrorGenerator(error_rate=error_rate, seed=seed + 18),
+            SpellingConfusionErrorGenerator(error_rate=error_rate, seed=seed + 19),
+            WordOrderErrorGenerator(error_rate=error_rate, seed=seed + 20),
+            WhitespaceErrorGenerator(error_rate=error_rate, seed=seed + 21),
+            PunctuationErrorGenerator(error_rate=error_rate, seed=seed + 22),
+            CrossClauseAgreementErrorGenerator(error_rate=error_rate, seed=seed + 23),
+            MorphemeOrderErrorGenerator(error_rate=error_rate, seed=seed + 24),
         ]
+        # Frequency weights: higher = more likely to be selected.
+        # Core agreement errors (subject-verb, noun-adj, clitic, tense) are
+        # weighted ~3x heavier than rare stylistic patterns.
+        self.generator_weights: list[float] = [
+            3.0,  # subject_verb — very common
+            3.0,  # noun_adjective — very common
+            2.5,  # clitic — common
+            2.5,  # tense_agreement — common
+            1.0,  # syntax_roles
+            0.5,  # dialectal
+            1.0,  # relative_clause
+            0.5,  # adversative
+            0.5,  # participle_swap
+            2.0,  # orthography — common in written text
+            1.0,  # negative_concord
+            0.5,  # vocative_imperative
+            1.5,  # conditional_agreement
+            1.0,  # adverb_verb_tense
+            0.5,  # preposition_fusion
+            1.0,  # demonstrative_contraction
+            1.5,  # quantifier_agreement
+            1.5,  # possessive_clitic
+            0.5,  # polite_imperative
+            2.0,  # spelling_confusion — common in informal text
+            0.5,  # word_order — less common (SOV is flexible)
+            1.5,  # whitespace — common in Arabic-script text
+            1.0,  # punctuation — moderately common
+            0.5,  # cross_clause_agreement — complex sentences only
+            0.5,  # morpheme_order — relatively rare
+        ]
+
+        assert len(self.generators) == len(self.generator_weights), (
+            f"Generator count ({len(self.generators)}) != weight count "
+            f"({len(self.generator_weights)}). Add/remove weights to match."
+        )
         
         logger.info("Initialized pipeline with %d error generators", len(self.generators))
     
     def process_sentence(self, sentence: str) -> ErrorResult:
         """Apply error generators to a single sentence.
         
-        Randomly selects 1-2 generators to apply per sentence.
+        Randomly selects 1-2 generators using frequency-weighted sampling.
         """
-        # Randomly select generators for this sentence
+        # Randomly select generators using frequency weights
         n_generators = min(
             self.rng.randint(1, self.max_errors_per_sentence),
             len(self.generators),
         )
-        selected = self.rng.sample(self.generators, n_generators)
+        # random.choices with weights (with replacement) then deduplicate
+        # to avoid applying the same generator twice
+        candidates = self.rng.choices(
+            self.generators, weights=self.generator_weights, k=n_generators * 2,
+        )
+        seen = set()
+        selected = []
+        for gen in candidates:
+            gen_id = id(gen)
+            if gen_id not in seen:
+                seen.add(gen_id)
+                selected.append(gen)
+                if len(selected) >= n_generators:
+                    break
         
         current_text = sentence
         all_errors = []
+        modified_word_indices: set[int] = set()
+        # 6B.7: Track char-level modified ranges for sub-word edits
+        modified_char_ranges: list[tuple[int, int]] = []
         
         for generator in selected:
-            result = generator.inject_errors(current_text)
+            result = generator.inject_errors(
+                current_text,
+                skip_word_indices=modified_word_indices if modified_word_indices else None,
+            )
             if result.has_errors:
+                # Track which word indices changed (double-flip avoidance)
+                orig_words = sorani_word_tokenize(current_text)
+                corr_words = sorani_word_tokenize(result.corrupted)
+                for i in range(min(len(orig_words), len(corr_words))):
+                    if orig_words[i] != corr_words[i]:
+                        modified_word_indices.add(i)
+                # If word count changed, mark the extra region too
+                if len(corr_words) != len(orig_words):
+                    modified_word_indices.update(
+                        range(min(len(orig_words), len(corr_words)),
+                              max(len(orig_words), len(corr_words)))
+                    )
+                # 6B.7: Record char-level ranges from error annotations
+                for err in result.errors:
+                    modified_char_ranges.append(
+                        (err.start_pos, err.end_pos)
+                    )
+
                 current_text = result.corrupted
                 # Errors from this generator have positions relative to the
                 # text that was fed into this generator — which is already
@@ -161,9 +252,13 @@ class ErrorPipeline:
             "errors_by_type": {},
         }
         
-        for sentence in tqdm(sentences, desc="Generating errors"):
+        for idx, sentence in enumerate(tqdm(sentences, desc="Generating errors")):
+            # Assign source_id from original line index so that sentences
+            # from the same source article stay grouped during splitting.
+            source_id = str(idx)
             if self.rng.random() < corruption_ratio:
                 result = self.process_sentence(sentence)
+                result.source_id = source_id
                 if result.has_errors:
                     stats["corrupted"] += 1
                     for err in result.errors:
@@ -172,7 +267,10 @@ class ErrorPipeline:
                 else:
                     stats["clean_pairs"] += 1
             else:
-                result = ErrorResult(original=sentence, corrupted=sentence, errors=[])
+                result = ErrorResult(
+                    original=sentence, corrupted=sentence, errors=[],
+                    source_id=source_id,
+                )
                 stats["clean_pairs"] += 1
             
             results.append(result)

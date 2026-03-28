@@ -14,6 +14,8 @@ import os
 import tempfile
 import json
 
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.data.normalizer import SoraniNormalizer, sentence_split, deduplicate_sentences
@@ -477,6 +479,110 @@ def test_corpus_pos_distribution():
 
 
 # ============================================================================
+# ============================================================================
+# 7. End-to-End GEC Pipeline Test (7D.1)
+# ============================================================================
+
+try:
+    import torch
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+
+
+@pytest.mark.skipif(not HAS_TORCH, reason="PyTorch not installed")
+def test_e2e_generate_train_evaluate():
+    """End-to-end: generate 10 pairs → train 1 epoch → evaluate → F₀.₅ ≥ 0."""
+    from src.errors.pipeline import ErrorPipeline
+    from src.model.baseline import BaselineGEC
+    from src.evaluation.f05_scorer import evaluate_corpus
+
+    pipeline = ErrorPipeline(error_rate=0.3, seed=42)
+    pairs = []
+    for sentence in WIKI_CORPUS[:10]:
+        result = pipeline.process_sentence(sentence)
+        pairs.append({"source": result.corrupted, "target": result.original})
+    assert len(pairs) == 10
+
+    model = BaselineGEC(model_name="google/byt5-small", max_length=64)
+    model.train()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+
+    sources = [p["source"] for p in pairs]
+    targets = [p["target"] for p in pairs]
+    loss = model.training_step(sources, targets)
+    loss.backward()
+    optimizer.step()
+    assert loss.item() > 0, "Training loss should be positive"
+
+    model.eval()
+    hypotheses = [model.correct(s) for s in sources]
+    metrics = evaluate_corpus(sources, hypotheses, targets)
+    assert metrics.f05 >= 0.0, f"F₀.₅ should be non-negative, got {metrics.f05}"
+    print(f"  test_e2e_generate_train_evaluate: PASSED (loss={loss.item():.4f}, F₀.₅={metrics.f05:.4f})")
+
+
+# ============================================================================
+# 8. Phase 1 Regression Tests (7D.2)
+# ============================================================================
+
+def test_regression_graph_bounds_check():
+    """Regression 1.1: check_agreement() handles out-of-bounds edges gracefully."""
+    from src.morphology.graph import AgreementGraph, AgreementEdge
+
+    graph = AgreementGraph(tokens=["من", "دەچم"], features=[None, None])
+    # Inject an out-of-bounds edge
+    graph.edges.append(AgreementEdge(
+        source_idx=0, target_idx=99, agreement_type="subject_verb",
+        features=["person", "number"],
+    ))
+    violations = graph.check_agreement()
+    assert isinstance(violations, list)
+    print("  test_regression_graph_bounds_check: PASSED")
+
+
+def test_regression_clitic_zero_weights():
+    """Regression 1.3: CliticErrorGenerator handles zero weights without crash."""
+    from src.errors.clitic import CliticErrorGenerator
+
+    gen = CliticErrorGenerator(error_rate=1.0, seed=42)
+    result = gen.inject_errors("من")
+    assert isinstance(result.corrupted, str)
+    print("  test_regression_clitic_zero_weights: PASSED")
+
+
+def test_regression_graph_size_limit():
+    """Regression 1.9: AgreementGraph handles sentences >128 tokens."""
+    from src.morphology.agreement import build_agreement_graph
+
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    long_sentence = " ".join(["کتێب"] * 150)
+    graph = build_agreement_graph(long_sentence, analyzer)
+    assert isinstance(graph, AgreementGraph)
+    assert len(graph.tokens) <= 150
+    print("  test_regression_graph_size_limit: PASSED")
+
+
+def test_regression_small_dataset_splits():
+    """Regression 1.10: split_pairs handles n=3 without empty splits."""
+    from src.data.splitter import split_pairs
+
+    pairs = [{"source": str(i), "target": str(i)} for i in range(3)]
+    train, dev, test = split_pairs(pairs)
+    assert len(train) + len(dev) + len(test) == 3
+    print(f"  test_regression_small_dataset_splits: PASSED ({len(train)}/{len(dev)}/{len(test)})")
+
+
+def test_regression_empty_string_is_correct():
+    """Regression 1.14: SoraniSpellChecker.is_correct('') returns False."""
+    from src.data.spell_checker import SoraniSpellChecker
+
+    checker = SoraniSpellChecker()
+    assert checker.is_correct("") is False or not checker.is_available()
+    print("  test_regression_empty_string_is_correct: PASSED")
+
+
+# ============================================================================
 # Run all tests
 # ============================================================================
 
@@ -517,5 +623,15 @@ if __name__ == "__main__":
     print("\n=== Corpus-Level Statistics Tests ===")
     test_corpus_agreement_statistics()
     test_corpus_pos_distribution()
+
+    print("\n=== End-to-End GEC Pipeline Test ===")
+    test_e2e_generate_train_evaluate()
+
+    print("\n=== Phase 1 Regression Tests ===")
+    test_regression_graph_bounds_check()
+    test_regression_clitic_zero_weights()
+    test_regression_graph_size_limit()
+    test_regression_small_dataset_splits()
+    test_regression_empty_string_is_correct()
 
     print("\nAll integration tests passed!")

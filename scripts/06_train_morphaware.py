@@ -20,6 +20,8 @@ import os
 import sys
 from pathlib import Path
 
+import yaml
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 logging.basicConfig(
@@ -71,12 +73,41 @@ def main():
                         help="Keep the K best checkpoints by val loss")
     parser.add_argument("--eval-every-n-steps", type=int, default=500,
                         help="Run validation every N optimizer steps (0=epoch-only)")
+    parser.add_argument("--resume-from", type=str, default=None,
+                        help="Path to checkpoint .pt file to resume training from")
+    parser.add_argument("--device", type=str, default=None,
+                        help="Explicitly set a device (e.g., 'cuda:0', 'cpu').")
+    parser.add_argument("--curriculum", action="store_true", default=False,
+                        help="Enable curriculum learning (easy→hard by sentence length)")
     args = parser.parse_args()
+
+    # Load YAML config and use as defaults; CLI args override.
+    cfg_path = Path(args.config)
+    if cfg_path.exists():
+        with open(cfg_path, "r", encoding="utf-8") as fh:
+            cfg = yaml.safe_load(fh) or {}
+        training_cfg = cfg.get("training", {})
+        _yaml_defaults = {
+            "max_length": cfg.get("data", {}).get("max_seq_length"),
+            "batch_size": training_cfg.get("batch_size"),
+            "grad_accum_steps": training_cfg.get("gradient_accumulation_steps"),
+            "fp16": training_cfg.get("fp16"),
+            "lr": training_cfg.get("learning_rate"),
+            "patience": training_cfg.get("early_stopping_patience"),
+        }
+        sentinel = parser.parse_args([])  # defaults only
+        for key, yaml_val in _yaml_defaults.items():
+            if yaml_val is not None and getattr(args, key) == getattr(sentinel, key):
+                setattr(args, key, yaml_val)
+        logger.info("Loaded config from %s", cfg_path)
+    else:
+        logger.warning("Config file not found: %s — using CLI defaults", cfg_path)
 
     import math
     import torch
     from torch.utils.data import DataLoader, Dataset
     from torch.amp import GradScaler
+    from torch.utils.tensorboard import SummaryWriter
 
     from src.model.morphology_aware import MorphologyAwareGEC
     from src.morphology.analyzer import MorphologicalAnalyzer
@@ -84,9 +115,15 @@ def main():
     from src.morphology.features import FeatureExtractor
     from src.morphology.graph import EDGE_TYPE_ORDER
     from src.morphology.lexicon import SoraniLexicon
+    from src.evaluation.f05_scorer import evaluate_corpus
+    from src.data.curriculum import CurriculumSampler
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logger.info("Device: %s", device)
+    if args.device:
+        device = torch.device(args.device)
+        logger.info("Using explicitly requested device: %s", device)
+    else:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        logger.info("Device: %s", device)
 
     # --- Agreement label generation (must precede model constructor) ---
     # Agreement labels match the 24 edge types in EDGE_TYPE_ORDER.
@@ -115,12 +152,26 @@ def main():
     logger.info("Loading model: %s", args.model)
     model = MorphologyAwareGEC(
         model_name=args.model,
-        feature_vocab_size=feature_vocab_size,
+        feature_vocab_size=max(feature_vocab_size, 1),
         agreement_loss_weight=args.agreement_loss_weight,
         max_length=args.max_length,
         num_agreement_types=num_agreement_types,
     )
+    logger.info(
+        "Feature vocab: %d entries; model embedding capacity: %d",
+        feature_vocab_size, max(feature_vocab_size, 1),
+    )
     model = model.to(device)
+
+    # Log parameter breakdown: backbone vs morphological components
+    backbone_params = sum(p.numel() for p in model.backbone.parameters())
+    morph_params = sum(p.numel() for p in model.morph_embedding.parameters())
+    agr_params = sum(p.numel() for p in model.agreement_predictor.parameters())
+    total_params = sum(p.numel() for p in model.parameters())
+    logger.info(
+        "Parameter count — backbone: %s, morph_embed: %s, agr_predictor: %s, total: %s",
+        f"{backbone_params:,}", f"{morph_params:,}", f"{agr_params:,}", f"{total_params:,}",
+    )
 
     # --- Load data ---
     data_dir = Path(args.data_dir)
@@ -157,6 +208,12 @@ def main():
         # Resolve legacy error type names to edge type names
         edge_type = _LEGACY_ERROR_MAP.get(error_type, error_type)
         label_class = ERROR_TYPE_MAP.get(edge_type, 0)
+        if error_type and not label_class:
+            logger.warning(
+                "Unknown error type '%s' (edge '%s') — agreement label "
+                "falls back to 0 (no-error). This may dilute agreement loss.",
+                error_type, edge_type,
+            )
         if label_class:
             # Use error span positions if available (from ErrorAnnotation)
             errors = record.get("errors", [])
@@ -168,6 +225,15 @@ def main():
                     # Convert character start/end to byte offsets
                     char_start = err.get("start", 0)
                     char_end = err.get("end", char_start)
+                    if char_start >= len(source) or char_end > len(source):
+                        logger.warning(
+                            "Error span out of bounds: start=%d end=%d len=%d — skipped",
+                            char_start, char_end, len(source),
+                        )
+                        continue
+                    if char_start == char_end:
+                        logger.debug("Zero-length error span at %d — skipped", char_start)
+                        continue
                     byte_start = len(source[:char_start].encode("utf-8"))
                     byte_end = len(source[:char_end].encode("utf-8"))
                     src_byte_len = len(src_bytes)
@@ -214,21 +280,19 @@ def main():
 
             # Extract morphological features via FeatureExtractor (H3 fix)
             if self.feature_extractor is not None:
-                morph_feats = self.feature_extractor.extract_features(src)
-                if morph_feats is None:
-                    morph_feats = []
+                morph_feats_word = self.feature_extractor.extract_features(src)
+                if morph_feats_word is None:
+                    logger.warning("Feature extraction returned None for: %.50s", src)
+                    morph_feats_word = []
             else:
                 tokens = self.analyzer.tokenize(src)
-                morph_feats = []
+                morph_feats_word = []
                 for tok in tokens[:self.max_length]:
                     feat = self.analyzer.analyze_token(tok)
                     indices = feat.to_vector_indices(self.feature_vocab)
-                    morph_feats.append(indices)
+                    morph_feats_word.append(indices)
 
-            # Pad to max_length
             num_feat = self.feature_extractor.get_num_features() if self.feature_extractor else 9
-            while len(morph_feats) < self.max_length:
-                morph_feats.append([0] * num_feat)
 
             # Build agreement graph; use typed stacked matrix (C2: 4D, not 3D)
             graph = build_agreement_graph(src, self.analyzer)
@@ -278,6 +342,13 @@ def main():
                                 for bj in range(c_start, min(c_end, self.max_length)):
                                     agr_mask[t_idx][bi][bj] = 1
 
+            # Map word-level morph features to byte positions (fix 4.1)
+            morph_feats = [[0] * num_feat for _ in range(self.max_length)]
+            for w_idx in range(min(len(morph_feats_word), len(byte_offsets))):
+                b_start, b_end = byte_offsets[w_idx]
+                for bi in range(b_start, min(b_end, self.max_length)):
+                    morph_feats[bi] = morph_feats_word[w_idx]
+
             # Agreement labels
             agr_labels = make_agreement_labels(src, rec, self.tokenizer,
                                                self.max_length)
@@ -286,7 +357,7 @@ def main():
                 "input_ids": src_enc["input_ids"].squeeze(0),
                 "attention_mask": src_enc["attention_mask"].squeeze(0),
                 "labels": tgt_enc["input_ids"].squeeze(0),
-                "morph_features": torch.tensor(morph_feats[:self.max_length],
+                "morph_features": torch.tensor(morph_feats,
                                                dtype=torch.long),
                 "agreement_labels": torch.tensor(agr_labels[:self.max_length],
                                                  dtype=torch.long),
@@ -298,8 +369,24 @@ def main():
         model.tokenizer, analyzer, feature_vocab, args.max_length,
         feature_extractor_=feature_extractor,
     )
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
-                              shuffle=True, num_workers=0)
+
+    # Curriculum learning: sort by difficulty (word count), progressively
+    # expose harder examples across epochs.
+    # 6B.8: Use word count instead of character length. Arabic-script
+    # characters are multi-byte in UTF-8 and inflate char-length without
+    # corresponding increases in linguistic complexity.
+    curriculum_sampler = None
+    if args.curriculum:
+        difficulties = [len(s.split()) for s in train_sources]
+        curriculum_sampler = CurriculumSampler(
+            difficulties, total_epochs=args.epochs,
+        )
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
+                                  sampler=curriculum_sampler, num_workers=0)
+        logger.info("Curriculum learning enabled (%d samples)", len(train_dataset))
+    else:
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
+                                  shuffle=True, num_workers=0)
 
     dev_loader = None
     if dev_sources:
@@ -328,15 +415,40 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Checkpoint manager — keeps top-K checkpoints ranked by val loss
+    # TensorBoard writer
+    tb_writer = SummaryWriter(log_dir=str(output_dir / "tensorboard"))
+
+    # CSV training log for easy downstream plotting
+    import csv
+    csv_log_path = output_dir / "training_log.csv"
+    csv_log_file = open(csv_log_path, "w", newline="", encoding="utf-8")
+    csv_writer = csv.writer(csv_log_file)
+    csv_writer.writerow(["epoch", "train_loss", "val_loss", "val_f05", "val_precision", "val_recall", "lr"])
+
+    import atexit
+    atexit.register(csv_log_file.close)
+    atexit.register(tb_writer.close)
+
+    # Checkpoint manager — keeps top-K checkpoints ranked by val F0.5 (higher=better)
     top_k = args.save_top_k
     saved_checkpoints: list[tuple[float, Path]] = []
 
-    def save_checkpoint(model_, val_loss_: float, tag: str) -> None:
-        ckpt_path = output_dir / f"checkpoint_{tag}_loss{val_loss_:.4f}.pt"
-        torch.save(model_.state_dict(), ckpt_path)
-        saved_checkpoints.append((val_loss_, ckpt_path))
-        saved_checkpoints.sort(key=lambda x: x[0])
+    def save_checkpoint(model_, optimizer_, scheduler_, scaler_, epoch_: int,
+                        global_step_: int, best_f05_: float, val_f05: float,
+                        tag: str) -> None:
+        ckpt_path = output_dir / f"checkpoint_{tag}_f05{val_f05:.4f}.pt"
+        torch.save({
+            "model_state_dict": model_.state_dict(),
+            "optimizer_state_dict": optimizer_.state_dict(),
+            "scheduler_state_dict": scheduler_.state_dict(),
+            "scaler_state_dict": scaler_.state_dict(),
+            "epoch": epoch_,
+            "global_step": global_step_,
+            "best_f05": best_f05_,
+            "feature_vocab_size": feature_vocab_size,
+        }, ckpt_path)
+        saved_checkpoints.append((val_f05, ckpt_path))
+        saved_checkpoints.sort(key=lambda x: x[0], reverse=True)  # best (highest F0.5) first
         while len(saved_checkpoints) > top_k:
             _, evicted = saved_checkpoints.pop()
             if evicted.exists():
@@ -365,14 +477,52 @@ def main():
                 val_loss_ += vo["loss"].item()
         return val_loss_ / max(len(dev_loader), 1)
 
-    best_val_loss = float("inf")
+    def compute_val_f05():
+        """Generate corrections on dev set using morphology and compute F0.5."""
+        model.eval()
+        hypotheses = []
+        with torch.no_grad():
+            for src in dev_sources:
+                try:
+                    hyp = model.correct_with_morphology(
+                        src, analyzer, feature_extractor, num_beams=4
+                    )
+                except Exception:
+                    logger.warning("correct_with_morphology() failed for: %.50s", src)
+                    hyp = src  # fallback: return source unchanged
+                hypotheses.append(hyp)
+        metrics = evaluate_corpus(dev_sources, hypotheses, dev_targets)
+        return metrics.f05, metrics
+
+    best_f05 = 0.0
     patience_counter = 0
     global_step = 0
+    start_epoch = 0
 
-    for epoch in range(args.epochs):
+    # Resume from checkpoint if requested (ARCH-4)
+    if args.resume_from:
+        ckpt = torch.load(args.resume_from, map_location=device, weights_only=False)
+        model.load_state_dict(ckpt["model_state_dict"])
+        optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+        scheduler.load_state_dict(ckpt["scheduler_state_dict"])
+        scaler.load_state_dict(ckpt["scaler_state_dict"])
+        start_epoch = ckpt["epoch"] + 1
+        global_step = ckpt["global_step"]
+        # Re-evaluate to get current best_f05 from actual model state
+        if dev_loader and dev_sources:
+            best_f05, _ = compute_val_f05()
+            logger.info("Re-evaluated resumed checkpoint: F0.5=%.4f", best_f05)
+        else:
+            best_f05 = ckpt.get("best_f05", 0.0)
+        logger.info("Resumed from %s (epoch %d, step %d, best_f05=%.4f)",
+                     args.resume_from, start_epoch, global_step, best_f05)
+
+    for epoch in range(start_epoch, args.epochs):
         model.train()
         total_loss = 0
         optimizer.zero_grad()
+        if curriculum_sampler is not None:
+            curriculum_sampler.set_epoch(epoch)
 
         for batch_idx, batch in enumerate(train_loader):
             batch = {k: v.to(device) for k, v in batch.items()}
@@ -399,16 +549,17 @@ def main():
                 scheduler.step()
                 global_step += 1
 
+                # Log training loss and LR to TensorBoard
+                tb_writer.add_scalar("train/loss", loss.item() * args.grad_accum_steps, global_step)
+                tb_writer.add_scalar("train/lr", optimizer.param_groups[0]["lr"], global_step)
+
                 # Intra-epoch eval every N optimizer steps
                 if (args.eval_every_n_steps > 0
                         and dev_loader
                         and global_step % args.eval_every_n_steps == 0):
                     step_val_loss = run_validation()
                     logger.info("Step %d val loss: %.4f", global_step, step_val_loss)
-                    save_checkpoint(model, step_val_loss, f"step{global_step}")
-                    if step_val_loss < best_val_loss:
-                        best_val_loss = step_val_loss
-                        patience_counter = 0
+                    tb_writer.add_scalar("val/loss", step_val_loss, global_step)
                     model.train()
 
             total_loss += loss.item() * args.grad_accum_steps
@@ -430,17 +581,35 @@ def main():
 
         avg_train_loss = total_loss / max(len(train_loader), 1)
         logger.info("Epoch %d train loss: %.4f", epoch + 1, avg_train_loss)
+        tb_writer.add_scalar("epoch/train_loss", avg_train_loss, epoch + 1)
 
         # --- Validation ---
         if dev_loader:
             avg_val_loss = run_validation()
             logger.info("Epoch %d val loss: %.4f", epoch + 1, avg_val_loss)
+            tb_writer.add_scalar("epoch/val_loss", avg_val_loss, epoch + 1)
 
-            save_checkpoint(model, avg_val_loss, f"epoch{epoch + 1}")
-            if avg_val_loss < best_val_loss:
-                best_val_loss = avg_val_loss
+            # Compute F0.5 on dev set for model selection
+            val_f05, val_metrics = compute_val_f05()
+            logger.info("Epoch %d val F0.5: %.4f (%s)", epoch + 1, val_f05, val_metrics)
+            tb_writer.add_scalar("epoch/val_f05", val_f05, epoch + 1)
+            tb_writer.add_scalar("epoch/val_precision", val_metrics.precision, epoch + 1)
+            tb_writer.add_scalar("epoch/val_recall", val_metrics.recall, epoch + 1)
+
+            # Log to CSV
+            csv_writer.writerow([
+                epoch + 1, f"{avg_train_loss:.6f}", f"{avg_val_loss:.6f}",
+                f"{val_f05:.6f}", f"{val_metrics.precision:.6f}", f"{val_metrics.recall:.6f}",
+                f"{optimizer.param_groups[0]['lr']:.8f}",
+            ])
+            csv_log_file.flush()
+
+            save_checkpoint(model, optimizer, scheduler, scaler, epoch,
+                            global_step, best_f05, val_f05, f"epoch{epoch + 1}")
+            if val_f05 > best_f05:
+                best_f05 = val_f05
                 patience_counter = 0
-                logger.info("Saved best model (val_loss=%.4f)", best_val_loss)
+                logger.info("Saved best model (F0.5=%.4f)", best_f05)
             else:
                 patience_counter += 1
                 logger.info("No improvement (%d/%d patience)", patience_counter, args.patience)
@@ -454,7 +623,10 @@ def main():
 
     # Save final model
     torch.save(model.state_dict(), output_dir / "final_model.pt")
-    logger.info("Training complete. Best loss: %.4f", best_val_loss)
+    csv_log_file.close()
+    tb_writer.close()
+    logger.info("Training complete. Best F0.5: %.4f", best_f05)
+    logger.info("Training log saved to %s", csv_log_path)
 
 
 if __name__ == "__main__":

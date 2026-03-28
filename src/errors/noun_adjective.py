@@ -79,10 +79,23 @@ import re
 from typing import Optional
 
 from .base import BaseErrorGenerator
+from ..morphology.constants import (
+    ADJECTIVE_DIMINUTIVE_SUFFIXES,
+    CHAIN_ADJECTIVE_LAST_TAKES_MARKER,
+    DEFINITE_ATTACHMENT_TYPES,
+    DEFINITE_BLOCKS_SECONDARY_PLURAL,
+    DEMONSTRATIVE_BLOCKS_PROPER_NOUN,
+    IZAFE_E_BLOCKS_INDEFINITE_ADJECTIVE,
+    PROPER_NOUN_BLOCKS_DEFINITE,
+    SECONDARY_PLURAL_MARKERS,
+)
 
 
 # Definiteness suffixes in Sorani Kurdish
 # Source: Slevanayi (2001), pp. 41-44 — NP-internal agreement
+# DEFINITE_ATTACHMENT_TYPES (F#268, Haji Marf): 4 phonological types,
+# DEFINITE_BLOCKS_SECONDARY_PLURAL (F#302, Haji Marf): definite suffix
+# blocks secondary plural markers (-ات + -ان stacking).
 DEFINITE_SUFFIXES = {
     "sg_def": "ەکە",        # the (singular): کتێبەکە (the book)
     "pl_def": "ەکان",       # the (plural): کتێبەکان (the books)
@@ -143,6 +156,10 @@ COLLECTIVE_NOUNS = [
 
 # Proper nouns — cannot take indefinite (ەک) or plural (ان/ین) markers
 # Source: Slevanayi (2001), pp. 43-44
+# PROPER_NOUN_BLOCKS_DEFINITE (F#265, Haji Marf): proper nouns also block
+# definite ەکە attachment.
+# DEMONSTRATIVE_BLOCKS_PROPER_NOUN (F#182): demonstratives cannot modify
+# proper nouns directly.
 # Proper nouns have unique reference: *هەولێرەک, *سلێمانییان are ungrammatical.
 PROPER_NOUNS = [
     "سلێمانی", "هەولێر", "کوردستان", "عێراق", "دهۆک", "کەرکووک",
@@ -291,6 +308,9 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
             is_collective = stem in COLLECTIVE_NOUNS
             is_mass = stem in MASS_NOUNS
 
+            # Track underlying number from the suffix for later validation
+            underlying_number = "sg" if def_suffix == "ەکە" else "pl"
+
             positions.append({
                 "start": match.start(),
                 "end": match.end(),
@@ -300,6 +320,7 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
                     "suffix": def_suffix,
                     "is_collective": is_collective,
                     "is_mass": is_mass,
+                    "underlying_number": underlying_number,
                     "pattern_type": "definiteness",
                 },
             })
@@ -423,6 +444,39 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
                     },
                 })
 
+        # Pattern 7: Chained adjective marker placement [F#318, Haji Marf].
+        # CHAIN_ADJECTIVE_LAST_TAKES_MARKER: in a chain of adjectives
+        # (noun-ی adj-ی adj), only the LAST adjective takes the
+        # definiteness/number marker. Error: marker on a non-final adjective.
+        # F#318: CHAIN_ADJECTIVE_FREE_ORDERING — adjective ordering in
+        # chains is free (unlike English); no ordering error injected.
+        # F#318: CHAIN_ADJECTIVE_WA_SUBSTITUTION — و can replace listing
+        # in chains (ڕەش و سپی instead of ڕەشی سپی).
+        if CHAIN_ADJECTIVE_LAST_TAKES_MARKER:
+            chain_pat = re.compile(
+                r'(?:^|(?<=\s))(\S+)ی\s+(\S+)ی\s+(\S+)(?=\s|$)'
+            )
+            for match in chain_pat.finditer(sentence):
+                adj1 = match.group(2)
+                adj2 = match.group(3)
+                if adj1 in COMMON_ADJECTIVES and adj2 in COMMON_ADJECTIVES:
+                    overlap = any(
+                        not (match.end() <= p["start"] or match.start() >= p["end"])
+                        for p in positions
+                    )
+                    if not overlap:
+                        positions.append({
+                            "start": match.start(),
+                            "end": match.end(),
+                            "original": match.group(0),
+                            "context": {
+                                "noun": match.group(1),
+                                "adj1": adj1,
+                                "adj2": adj2,
+                                "pattern_type": "chained_adjective",
+                            },
+                        })
+
         return positions
 
     def generate_error(self, position: dict) -> Optional[str]:
@@ -529,6 +583,16 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
             stem = ctx["stem"]
             suffix = self.rng.choice(PROPER_NOUN_ILLEGAL_SUFFIXES)
             error = stem + suffix
+
+        elif pattern_type == "chained_adjective":
+            # F#318: Only the LAST adjective takes the marker.
+            # Error: put the marker on the first adjective instead.
+            noun = ctx["noun"]
+            adj1 = ctx["adj1"]
+            adj2 = ctx["adj2"]
+            # Pick a definiteness marker to misplace on adj1
+            bad_marker = self.rng.choice(["ەکە", "ان"])
+            error = noun + "ی " + adj1 + bad_marker + "ی " + adj2
         else:
             return None
 

@@ -80,6 +80,12 @@ class AgreementChecker:
     2. Clitic person consistency (F#9, F#133 — same-set exclusion)
     3. Ezafe presence/absence (F#165 — ی/یی six scenarios)
     4. Tense marker consistency within a clause (F#254 — coordination tense)
+    
+    Background agreement findings informing these checks:
+      F#81  — Case determines agreement domain (nom ↔ external, obl ↔ internal)
+      F#177 — Sorani lacks morphological case marking (cross-dialectal)
+      F#205 — Inanimate nouns carry arbitrary grammatical gender
+      F#206 — Post-head determiners always in nominative case internally
     """
     
     def __init__(self, analyzer: Optional[MorphologicalAnalyzer] = None):
@@ -124,22 +130,61 @@ class AgreementChecker:
             violations=violations,
         )
     
+    def _clause_boundary_indices(self, words: list[str]) -> list[int]:
+        """Return word indices that are clause boundaries.
+
+        A clause boundary occurs at و when the preceding clause segment
+        contains verb evidence OR when the segment is long enough to be
+        a verbless clause (nominal/prepositional predicate). Punctuation
+        (،/./?/!) also marks boundaries.
+        """
+        verb_prefixes = ("دە", "ئە", "نا", "بی", "بە", "ب")
+        boundaries: list[int] = []
+        segment_has_verb = False
+        segment_word_count = 0
+        for i, word in enumerate(words):
+            if word in ("،", ".", "؟", "!"):
+                boundaries.append(i)
+                segment_has_verb = False
+                segment_word_count = 0
+            elif word == "و" and i > 0:
+                if segment_has_verb or segment_word_count >= 2:
+                    boundaries.append(i)
+                    segment_has_verb = False
+                    segment_word_count = 0
+                # else: single-word NP-internal و (e.g. "نان و پەنیر")
+            else:
+                segment_word_count += 1
+                if any(word.startswith(vp) for vp in verb_prefixes):
+                    segment_has_verb = True
+                for stem in TRANSITIVE_PAST_STEMS:
+                    if word.startswith(stem):
+                        segment_has_verb = True
+                        break
+        return boundaries
+
     def _check_subject_verb(self, sentence: str) -> list[str]:
         """Check subject-verb person/number agreement (Law 1).
         
         Source: Slevanayi (2001), p. 89 — verb agrees with subject in
         person and number for intransitive and present-tense transitive.
+
+        Scans forward from each pronoun to the next clause boundary
+        (instead of a fixed 6-word window) to avoid missing distant verbs.
         """
         violations = []
         words = self._analyzer.tokenize(sentence)
+        clause_bounds = set(self._clause_boundary_indices(words))
         
         for i, word in enumerate(words):
             if word not in _PRONOUN_AGREEMENT:
                 continue
             expected_person, expected_number = _PRONOUN_AGREEMENT[word]
             
-            # Scan forward for a verb (present-tense prefix)
-            for j in range(i + 1, min(i + 6, len(words))):
+            # Scan forward for a verb until clause boundary
+            for j in range(i + 1, len(words)):
+                if j in clause_bounds:
+                    break
                 candidate = words[j]
                 is_present = any(candidate.startswith(p) for p in _PRESENT_PREFIXES)
                 is_neg_present = candidate.startswith(_NEGATION_PRESENT_PREFIX)
@@ -179,6 +224,11 @@ class AgreementChecker:
           (e.g., two Set 1 clitics) cannot co-occur in a simple sentence.
         - F#9: Clitic person must be plausible in context (no two different
           person clitics on adjacent words unless compounding).
+
+        EVAL-5 fixes:
+        - Past verbs also carry Set 2 suffixes (not Set 1 clitics); skip them.
+        - Uses analyzer's morphological features for ی disambiguation instead
+          of bare endswith("ی"), avoiding false filtering on ezafe/indefinite ی.
         """
         violations = []
         words = self._analyzer.tokenize(sentence)
@@ -189,13 +239,22 @@ class AgreementChecker:
             # Set 1 clitics. Skip present-tense verbs entirely.
             if _is_present_verb(word) or word.startswith(_NEGATION_PRESENT_PREFIX):
                 continue
-            # Skip possessive hosts: nouns with ezafe + clitic are Set 3,
-            # not Set 1. Detect by checking for ی before the clitic.
+            # Also skip past verbs — their suffixes are Set 2 agreement,
+            # not Set 1 clitics (EVAL-5 fix: prevents Set 2 leak).
+            if _is_transitive_past(word):
+                continue
             for cl, (person, number) in CLITIC_PERSON_MAP.items():
                 if word.endswith(cl) and len(word) > len(cl) + 1:
                     stem = word[: -len(cl)]
-                    # If stem ends with ezafe ی, this is a possessive (Set 3)
-                    if stem.endswith("ی"):
+                    # Use analyzer's morphological features to detect
+                    # possessive (Set 3) constructions. The old bare
+                    # endswith("ی") check was ambiguous (EVAL-5 fix).
+                    feats = self._analyzer.analyze_token(stem + "ی") if cl != "ی" else self._analyzer.analyze_token(word)
+                    if cl != "ی" and feats.case == "ez":
+                        # Stem has ezafe case → this is possessive, not Set 1
+                        continue
+                    if cl == "ی" and feats.raw_analysis.get("yi_ambiguous"):
+                        # Analyzer flagged ی as ambiguous (likely ezafe/possessive)
                         continue
                     found_clitics.append((cl, person, number))
                     break
@@ -263,6 +322,29 @@ class AgreementChecker:
                 if dem_words_seen >= 3 or word in {"و", "،", ".", "؟"}:
                     in_dem_np = False
         
+        # Check ezafe allomorph: ی after consonant, یی after vowel (F#165)
+        # Kurdish vowel characters at word-final position
+        _vowels = {"ا", "ە", "ێ", "ی", "ۆ", "و"}
+        for i, word in enumerate(words):
+            if i + 1 >= len(words):
+                continue
+            # Check if word ends with ezafe ی and is followed by a modifier
+            if not word.endswith("ی") or len(word) < 2:
+                continue
+            base = word[:-1]
+            if not base:
+                continue
+            # Only check when next word looks like a modifier (not a verb)
+            next_word = words[i + 1]
+            if next_word.startswith(("دە", "بی", "نا", "نە", "مە")):
+                continue
+            final_char = base[-1]
+            if final_char in _vowels and not word.endswith("یی"):
+                violations.append(
+                    f"Ezafe allomorph: vowel-final '{base}' should take یی "
+                    f"not single ی (F#165)"
+                )
+        
         return violations
     
     def _check_tense_consistency(self, sentence: str) -> list[str]:
@@ -280,16 +362,25 @@ class AgreementChecker:
         
         # Split on و to find coordinated clauses, but only when و
         # appears between verb-bearing segments (not NP-internal و).
+        # Improved: only split when the preceding segment contains a verb,
+        # preventing false splits on NP-internal "و" (e.g., "نان و پەنیر").
+        verb_prefixes = ("دە", "ئە", "نا", "بی", "بە", "ب")
         clauses: list[list[str]] = [[]]
         for word in words:
             if word == "و" and len(clauses[-1]) > 1:
-                clauses.append([])
+                # Only split if current clause has verb evidence
+                has_verb = any(
+                    w.startswith(vp) for w in clauses[-1] for vp in verb_prefixes
+                )
+                if has_verb:
+                    clauses.append([])
+                else:
+                    clauses[-1].append(word)
             else:
                 clauses[-1].append(word)
         
         # Filter out clauses that contain no verb evidence (likely NP
         # fragments from NP-internal و splits).
-        verb_prefixes = ("دە", "ئە", "نا", "بی", "بە", "ب")
         clauses = [
             c for c in clauses
             if any(w.startswith(vp) for w in c for vp in verb_prefixes)
@@ -358,9 +449,13 @@ class AgreementChecker:
 
         Checks: if a past transitive verb carries a Set 2 suffix whose
         person/number conflicts with a nearby definite object NP, flag it.
+
+        EVAL-5 fix: scans backward to clause boundary instead of a fixed
+        6-word window, catching distant object-verb pairs within a clause.
         """
         violations = []
         words = self._analyzer.tokenize(sentence)
+        clause_bounds = set(self._clause_boundary_indices(words))
 
         for i, word in enumerate(words):
             # Skip present-tense verbs
@@ -375,9 +470,10 @@ class AgreementChecker:
                 continue
             verb_person, verb_number = verb_pn
 
-            # Scan backward for the nearest object candidate:
-            # definite nouns (ending in ەکە/ەکان) or pronouns
-            for j in range(i - 1, max(i - 6, -1), -1):
+            # Scan backward to clause boundary for the nearest object
+            for j in range(i - 1, -1, -1):
+                if j in clause_bounds:
+                    break
                 obj = words[j]
                 obj_person: str | None = None
                 obj_number: str | None = None

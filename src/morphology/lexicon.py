@@ -184,8 +184,13 @@ class SoraniLexicon:
 
     def _load_dic(self, path: str):
         """Parse dictionary entries from the .dic file."""
-        with open(path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
+        logger.info("Loading dictionary from: %s", path)
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                lines = f.readlines()
+        except UnicodeDecodeError as exc:
+            logger.error("Failed to decode .dic file %s: %s", path, exc)
+            return
 
         # First line is the entry count; skip it
         if lines and lines[0].strip().isdigit():
@@ -234,6 +239,7 @@ class SoraniLexicon:
         with open(path, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
+        skipped_rules = 0
         for line in lines:
             line = line.strip()
             if not line or line.startswith("#"):
@@ -281,6 +287,7 @@ class SoraniLexicon:
                 else:
                     pattern = re.compile("^" + condition_str)
             except re.error:
+                skipped_rules += 1
                 continue
 
             rule = AffixRule(
@@ -296,6 +303,9 @@ class SoraniLexicon:
             else:
                 self.suffix_rules.setdefault(flag, []).append(rule)
 
+        if skipped_rules:
+            logger.warning("Skipped %d affix rules due to invalid regex patterns", skipped_rules)
+
     # ── Normalization ────────────────────────────────────────────
 
     def normalize(self, word: str) -> str:
@@ -309,6 +319,8 @@ class SoraniLexicon:
     def is_valid(self, word: str) -> bool:
         """Check if a word is valid: in dictionary or decomposable
         through affix rules."""
+        if not word:
+            return False
         word = self.normalize(word)
         if word in self.words:
             return True
@@ -323,7 +335,7 @@ class SoraniLexicon:
         candidates = []
         for pattern, replacement in self.replacements:
             try:
-                fixed = re.sub(pattern, replacement, word)
+                fixed = re.sub(pattern, replacement, word, count=1)
                 if fixed != word and fixed in self.words:
                     candidates.append(fixed)
             except re.error:
@@ -343,12 +355,18 @@ class SoraniLexicon:
         if not self.available:
             return None
 
+        # 7D.13: Sort verb entries by flag priority (T > M > I > V > W > other)
+        _FLAG_PRIORITY = {"T": 0, "M": 1, "I": 2, "V": 3, "W": 4}
+
         for length in range(len(text), 0, -1):
             candidate = text[:length]
             if candidate in self.entries:
-                for entry in self.entries[candidate]:
-                    if self._is_verb_entry(entry):
-                        return candidate, entry
+                verb_entries = [e for e in self.entries[candidate] if self._is_verb_entry(e)]
+                if verb_entries:
+                    verb_entries.sort(key=lambda e: min(
+                        (_FLAG_PRIORITY.get(f, 99) for f in e.flags), default=99
+                    ))
+                    return candidate, verb_entries[0]
         return None
 
     # ── Morphological Decomposition ──────────────────────────────
@@ -535,7 +553,10 @@ class SoraniLexicon:
                     if form:
                         forms.add(form)
 
-        return sorted(forms)
+        # 7D.11: Validate — reject forms with doubled diacritics
+        _DOUBLED_DIACRITIC = re.compile(r'[\u064B-\u065F]{2,}')
+        validated = sorted(f for f in forms if not _DOUBLED_DIACRITIC.search(f))
+        return validated if validated else sorted(forms)
 
     def _apply_suffix(
         self, word: str, rule: AffixRule

@@ -8,33 +8,58 @@ system from Slevanayi (2001):
 
 All linguistic constants are imported from constants.py; graph structures
 from graph.py; morphological analysis from analyzer.py.
+
+Background sentence-structure findings informing graph construction:
+  F#18  — Sentence Types Taxonomy (declarative, interrogative, imperative, exclamatory)
+  F#23  — Sentence = Root + Obligatory Components (minimal predicate)
+  F#31  — Pro-drop and Empty Subject (subject omission licensed)
+  F#57  — Default Word Order: SOV (encoded in DEFAULT_CONSTITUENT_ORDER)
+  F#78  — Semantic Anomaly Typology (selectional, collocational, pragmatic)
+  F#148 — Ten Verb-Deletion Contexts (valid verbless sentences)
+  F#175 — Coordination Semantic Compatibility with Shared Predicate
 """
 
 import logging
 
 from .analyzer import MorphologicalAnalyzer, MorphFeatures
 from .constants import (
+    ADJECTIVE_INDEPENDENT_FEATURES,
     ALL_VERB_PREFIXES,
     CLITIC_FORMS,
     CLAUSE_INITIAL_ONLY_CONJUNCTIONS,
     COLLECTIVE_NOUNS,
+    COLLECTIVE_SINGULAR_MORPHOLOGY_PLURAL_SEMANTICS,
     COMMON_PROPER_NOUNS,
     COMPLEMENT_REQUIRING_VERBS,
+    COMPOUND_ADJECTIVE_PATTERN_COUNT,
+    COMPOUND_NOUN_PATTERNS,
+    COMPOUND_VERB_LIGHT_VERBS,
+    COMPOUND_VERB_NOMINAL_ELEMENTS,
     COORDINATION_CONJUNCTION,
     DEFINITE_MARKER_MIGRATION_DESCRIPTIVE,
     DEMONSTRATIVES,
     EXISTENTIAL_STEMS,
     HERGIZ_ADVERBS,
     HERGIZ_BANNED_TENSES,
+    INDEFINITE_QUANTIFIER_WORDS,
+    INFINITIVE_GROUPS,
+    INTRANSITIVE_COMPOUND_CLITIC_GROUPS,
     INTRANSITIVE_PAST_STEMS,
     INTERROGATIVE_PRONOUNS,
     INVARIANT_ADJECTIVES,
     INVARIANT_POSSESSIVES,
     INVARIANT_PRONOUNS,
+    IZAFE_COORDINATED_LAST_ONLY,
+    IZAFE_E_ATTRIBUTIVE_ONLY,
+    IZAFE_NOT_GENDER_AGREEMENT,
     MASS_NOUNS,
     MEASURE_WORDS,
     NEGATION_CONJUNCTIONS,
+    NON_MORPHOLOGICAL_PLURAL_MECHANISMS,
     NOUN_MARKING_SUFFIXES,
+    NOUN_SINGULAR_AFTER_CARDINAL,
+    PASSIVE_ALWAYS_INTRANSITIVE_CLITIC,
+    PASSIVE_PAST_ROOT_EXCEPTION_VERBS,
     PAST_VERB_STEMS,
     PERSON_HIERARCHY,
     PRE_HEAD_DETERMINERS,
@@ -42,8 +67,16 @@ from .constants import (
     PREVERB_TRANSITIVITY_FLIPS,
     QUANTIFIER_FORMS,
     RECIPROCAL_PRONOUNS,
+    RECIPROCAL_VARIANTS,
+    PATIENT_PARTICIPLE_MORPHEME,
+    AGENT_PARTICIPLE_MORPHEME,
+    PATIENT_PARTICIPLE_TENSE_RESTRICTION,
+    REFLEXIVE_XO_CLITIC_ORDER,
+    REFLEXIVE_XO_TRANSITIVE_ONLY,
     RELATIVE_CLAUSE_MARKER,
     SORANI_SUBORDINATING_CONJUNCTIONS,
+    VOCATIVE_PARTICLES,
+    STRONG_CLITIC_PRESENT_EXCEPTION_VERBS,
     SUBJECT_PRONOUNS,
     TRANSITIVE_PAST_STEMS,
     YI_DOUBLE_SCENARIOS,
@@ -51,6 +84,61 @@ from .constants import (
 from .graph import AgreementEdge, AgreementGraph  # noqa: F401
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# 6C.5: Window sizes for antecedent/controller search (parameterized)
+# ---------------------------------------------------------------------------
+# Different agreement relations use different distance limits based on
+# where the controller typically appears relative to the target in SOV
+# word order. Linguistic justification for each:
+#
+#   subject_verb (8 tokens): subjects precede verbs in SOV; 8 covers
+#       modified NPs with up to 4 modifiers + ezafe chain + و coordination.
+#       Source: Slevanayi (2001), pp. 28-32.
+#
+#   quantifier_verb (10 tokens): quantifiers can be separated from the
+#       verb by the head noun + modifiers + possessive chain. 10 handles
+#       "زۆر کوڕی باشی مامۆستا بە نرخ دەچن" patterns.
+#       Source: Mukriani (2000), pp. 24-26.
+#
+#   vocative_imperative (6 tokens): vocative NP is typically adjacent
+#       to the imperative verb or separated by at most one modifier.
+#       Source: Slevanayi (2001), pp. 16, 72-73.
+#
+#   clitic_antecedent (8 tokens): clitic host's antecedent (preceding
+#       noun/pronoun) is searched backwards; 8 mirrors subject_verb.
+#       Source: Slevanayi (2001), pp. 34-37.
+#
+#   relative_clause_antecedent (7 tokens): antecedent noun precedes کە;
+#       modified NPs rarely exceed 5-6 tokens before the relativizer.
+#       Source: Slevanayi (2001), Finding #141.
+#
+#   relative_clause_verb (10 tokens): relative clause verb follows کە;
+#       10 covers adverbials + objects inside the RC before the verb.
+#
+#   backward_subject (8 tokens): for VS(O) inversions where the verb
+#       precedes the subject. Symmetric with subject_verb.
+#       Source: Slevanayi (2001), pp. 59-60.
+#
+#   conditional_marker (8 tokens): ئەگەر/مەگەر to clause verb.
+#       Source: Maaruf (2009), pp. 121-122 (F#255).
+#
+#   participial_modification (4 tokens): participial modifiers are
+#       close to head nouns in SOV order; rarely more than 2-3 tokens.
+#       Source: F#159, F#365.
+#
+WINDOW_SIZES: dict[str, int] = {
+    "subject_verb": 8,
+    "quantifier_verb": 10,
+    "vocative_imperative": 6,
+    "clitic_antecedent": 8,
+    "relative_clause_antecedent": 7,
+    "relative_clause_verb": 10,
+    "backward_subject": 8,
+    "conditional_marker": 8,
+    "hergiz_adverb": 6,
+    "participial_modification": 4,
+}
 
 
 # ---------------------------------------------------------------------------
@@ -550,15 +638,77 @@ def build_agreement_graph(
                             )
                         break
 
+            # F#126 (Haji Marf 2014): Compound verb nominal element detection.
+            # If the token preceding a verb is a known nominal element of a
+            # compound verb (e.g. کار in کارکردن), mark it as part of the
+            # compound verb so it doesn’t get its own subject agreement edge.
+            if i > 0 and tokens[i - 1] in COMPOUND_VERB_NOMINAL_ELEMENTS:
+                features[i].raw_analysis["compound_verb_nominal"] = tokens[i - 1]
+                features[i - 1].raw_analysis["is_compound_nominal"] = True
+                logger.debug(
+                    "F#126: Compound verb '%s %s' at %d-%d",
+                    tokens[i - 1], tok, i - 1, i,
+                )
+
+            # F#362 (Haji Marf): Passive verbs ALWAYS use Set 2 (intransitive)
+            # clitics. If passive is detected but law was law2, keep law1.
+            if (PASSIVE_ALWAYS_INTRANSITIVE_CLITIC
+                    and getattr(features[i], "voice", "") == "passive"
+                    and verb_info[i]["law"] == "law2"):
+                verb_info[i]["law"] = "law1"
+                verb_info[i]["passive"] = True
+
+            # F#363 (Haji Marf): 6 verbs with irregular passive past roots.
+            # PASSIVE_PAST_ROOT_EXCEPTION_VERBS maps infinitive→(past, present).
+            if getattr(features[i], "voice", "") == "passive":
+                for _inf, (past_root, _pres) in PASSIVE_PAST_ROOT_EXCEPTION_VERBS.items():
+                    if past_root in tok:
+                        features[i].raw_analysis["passive_exception_verb"] = _inf
+                        break
+
+            # F#377 (Haji Marf): Compound verb light verb transitivity.
+            # COMPOUND_VERB_LIGHT_VERBS maps 15 light verbs to transitivity.
+            # Use to resolve transitivity when heuristic stem matching fails.
+            if verb_info[i].get("transitive") is None:
+                for light_stem, trans_val in COMPOUND_VERB_LIGHT_VERBS.items():
+                    if light_stem[:-1] in tok or light_stem in tok:
+                        if trans_val == "transitive" and tense == "past":
+                            verb_info[i]["transitive"] = True
+                            verb_info[i]["law"] = "law2"
+                        elif trans_val == "intransitive":
+                            verb_info[i]["transitive"] = False
+                        features[i].raw_analysis["light_verb"] = light_stem
+                        break
+
     # M7 fix: Warn if any verb in verb_info has no person/number from analyzer.
     # Set 2 suffixes are extracted by the analyzer; if missing, edges will
     # lack the person/number features needed for agreement checking.
+    # PIPE-17: When person is missing, attempt suffix-based fallback
+    # using the same _suffix_to_person_number mapping the analyzer uses.
     for vi, vinfo in verb_info.items():
         if not features[vi].person:
-            logger.warning(
-                "Verb '%s' at %d has no person assigned by analyzer",
-                tokens[vi], vi,
-            )
+            # Try suffix-based person/number inference as fallback
+            tok = tokens[vi]
+            _inferred = None
+            for suf_len in range(min(4, len(tok)), 0, -1):
+                candidate = tok[-suf_len:]
+                result = MorphologicalAnalyzer._suffix_to_person_number(candidate)
+                if result is not None:
+                    _inferred = result
+                    break
+            if _inferred is not None:
+                features[vi].person, features[vi].number = _inferred
+                logger.info(
+                    "PIPE-17: Inferred person=%s number=%s for verb '%s' "
+                    "at %d via suffix fallback",
+                    _inferred[0], _inferred[1], tok, vi,
+                )
+            else:
+                logger.warning(
+                    "Verb '%s' at %d has no person assigned by analyzer "
+                    "and suffix fallback failed",
+                    tok, vi,
+                )
 
     # ------------------------------------------------------------------
     # Step 2: Detect subject pronouns and compound subjects
@@ -709,8 +859,9 @@ def build_agreement_graph(
                 continue
             # Check position: bare noun should precede a verb within
             # the same clause (no clause boundary between noun and verb)
+            _sv_win = WINDOW_SIZES["subject_verb"]
             for vi in verb_info:
-                if 0 < vi - i <= 8 and not _has_clause_boundary_between(tokens, features, i, vi):
+                if 0 < vi - i <= _sv_win and not _has_clause_boundary_between(tokens, features, i, vi):
                     subject_spans.append({
                         "indices": [i],
                         "person": "3",
@@ -733,8 +884,9 @@ def build_agreement_graph(
         if already_subject:
             continue
         # Marked noun (definite, plural, etc.) — check it precedes a verb
+        _sv_win = WINDOW_SIZES["subject_verb"]
         for vi in verb_info:
-            if 0 < vi - i <= 8 and not _has_clause_boundary_between(tokens, features, i, vi):
+            if 0 < vi - i <= _sv_win and not _has_clause_boundary_between(tokens, features, i, vi):
                 noun_number = features[i].number or "sg"
                 subject_spans.append({
                     "indices": [i],
@@ -760,11 +912,15 @@ def build_agreement_graph(
         for vi, info in verb_info.items():
             if info["law"] != "law1":
                 continue
-            if 0 < vi - last_idx <= 8 and not _has_clause_boundary_between(tokens, features, last_idx, vi):
+            _sv_win = WINDOW_SIZES["subject_verb"]
+            if 0 < vi - last_idx <= _sv_win and not _has_clause_boundary_between(tokens, features, last_idx, vi):
                 edge_type = "passive_subject_verb" if info.get("passive") else "subject_verb"
+                # PIPE-18: Bare nouns (number="") agree only in person,
+                # not number.  Include "number" only when it is present.
+                agr_feats = ["person", "number"] if subj["number"] else ["person"]
                 graph.add_edge(
                     subj["indices"][0], vi,
-                    edge_type, ["person", "number"],
+                    edge_type, agr_feats,
                     law="law1",
                 )
 
@@ -775,7 +931,8 @@ def build_agreement_graph(
         candidates = []
         for subj in subject_spans:
             last_idx = subj["last_idx"]
-            if 0 < vi - last_idx <= 8 and not _has_clause_boundary_between(tokens, features, last_idx, vi):
+            _sv_win = WINDOW_SIZES["subject_verb"]
+            if 0 < vi - last_idx <= _sv_win and not _has_clause_boundary_between(tokens, features, last_idx, vi):
                 candidates.append(subj)
         if not candidates:
             continue
@@ -832,9 +989,14 @@ def build_agreement_graph(
         if info["law"] != "law1":
             continue
         # Search forward from verb for a subject pronoun or bare noun
-        for j in range(vi + 1, min(vi + 8, len(tokens))):
+        _bw_win = WINDOW_SIZES["backward_subject"]
+        for j in range(vi + 1, min(vi + _bw_win, len(tokens))):
             if _is_clause_boundary(tokens[j], features[j]):
                 break
+            # Skip nouns governed by a preposition — they are PP objects,
+            # not subjects (e.g. بۆ قوتابخانە → قوتابخانە is not subject)
+            if j > 0 and features[j - 1].pos == "ADP":
+                continue
             if tokens[j] in SUBJECT_PRONOUNS:
                 p, n = SUBJECT_PRONOUNS[tokens[j]]
                 graph.add_edge(
@@ -848,9 +1010,10 @@ def build_agreement_graph(
                 )
                 break
             if _is_bare_noun(tokens[j], features[j]):
+                # PIPE-18: Bare nouns agree in person only, not number.
                 graph.add_edge(
                     j, vi,
-                    "backward_subject_verb", ["person", "number"],
+                    "backward_subject_verb", ["person"],
                     law="law1",
                 )
                 logger.debug(
@@ -968,6 +1131,10 @@ def build_agreement_graph(
     # ------------------------------------------------------------------
     # Slevanayi (2001), pp. 37-48: determiners agree with head nouns, but
     # adjectives are invariant (never agree in number/gender).
+    # IZAFE_NOT_GENDER_AGREEMENT (F#275): Sorani ezafe is gender-neutral.
+    # IZAFE_E_ATTRIBUTIVE_ONLY (F#289): Ezafe ئە only attributive function.
+    # COMPOUND_NOUN_PATTERNS (F#264): 13 compound noun formation patterns.
+    # NON_MORPHOLOGICAL_PLURAL_MECHANISMS (F#286): 5 non-suffix plurals.
     # Quantifiers always trigger plural on the verb (pp. 87-88), but the
     # noun after a numeral stays SINGULAR (Maaruf 2010, p. 139):
     #   "دوو کوڕ" not *"دوو کوڕان"
@@ -987,7 +1154,7 @@ def build_agreement_graph(
     # Pro-form (standalone ئەوە/ئەمە) → direct verb agreement edge;
     # Determiner (ئەو/ئەم + noun) → NP-internal edge only.
     for i in range(len(tokens) - 1):
-        if _is_quantifier(tokens[i]):
+        if _is_quantifier(tokens[i]) or tokens[i] in INDEFINITE_QUANTIFIER_WORDS:
             # Quantifier → noun: no number agreement edge (noun stays singular)
             # But  quantifier → verb: forces plural agreement
             # Only add edge if quantifier is in pre-nominal position
@@ -1048,6 +1215,7 @@ def build_agreement_graph(
         elif _is_collective_noun(tokens[i]):
             # Collective noun dual behavior (Slevanayi 2001, pp. 45-46, 58)
             # Finding #69: morphologically singular, semantically plural.
+            # COLLECTIVE_SINGULAR_MORPHOLOGY_PLURAL_SEMANTICS (F#270) confirms.
             # Bare collective → singular verb (3sg default)
             # With هەموو/گشت preceding → plural verb
             has_universal_quantifier = (
@@ -1114,6 +1282,10 @@ def build_agreement_graph(
                 )
             elif features[i + 1].pos == "ADJ":
                 # Finding #79: adjectives NEVER agree in number/gender.
+                # F#314 (ADJECTIVE_INDEPENDENT_FEATURES): adjectives only
+                # carry degree, never case/gender/number features.
+                # F#321 (COMPOUND_ADJECTIVE_PATTERN_COUNT): 15 compound
+                # adjective patterns exist; all remain invariant.
                 # Mark with explicit invariant edge for traceability;
                 # the model can learn to ignore this link.
                 graph.add_edge(
@@ -1126,6 +1298,64 @@ def build_agreement_graph(
                 )
             elif features[i + 1].pos in ("", "NOUN", "DET", "NUM"):
                 graph.add_edge(i + 1, i, "noun_det", ["number"])
+                # 6C.2: Distinguishing possessive (genitive) ezafe from
+                # attributive ezafe. When head+ی+NOUN, the link is
+                # possessive (کوڕی مامۆستا = the teacher's son).
+                # When head+ی+ADJ → attributive (handled above as
+                # adjective_invariant). Track genitive depth for nested
+                # possessives (A-ی B-ی C chains).
+                # Source: IZAFE_MARKERS (F#273), SUFFIX_YI_FUNCTIONS (F#283).
+                if features[i + 1].pos in ("NOUN", ""):
+                    # Genitive depth: count consecutive ezafe+noun links
+                    depth = 1
+                    j = i + 1
+                    while (j < len(tokens)
+                           and tokens[j].endswith("ی")
+                           and j + 1 < len(tokens)
+                           and features[j + 1].pos in ("NOUN", "")):
+                        depth += 1
+                        j += 1
+                    graph.add_edge(
+                        i, i + 1,
+                        "ezafe_possessive", ["number"],
+                    )
+                    logger.debug(
+                        "6C.2: Possessive ezafe '%s' at %d → '%s' at %d "
+                        "(genitive depth=%d)",
+                        tokens[i], i, tokens[i + 1], i + 1, depth,
+                    )
+
+        # F#275 (Haji Marf): In coordinated NPs (ناو و ناو), only the
+        # last noun takes the izafe marker. The earlier nouns are bare.
+        if (IZAFE_COORDINATED_LAST_ONLY
+                and tokens[i] == "و"
+                and 0 < i < len(tokens) - 1
+                and features[i - 1].pos in ("NOUN", "")
+                and features[i + 1].pos in ("NOUN", "")):
+            features[i - 1].raw_analysis["izafe_coord_bare"] = True
+
+        # F#128 (Haji Marf): Reciprocal pronoun variants (یەکتر/یەکتریان)
+        # trigger plural agreement with the verb.
+        if tokens[i] in RECIPROCAL_VARIANTS:
+            for vi, info in verb_info.items():
+                if 0 < vi - i <= 10 and not _has_clause_boundary_between(tokens, features, i, vi):
+                    graph.add_edge(
+                        i, vi,
+                        "reciprocal_verb", ["number"],
+                        law=info["law"],
+                    )
+                    break
+
+        # F#327 (Haji Marf): After a cardinal number, NP-internal link
+        # forces singular on the noun (numeral already triggers singular).
+        if (NOUN_SINGULAR_AFTER_CARDINAL
+                and features[i].pos == "NUM"
+                and i + 1 < len(features)
+                and features[i + 1].pos in ("NOUN", "")):
+            graph.add_edge(
+                i, i + 1,
+                "numeral_forces_singular", ["number"],
+            )
 
     # ------------------------------------------------------------------
     # Step 5: Clitic agreement edges — with Set 1/2/3 distinction
@@ -1144,6 +1374,13 @@ def build_agreement_graph(
     #   analyzer — do NOT create separate clitic edges for Set 2.
     #
     # Set 3 (possessive): on non-verb hosts, NEVER triggers agreement.
+    #
+    # REFLEXIVE_XO_CLITIC_ORDER (F#309): reflexive خۆ uses patient-first
+    # clitic ordering (خۆتم = patient-ت then agent-م).
+    # REFLEXIVE_XO_TRANSITIVE_ONLY (F#309): خۆ only with transitive verbs.
+    # INTRANSITIVE_COMPOUND_CLITIC_GROUPS (F#311): 3 groups of intransitive
+    # compound verbs with different clitic-set behavior.
+    # INFINITIVE_GROUPS (F#351): 5 transitivity-based infinitive classes.
     for i, tok in enumerate(tokens):
         # Skip tokens with ezafe case — trailing ی is ezafe, not
         # a possessive clitic (e.g. کوڕی گەورە = boy's big).
@@ -1178,6 +1415,55 @@ def build_agreement_graph(
                     )
                     break
 
+                # F#309: Reflexive خۆ — patient-first clitic ordering.
+                # خۆ only appears with transitive verbs; if the host
+                # starts with خۆ we tag a reflexive edge and skip the
+                # normal clitic-role assignment.
+                if tok.startswith("خۆ") and REFLEXIVE_XO_TRANSITIVE_ONLY:
+                    # Find nearest verb to verify transitivity
+                    _refl_vb = None
+                    for vi in verb_info:
+                        if _refl_vb is None or abs(vi - i) < abs(_refl_vb - i):
+                            _refl_vb = vi
+                    if _refl_vb is not None and verb_info[_refl_vb]["law"] == "law2":
+                        # Transitive context — REFLEXIVE_XO_CLITIC_ORDER
+                        # = "patient_first": first clitic = patient.
+                        graph.add_edge(
+                            i, _refl_vb, "clitic_patient", ["person", "number"],
+                            law=verb_info[_refl_vb]["law"],
+                        )
+                        # 6C.4: Reflexive-agreement edge — خۆ must agree
+                        # with the clause subject in person and number.
+                        # Link reflexive to nearest preceding subject
+                        # (pronoun or noun) so the model can detect
+                        # mismatches like *من خۆت دەشوێنم (1sg subject
+                        # with 2sg reflexive clitic).
+                        for _rj in range(i - 1, max(i - WINDOW_SIZES["clitic_antecedent"], -1), -1):
+                            if _is_clause_boundary(tokens[_rj], features[_rj]):
+                                break
+                            if (tokens[_rj] in SUBJECT_PRONOUNS
+                                    or features[_rj].pos in ("NOUN", "PRON")
+                                    or tokens[_rj] in COMMON_PROPER_NOUNS):
+                                graph.add_edge(
+                                    _rj, i,
+                                    "reflexive_agreement", ["person", "number"],
+                                    law=verb_info[_refl_vb]["law"],
+                                )
+                                logger.debug(
+                                    "6C.4: Reflexive agreement: subject '%s' at %d "
+                                    "→ خۆ '%s' at %d",
+                                    tokens[_rj], _rj, tok, i,
+                                )
+                                break
+                        logger.debug(
+                            "F#309: Reflexive خۆ clitic '%s' on '%s' at %d — "
+                            "patient-first (REFLEXIVE_XO_CLITIC_ORDER=%s)",
+                            cl, tok, i, REFLEXIVE_XO_CLITIC_ORDER,
+                        )
+                        break
+                    # Non-transitive context — skip reflexive clitic
+                    break
+
                 # Find the nearest verb to decide tense/transitivity
                 nearest_verb_idx = None
                 nearest_dist = 999
@@ -1187,6 +1473,22 @@ def build_agreement_graph(
                         nearest_dist = dist
                         nearest_verb_idx = vi
 
+                # F#311: Intransitive compound verbs — 3 groups with
+                # different clitic-set behavior.  When the compound
+                # verb matches a known group, override the default
+                # clitic role based on the group's rule.
+                _compound_group = None
+                if nearest_verb_idx is not None:
+                    vinfo_c = verb_info[nearest_verb_idx]
+                    v_lemma = vinfo_c.get("lemma", "")
+                    for grp_name, grp_data in INTRANSITIVE_COMPOUND_CLITIC_GROUPS.items():
+                        if v_lemma and any(
+                            ex.strip() in v_lemma
+                            for ex in grp_data["examples"].split(",")
+                        ):
+                            _compound_group = grp_name
+                            break
+
                 # Determine clitic role from verb context
                 if nearest_verb_idx is not None:
                     vinfo = verb_info[nearest_verb_idx]
@@ -1195,17 +1497,29 @@ def build_agreement_graph(
                     # the subject even though it's transitive.
                     if vinfo.get("wistin_exception"):
                         clitic_role = "clitic_agent"
+                    elif _compound_group == "group_c":
+                        # F#311 group_c: Set 1 middle in ALL tenses
+                        # (transitive-mimicking intransitive compounds).
+                        clitic_role = "clitic_agent"
                     elif vinfo["law"] == "law2":
                         # Past transitive (ergative): Set 1 clitic = patient
                         clitic_role = "clitic_patient"
                     else:
                         # Present / intransitive past: Set 1 clitic = agent
                         clitic_role = "clitic_agent"
+
+                    # F#344: STRONG_CLITIC_PRESENT_EXCEPTION_VERBS
+                    # (ویستن, هەبون) use strong (Set 1) clitics even in
+                    # present tense where most verbs use Set 2 suffixes.
+                    v_lemma = vinfo.get("lemma", "")
+                    if v_lemma in STRONG_CLITIC_PRESENT_EXCEPTION_VERBS:
+                        vinfo["strong_clitic_present"] = True
                 else:
                     clitic_role = "clitic_agent"  # default
 
-                # Link to nearest preceding pronoun or noun (within 8 tokens)
-                for j in range(i - 1, max(i - 8, -1), -1):
+                # Link to nearest preceding pronoun or noun
+                _cl_win = WINDOW_SIZES["clitic_antecedent"]
+                for j in range(i - 1, max(i - _cl_win, -1), -1):
                     if _is_clause_boundary(tokens[j], features[j]):
                         break  # don't cross clause boundaries
                     if (tokens[j] in SUBJECT_PRONOUNS
@@ -1234,7 +1548,8 @@ def build_agreement_graph(
         if _is_existential_verb(tok):
             # Check if there's a possessive clitic preceding (possession use)
             has_possessive = False
-            for j in range(vi - 1, max(vi - 8, -1), -1):
+            _cl_win = WINDOW_SIZES["clitic_antecedent"]
+            for j in range(vi - 1, max(vi - _cl_win, -1), -1):
                 for poss in INVARIANT_POSSESSIVES:
                     if tokens[j].endswith(poss) and len(tokens[j]) > len(poss):
                         has_possessive = True
@@ -1244,6 +1559,11 @@ def build_agreement_graph(
 
             if has_possessive:
                 # Possession: verb stays 3sg — no agreement edge to possessor
+                graph.add_edge(
+                    source=vi, target=vi,
+                    agreement_type="existential_possession",
+                    features=["person", "number"],
+                )
                 logger.debug(
                     "Existential-possession at %d: verb stays 3sg, "
                     "possessive pronoun does not agree",
@@ -1281,6 +1601,29 @@ def build_agreement_graph(
                         law="law1",
                     )
                     break
+
+    # Step 7b: Vocative particle gender constraints (F#226, F#288)
+    # Source: Ibrahim (1988), pp. 5-14 — VOCATIVE_PARTICLES dict maps
+    # each particle to its gender restriction ("masculine", "feminine",
+    # "neutral", "sacred"). When a gendered particle precedes a noun,
+    # add a gender_vocative edge so the model learns to flag mismatches
+    # like *هۆ + feminine-name or *هێ + masculine-name.
+    # IZAFE_NOT_GENDER_AGREEMENT (F#282) means gender only surfaces in
+    # vocative context in Sorani; it does NOT apply through ezafe links.
+    for i, tok in enumerate(tokens):
+        gender_constraint = VOCATIVE_PARTICLES.get(tok, "")
+        if not gender_constraint or gender_constraint in ("neutral", "sacred"):
+            continue
+        # Find the addressee noun immediately following the particle
+        if i + 1 < len(tokens) and features[i + 1].pos in ("NOUN", "PRON", ""):
+            graph.add_edge(
+                i, i + 1,
+                "gender_vocative", ["gender"],
+            )
+            logger.debug(
+                "F#226: Vocative particle '%s' (gender=%s) at %d → noun '%s' at %d",
+                tok, gender_constraint, i, tokens[i + 1], i + 1,
+            )
 
     # ------------------------------------------------------------------
     # Step 8: Relative clause agreement edges
@@ -1370,6 +1713,11 @@ def build_agreement_graph(
                 if (i + 1 < len(tokens)
                         and features[i + 1].pos == "ADJ"):
                     # ەکە should be on the adjective, not the noun
+                    graph.add_edge(
+                        source=i, target=i + 1,
+                        agreement_type="def_marker_migration",
+                        features=["definiteness"],
+                    )
                     logger.debug(
                         "F#115: Definite noun '%s' at %d followed by ADJ '%s' — "
                         "marker should migrate to modifier",
@@ -1399,6 +1747,11 @@ def build_agreement_graph(
         # If base itself ends with ی, the surface form should be یی
         # This corresponds to YI_DOUBLE_SCENARIOS[1] ("yi_final_plus_ezafe")
         if base.endswith(_yi) and not tok.endswith("یی"):
+            graph.add_edge(
+                source=i, target=i + 1,
+                agreement_type="ezafe_allomorph",
+                features=["ezafe"],
+            )
             logger.debug(
                 "F#165: '%s' at %d — ی-final base '%s' needs double یی "
                 "(scenario: %s)",
@@ -1487,6 +1840,58 @@ def build_agreement_graph(
                 tok, i, tokens[vi], vi,
             )
             break
+
+    # ------------------------------------------------------------------
+    # Step 12: Participial modification edges (F#159, F#365)
+    # ------------------------------------------------------------------
+    # Source: Constants F#159 — و-participle (patient/passive) is
+    # restricted to PAST tense; ر-participle (agent/active) is
+    # unrestricted. F#365 — transitive past stems cannot form active
+    # participles.
+    #
+    # When a participle modifies a noun (either directly or through
+    # ezafe), add a participial_modification edge encoding the tense
+    # restriction. This helps the model detect tense mismatches like
+    # *"کتێبی نووسراو" (written book) used in a future-tense frame.
+    for i, tok in enumerate(tokens):
+        # Skip tokens already classified as finite verbs
+        if i in verb_info:
+            continue
+        is_patient_participle = (
+            tok.endswith(PATIENT_PARTICIPLE_MORPHEME)
+            and len(tok) > 2
+            and not _is_present_verb(tok)
+        )
+        is_agent_participle = (
+            tok.endswith(AGENT_PARTICIPLE_MORPHEME)
+            and len(tok) > 2
+            and features[i].pos not in ("ADP", "CONJ", "DET", "PUNCT")
+        )
+        if not (is_patient_participle or is_agent_participle):
+            continue
+        # Find a noun this participle modifies (preceding or following,
+        # within a 4-token window — participial modifiers are close to
+        # their head noun in SOV order).
+        head_idx = None
+        for j in range(max(0, i - 4), min(len(tokens), i + 4)):
+            if j == i:
+                continue
+            if features[j].pos in ("NOUN", "") and j not in verb_info:
+                head_idx = j
+                break
+        if head_idx is None:
+            continue
+        graph.add_edge(
+            head_idx, i,
+            "participial_modification", ["tense"],
+        )
+        logger.debug(
+            "F#159: Participial edge: noun '%s' at %d → participle '%s' at %d "
+            "(type=%s, restriction=%s)",
+            tokens[head_idx], head_idx, tok, i,
+            "patient" if is_patient_participle else "agent",
+            PATIENT_PARTICIPLE_TENSE_RESTRICTION if is_patient_participle else "none",
+        )
 
     logger.debug(
         "Built agreement graph with %d edges for %d tokens",

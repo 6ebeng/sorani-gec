@@ -4,6 +4,7 @@ from typing import List, Optional
 import difflib
 
 from ..morphology.lexicon import SoraniLexicon
+from .tokenize import sorani_word_tokenize
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +37,11 @@ class SoraniSpellChecker:
     # Regex to split trailing Kurdish/Arabic punctuation from a word
     _PUNCT_RE = re.compile(r'^(.+?)([.،؟!؛:»«\-]+)$')
 
-    def correct_sentence(self, sentence: str) -> str:
+    def correct_sentence(self, sentence: str, model_confidence: float = 0.0) -> str:
         """Apply spell correction to each word in the sentence.
+
+        If *model_confidence* exceeds 0.9 the spell-checker defers to the
+        model output, avoiding the risk of undoing high-confidence corrections.
 
         Returns the sentence with misspelled words replaced by the
         best suggestion from the lexicon. Words already correct or
@@ -45,7 +49,10 @@ class SoraniSpellChecker:
         """
         if not self.is_available():
             return sentence
-        words = sentence.split()
+        if model_confidence > 0.9:
+            logger.debug("Skipping spell-check: model confidence %.2f > 0.9", model_confidence)
+            return sentence
+        words = sorani_word_tokenize(sentence)
         corrected = []
         for word in words:
             # Separate trailing punctuation so it doesn't interfere

@@ -70,9 +70,10 @@ _sorted_clitics = sorted(POSSESSIVE_CLITICS.keys(), key=len, reverse=True)
 _CLITIC_ALT = '|'.join(re.escape(c) for c in _sorted_clitics)
 _NOUN_SUFFIX_ALT = '|'.join(re.escape(s) for s in sorted(NOUN_SUFFIXES, key=len, reverse=True))
 
-# Pattern: word with a noun-like suffix followed by a possessive clitic
+# Pattern: word with an optional noun-like suffix followed by a possessive clitic.
+# The suffix is optional to handle bare stem + clitic cases (e.g., کاتی 'his time').
 _NOUN_POSSESSIVE_PATTERN = re.compile(
-    rf'(?:^|(?<=\s))([\u0600-\u06FF]+?(?:{_NOUN_SUFFIX_ALT}))'
+    rf'(?:^|(?<=\s))([\u0600-\u06FF]{{2,}}(?:{_NOUN_SUFFIX_ALT})?)'
     rf'({_CLITIC_ALT})(?=\s|$)'
 )
 

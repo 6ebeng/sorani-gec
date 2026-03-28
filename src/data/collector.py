@@ -9,6 +9,7 @@ Utilities for collecting and preparing Sorani Kurdish text from various sources:
 """
 
 import os
+import random
 import re
 import json
 import logging
@@ -35,6 +36,28 @@ class CorpusCollector:
         self._detector = SoraniDetector()
         self._rate_limit = rate_limit  # minimum seconds between API calls
         self._last_request_time: float = 0.0
+        # Cross-source sentence-level deduplication — persisted across runs
+        self._dedup_path = self.output_dir / ".seen_sentences.txt"
+        self._seen_sentences: set[str] = self._load_seen_sentences()
+
+    def _load_seen_sentences(self) -> set[str]:
+        """Load previously seen sentences from persistent dedup file."""
+        seen: set[str] = set()
+        if self._dedup_path.exists():
+            with open(self._dedup_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    s = line.rstrip("\n")
+                    if s:
+                        seen.add(s)
+            logger.info("Loaded %d previously seen sentences from %s", len(seen), self._dedup_path)
+        return seen
+
+    def _save_seen_sentences(self) -> None:
+        """Persist the deduplication set to disk."""
+        with open(self._dedup_path, "w", encoding="utf-8") as f:
+            for s in sorted(self._seen_sentences):
+                f.write(s + "\n")
+        logger.info("Saved %d seen sentences to %s", len(self._seen_sentences), self._dedup_path)
 
     def _throttle(self):
         """Enforce rate limiting between API calls."""
@@ -42,6 +65,28 @@ class CorpusCollector:
         if elapsed < self._rate_limit:
             time.sleep(self._rate_limit - elapsed)
         self._last_request_time = time.monotonic()
+
+    def _request_with_backoff(self, url: str, params: dict, max_retries: int = 4) -> requests.Response:
+        """GET with exponential backoff + jitter on HTTP 429 or network errors."""
+        for attempt in range(max_retries + 1):
+            try:
+                self._throttle()
+                resp = requests.get(url, params=params, timeout=30)
+                self._last_request_time = time.monotonic()
+                if resp.status_code == 429:
+                    wait = (2 ** attempt) + random.uniform(0, 1)
+                    logger.warning("HTTP 429 — retrying in %.1fs (attempt %d/%d)", wait, attempt + 1, max_retries)
+                    time.sleep(wait)
+                    continue
+                return resp
+            except requests.RequestException as exc:
+                if attempt < max_retries:
+                    wait = (2 ** attempt) + random.uniform(0, 1)
+                    logger.warning("Request failed (%s) — retrying in %.1fs", exc, wait)
+                    time.sleep(wait)
+                else:
+                    raise
+        return requests.get(url, params=params, timeout=30)  # final attempt
     
     def collect_wikipedia(self, dump_path: Optional[str] = None, max_articles: int = 5000) -> int:
         """Extract Sorani Kurdish text from Wikipedia.
@@ -92,7 +137,7 @@ class CorpusCollector:
                 if apcontinue:
                     params["apcontinue"] = apcontinue
                 
-                resp = requests.get(base_url, params=params, timeout=30)
+                resp = self._request_with_backoff(base_url, params)
                 self._last_request_time = time.monotonic()
                 data = resp.json()
                 
@@ -142,33 +187,105 @@ class CorpusCollector:
             # Parse HTML and extract text
             soup = BeautifulSoup(html, "html.parser")
             
-            # Remove references, tables, etc.
-            for tag in soup.find_all(["table", "sup", "div", "script", "style"]):
+            # Remove references, tables, navigation, metadata, etc.
+            for tag in soup.find_all(["table", "sup", "div", "script", "style",
+                                      "span", "small"]):
+                # Keep inline spans but remove those with class attributes
+                # that indicate metadata (e.g., reference numbers, edit links)
+                if tag.name == "span" and not tag.get("class"):
+                    continue
+                tag.decompose()
+            
+            # Remove categories (usually at bottom of page)
+            for tag in soup.find_all("a", class_="mw-redirect"):
                 tag.decompose()
             
             text = soup.get_text(separator=" ", strip=True)
+            
+            # Clean residual wiki markup that survived HTML parsing
+            text = re.sub(r'\[\[(?:[^|\]]*\|)?([^\]]*)\]\]', r'\1', text)  # [[link|text]] → text
+            text = re.sub(r'\{\{[^}]*\}\}', '', text)     # {{templates}}
+            text = re.sub(r'\[https?://[^\]]*\]', '', text)  # [external links]
+            text = re.sub(r'<ref[^>]*>.*?</ref>', '', text)  # <ref>...</ref>
+            text = re.sub(r'<ref[^/]*/>', '', text)          # <ref ... />
+            text = re.sub(r'==+\s*[^=]+\s*==+', '', text)   # == Section headers ==
+            text = re.sub(r'\s+', ' ', text).strip()
             
             # Split into sentences and filter
             from .normalizer import sentence_split
             sentences = sentence_split(text)
             
             # Filter: keep only sentences with Kurdish characters and reasonable length
-            sentences = [
-                s for s in sentences
-                if len(s) > 20 and len(s) < 500 and self._detector.is_sorani(s)
-            ]
+            # Also apply cross-source deduplication
+            filtered = []
+            for s in sentences:
+                if len(s) > 20 and len(s) < 500 and self._detector.is_sorani(s):
+                    normalized = " ".join(s.split())
+                    if normalized not in self._seen_sentences:
+                        self._seen_sentences.add(normalized)
+                        filtered.append(s)
             
-            return sentences
+            return filtered
             
         except (requests.RequestException, KeyError, ValueError) as e:
             logger.debug("Failed to fetch page %s: %s", pageid, e)
             return []
     
     def _process_wiki_dump(self, dump_path: str) -> list[str]:
-        """Process a downloaded Wikipedia dump file."""
+        """Process a downloaded Wikipedia dump file (XML or bz2-compressed XML).
+
+        Parses the MediaWiki XML dump format, extracts article text, splits
+        into sentences, and filters for Sorani Kurdish content.
+        """
+        import bz2
+        import xml.etree.ElementTree as ET
+
+        dump = Path(dump_path)
         sentences = []
-        # TODO: Implement XML dump processing
-        logger.warning("Wikipedia dump processing not yet implemented")
+
+        # Handle bz2 or plain XML
+        if dump.suffix == ".bz2":
+            opener = bz2.open
+        else:
+            opener = open
+
+        logger.info("Parsing Wikipedia dump: %s", dump)
+        # Use iterparse for memory efficiency on large dumps
+        try:
+            with opener(dump, "rt", encoding="utf-8") as f:
+                ns = ""
+                for event, elem in ET.iterparse(f, events=("end",)):
+                    tag = elem.tag
+                    # Strip namespace prefix if present
+                    if "}" in tag:
+                        ns_end = tag.index("}") + 1
+                        tag = tag[ns_end:]
+
+                    if tag == "text":
+                        text = elem.text
+                        if not text:
+                            elem.clear()
+                            continue
+                        # Strip MediaWiki markup (basic cleanup)
+                        text = re.sub(r"\[\[(?:[^|\]]*\|)?([^\]]*)\]\]", r"\1", text)
+                        text = re.sub(r"\{\{[^}]*\}\}", "", text)
+                        text = re.sub(r"'{2,}", "", text)
+                        text = re.sub(r"<[^>]+>", "", text)
+                        text = re.sub(r"==+[^=]+=+", "", text)
+                        text = re.sub(r"\s+", " ", text).strip()
+
+                        if text:
+                            from .normalizer import sentence_split
+                            for sent in sentence_split(text):
+                                if 20 < len(sent) < 500 and self._detector.is_sorani(sent):
+                                    sentences.append(sent)
+
+                        elem.clear()
+
+        except (ET.ParseError, OSError) as e:
+            logger.warning("Failed to parse dump %s: %s", dump_path, e)
+
+        logger.info("Extracted %d sentences from dump", len(sentences))
         return sentences
     
     def collect_from_text_files(self, input_dir: str, source_name: str = "local") -> int:
@@ -182,10 +299,13 @@ class CorpusCollector:
                 text = f.read()
                 from .normalizer import sentence_split
                 file_sentences = sentence_split(text)
-                sentences.extend([
-                    s for s in file_sentences
-                    if len(s) > 20 and self._detector.is_sorani(s)
-                ])
+                for s in file_sentences:
+                    if len(s) > 20 and self._detector.is_sorani(s):
+                        # Cross-source dedup: normalize whitespace for comparison
+                        normalized = " ".join(s.split())
+                        if normalized not in self._seen_sentences:
+                            self._seen_sentences.add(normalized)
+                            sentences.append(s)
         
         with open(output_file, "w", encoding="utf-8") as f:
             for sentence in sentences:
@@ -207,11 +327,12 @@ class CorpusCollector:
         return SoraniDetector().is_sorani(text)
     
     def save_stats(self):
-        """Save collection statistics."""
+        """Save collection statistics and persist dedup set."""
         stats_file = self.output_dir / "collection_stats.json"
         with open(stats_file, "w", encoding="utf-8") as f:
             json.dump(self.stats, f, indent=2, ensure_ascii=False)
         logger.info("Stats saved to %s", stats_file)
+        self._save_seen_sentences()
 
 
 if __name__ == "__main__":

@@ -12,12 +12,20 @@ register-level grammatical error common in learner text.
 
 Targets:
   - Finding #162 (Polite Imperative Obligatory Preparatory Phrases)
+
+Background imperative-system findings (documented):
+  F#61  — Imperative Markers (بـ positive, مە prohibition)
+  F#359 — Subjunctive past three-marker ordering (ب > با > ایە)
+  F#361 — Imperative -ە absorption with vowel-final roots
+  F#366 — Imperative ب-marker omission in compound/preverbed verbs
+  F#373 — Imperative -ڕە suffix (Sulaymaniyah emphatic singular)
 """
 
 import re
 from typing import Optional
 
 from .base import BaseErrorGenerator
+from ..data.tokenize import sorani_word_tokenize
 
 # ---------------------------------------------------------------------------
 # Polite imperative markers (F#162)
@@ -86,13 +94,23 @@ class PoliteImperativeErrorGenerator(BaseErrorGenerator):
             marker = match.group(1)
             full_match = match.group(0)
 
-            # Verify there is an imperative verb somewhere after the marker
+            # 6A.5: Validate imperative verb morphology after the marker.
+            # The old code accepted any sentence with a polite marker even
+            # when no imperative verb followed, causing false fires on
+            # declarative sentences that happen to start with "تکایە".
             remainder = sentence[match.end():]
-            if not _IMPERATIVE_PREFIX_RE.search(remainder):
-                # Also accept the remainder as a plausible imperative
-                # even without explicit prefix (some verbs are irregular)
-                tokens_after = remainder.strip().split()
-                if not tokens_after:
+            has_imperative = _IMPERATIVE_PREFIX_RE.search(remainder)
+            if not has_imperative:
+                # Tighter fallback: require at least a 3+ char word that
+                # could be an irregular imperative (e.g. "وەرە", "بچۆ").
+                # Single-word remainders like punctuation are rejected.
+                tokens_after = sorani_word_tokenize(remainder.strip())
+                if not tokens_after or len(tokens_after[0]) < 3:
+                    continue
+                # Additional check: first word should not start with a
+                # clear non-imperative prefix (present دە/ئە, past نە)
+                first_token = tokens_after[0]
+                if any(first_token.startswith(p) for p in ("دە", "ئە", "نە", "نا")):
                     continue
 
             positions.append({

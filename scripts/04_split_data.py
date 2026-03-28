@@ -32,6 +32,8 @@ def main():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--stratify", default="error_type",
                         help="Key to stratify by (default: error_type)")
+    parser.add_argument("--group-by", default=None,
+                        help="Key to group by for article-level splitting (e.g. source_id)")
     args = parser.parse_args()
 
     ratio_sum = args.train_ratio + args.dev_ratio + args.test_ratio
@@ -51,6 +53,7 @@ def main():
         test_ratio=args.test_ratio,
         seed=args.seed,
         stratify_key=args.stratify,
+        group_key=args.group_by,
     )
 
     logger.info("Split complete: %s", stats)

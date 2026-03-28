@@ -43,6 +43,15 @@ EDGE_TYPE_ORDER: list[str] = [
     "pro_drop_agreement",
     "passive_subject_verb",
     "backward_subject_verb",
+    "def_marker_migration",
+    "ezafe_allomorph",
+    "existential_possession",
+    "numeral_forces_singular",
+    "reciprocal_verb",
+    "gender_vocative",
+    "ezafe_possessive",
+    "participial_modification",
+    "reflexive_agreement",
 ]
 
 
@@ -84,6 +93,10 @@ EDGE_ROLE_SOURCE: dict[str, str] = {
     "collective_singular": "collective",
     "collective_plural": "collective",
     "mass_noun_no_agreement": "mass_noun",
+    "gender_vocative": "vocative_particle",
+    "ezafe_possessive": "possessor",
+    "participial_modification": "participle",
+    "reflexive_agreement": "reflexive",
 }
 
 # Role labels assigned to the *target* token of each edge type.
@@ -103,6 +116,10 @@ EDGE_ROLE_TARGET: dict[str, str] = {
     "quantifier_verb": "verb",
     "measure_word_verb": "verb",
     "vocative_imperative": "verb",
+    "gender_vocative": "noun",
+    "ezafe_possessive": "possessed",
+    "participial_modification": "noun",
+    "reflexive_agreement": "verb",
 }
 
 
@@ -117,10 +134,16 @@ class AgreementGraph:
     # Valid feature names for edge validation
     _VALID_FEATURES = frozenset({
         "person", "number", "tense", "aspect", "case",
-        "definiteness", "transitivity",
+        "definiteness", "transitivity", "ezafe", "gender",
     })
 
     def __init__(self, tokens: list[str], features: list[MorphFeatures]):
+        if len(tokens) > 128:
+            logger.warning(
+                "Sentence has %d tokens (>128 limit); graph may exceed "
+                "model tensor shapes. Consider truncating.",
+                len(tokens),
+            )
         self.tokens = tokens
         self.features = features
         self.edges: list[AgreementEdge] = []
@@ -163,12 +186,20 @@ class AgreementGraph:
           Zero-agreement edges (empty features) are always satisfied.
         """
         violations = []
+        n = len(self.features)
         for edge in self.edges:
             # Informational edges with no features never violate
             if not edge.features:
                 continue
             # Agent non-agreeing edges are traceability-only
             if edge.agreement_type == "agent_non_agreeing":
+                continue
+            # Bounds check: skip edges referencing tokens beyond features list
+            if edge.source_idx >= n or edge.target_idx >= n:
+                logger.warning(
+                    "Edge %s→%s (%s) out of bounds (n=%d) — skipped",
+                    edge.source_idx, edge.target_idx, edge.agreement_type, n,
+                )
                 continue
             
             src_feat = self.features[edge.source_idx]
@@ -225,19 +256,32 @@ class AgreementGraph:
         """Stack per-type adjacency matrices into [num_types, N, N].
 
         Returns (matrices, type_names) where matrices[k] is the N×N
-        binary matrix for type_names[k].  Types follow EDGE_TYPE_ORDER;
-        any runtime-only types are appended after the predefined list.
+        binary matrix for type_names[k].  All types in EDGE_TYPE_ORDER
+        are always included (zero matrix if no edges of that type exist)
+        so that positional alignment with model edge-type weights is
+        guaranteed.  Any runtime-only types beyond the predefined list
+        are appended after, up to a safe cap.
         """
+        n = len(self.tokens)
         typed = self.to_typed_adjacency_matrices()
         type_names: list[str] = []
         matrices: list[list[list[int]]] = []
         for t in EDGE_TYPE_ORDER:
+            type_names.append(t)
             if t in typed:
                 matrices.append(typed[t])
-                type_names.append(t)
-        # Append any types not in the predefined order
+            else:
+                matrices.append([[0] * n for _ in range(n)])
+        # Append any types not in the predefined order, up to a safe cap
+        max_types = len(EDGE_TYPE_ORDER) * 2
         for t in typed:
             if t not in EDGE_TYPE_ORDER:
+                if len(type_names) >= max_types:
+                    logger.warning(
+                        "Edge type '%s' exceeds max_edge_types (%d) — dropped",
+                        t, max_types,
+                    )
+                    continue
                 matrices.append(typed[t])
                 type_names.append(t)
         return matrices, type_names

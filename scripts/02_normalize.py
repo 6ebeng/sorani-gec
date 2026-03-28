@@ -38,14 +38,20 @@ def main():
     output_path.mkdir(parents=True, exist_ok=True)
     
     all_sentences = []
+    dropped_short = 0
     
     for txt_file in input_path.glob("*.txt"):
         logger.info("Processing %s...", txt_file.name)
-        with open(txt_file, "r", encoding="utf-8", errors="replace") as f:
+        with open(txt_file, "r", encoding="utf-8-sig", errors="replace") as f:
             for line in f:
                 normalized = normalizer.normalize(line.strip())
                 if normalized and len(normalized) > 20:
                     all_sentences.append(normalized)
+                elif normalized:
+                    dropped_short += 1
+    
+    if dropped_short:
+        logger.info("Dropped %d lines shorter than 20 chars", dropped_short)
     
     logger.info("Total sentences before dedup: %d", len(all_sentences))
     all_sentences = deduplicate_sentences(all_sentences)

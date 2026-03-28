@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "sorani-gec"
+version = "0.1.0"
+description = "Agreement-Aware Grammatical Error Correction for Sorani Kurdish"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Tishko Salah Hawez"},
+]
+
+dependencies = [
+    "torch>=2.0.0,<3.0.0",
+    "transformers>=4.35.0,<5.0.0",
+    "datasets>=2.14.0,<3.0.0",
+    "tokenizers>=0.15.0,<1.0.0",
+    "klpt>=0.1.5,<1.0.0",
+    "pyhunspell>=0.5.4,<1.0.0",
+    "pandas>=2.0.0,<3.0.0",
+    "numpy>=1.24.0,<2.0.0",
+    "regex>=2023.10.3,<2025.0.0",
+    "tqdm>=4.66.0,<5.0.0",
+    "beautifulsoup4>=4.12.0,<5.0.0",
+    "requests>=2.31.0,<3.0.0",
+    "scikit-learn>=1.3.0,<2.0.0",
+    "scipy>=1.11.0,<2.0.0",
+    "pyyaml>=6.0,<7.0",
+    "hydra-core>=1.3.0,<2.0.0",
+    "matplotlib>=3.8.0,<4.0.0",
+    "seaborn>=0.13.0,<1.0.0",
+]
+
+[project.optional-dependencies]
+web = ["gradio>=4.0.0,<7.0.0"]
+dev = [
+    "pytest>=7.4.0,<9.0.0",
+    "black>=23.10.0,<25.0.0",
+    "isort>=5.12.0,<6.0.0",
+    "jupyter>=1.0.0,<2.0.0",
+]
+logging = [
+    "tensorboard>=2.15.0,<3.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

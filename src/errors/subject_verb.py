@@ -31,6 +31,14 @@ Note on the 3SG ات allomorph [F#96]: Only 8 verbs use ات instead of ێت for
 the 3rd-person singular present ending (Amin 2016, pp. 21-22).
 The ات is actually epenthetic ت, not a true pronoun [F#48, F#167].
 
+Background verb morphology / valency findings (documented):
+  F#3   Case roles (Fillmore framework) inform argument structure
+  F#4   Middle verbs / causative restriction
+  F#7   Verb classification by case frame (1/2/3-place verbs)
+  F#32  Verb argument structure types (trans/intrans/ditrans)
+  F#54  VP structure: transitive vs intransitive formulas (Maaruf)
+  F#58  Verb valency types (0-valency through 3-valency)
+
 Key findings implemented:
   F#1   Subject-verb agreement as primary agreement domain
   F#9   Three clitic sets (Set 1, Set 2, Set 3/possessive)
@@ -71,30 +79,11 @@ from typing import Optional
 from .base import BaseErrorGenerator
 
 
-# Common Sorani verb endings (present tense — agreement with subject)
-# Source: Amin (2016), pp. 17-18, 21-22
-PRESENT_VERB_ENDINGS = {
-    "1sg": ["م", "ەم"],          # I
-    "2sg": ["یت", "ی", "ێت"],   # You (sg)
-    "3sg": ["ێت", "ێ", "ات"],   # He/She (ات only for 8 verbs; Amin pp.21-22)
-    "1pl": ["ین"],              # We
-    "2pl": ["ن"],               # You (pl)
-    "3pl": ["ن", "ەن"],         # They
-}
-
-# The 8 verbs that use ات for 3SG instead of ێت
-# Source: Amin (2016), pp. 21-22 — Finding #96
-# Present roots ending in ۆ or ە take ات; all others take ێت
-AT_ALLOMORPH_STEMS = {
-    "با",     # بردن (دەبات)
-    "کا",     # کردن (دەکات)
-    "خا",     # خستن (دەخات)
-    "شوا",    # شوشتن (دەشوات)
-    "پوا",    # (دەپوات)
-    "خوا",    # خواردن (دەخوات)
-    "گا",     # گەیشتن (دەگات)
-    "دا",     # دان (دەدات)
-}
+from ..morphology.constants import (
+    AT_ALLOMORPH_STEMS,
+    PAST_ENDINGS as PAST_VERB_ENDINGS,
+    PRESENT_VERB_ENDINGS,
+)
 
 # Imperative verb endings (mood prefix ب- or negative مە-)
 # Source: Amin (2016), pp. 34-35
@@ -103,18 +92,7 @@ IMPERATIVE_ENDINGS = {
     "2pl": ["ن"],               # write! (pl.)
 }
 
-# Past-tense verb endings (clitic agreement — ergative/agent set)
-# In past transitive: these clitics mark the AGENT, not the agreement target.
-# The verb itself agrees with the OBJECT via these suffixes.
-# Source: Amin (2016), pp. 17-18, 51-52; Slevanayi (2001), pp. 60-61
-PAST_VERB_ENDINGS = {
-    "1sg": "م",
-    "2sg": "ت",
-    "3sg": "",       # zero morpheme
-    "1pl": "مان",
-    "2pl": "تان",
-    "3pl": "یان",
-}
+# PAST_VERB_ENDINGS imported from morphology.constants as PAST_ENDINGS
 
 # Mapping for number flips (works for both present and past paradigms)
 NUMBER_FLIP = {
@@ -464,9 +442,20 @@ class SubjectVerbErrorGenerator(BaseErrorGenerator):
             error_verb = ctx["prefix"] + ctx["stem"] + new_ending
         else:
             # Law 1: present/future — flip subject-agreement suffix
-            target_endings = PRESENT_VERB_ENDINGS.get(target_pn, [])
+            target_endings = list(PRESENT_VERB_ENDINGS.get(target_pn, []))
             if not target_endings:
                 return None
+            # Filter ات vs ێت based on stem: only AT-allomorph verbs
+            # (F#96) use ات for 3sg; all others use ێت/ێ.
+            stem = ctx.get("stem", "")
+            is_at_verb = any(stem.endswith(s) for s in AT_ALLOMORPH_STEMS)
+            if target_pn == "3sg":
+                if is_at_verb:
+                    target_endings = [e for e in target_endings if e != "ێت"]
+                else:
+                    target_endings = [e for e in target_endings if e != "ات"]
+                if not target_endings:
+                    return None
             new_ending = self.rng.choice(target_endings)
             error_verb = ctx["prefix"] + ctx["stem"] + new_ending
 

@@ -19,6 +19,8 @@ import os
 import sys
 from pathlib import Path
 
+import yaml
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 logging.basicConfig(
@@ -65,21 +67,59 @@ def main():
                         help="Keep the K best checkpoints by val loss")
     parser.add_argument("--eval-every-n-steps", type=int, default=500,
                         help="Run validation every N optimizer steps (0=epoch-only)")
+    parser.add_argument("--resume-from", type=str, default=None,
+                        help="Path to checkpoint .pt file to resume training from")
+    parser.add_argument("--device", type=str, default=None,
+                        help="Explicitly set a device (e.g., 'cuda:0', 'cpu').")
+    parser.add_argument("--curriculum", action="store_true", default=False,
+                        help="Enable curriculum learning (easy→hard by sentence length)")
     args = parser.parse_args()
+
+    # Load YAML config and use as defaults; CLI args override.
+    cfg_path = Path(args.config)
+    if cfg_path.exists():
+        with open(cfg_path, "r", encoding="utf-8") as fh:
+            cfg = yaml.safe_load(fh) or {}
+        training_cfg = cfg.get("training", {})
+        _yaml_defaults = {
+            "max_length": cfg.get("data", {}).get("max_seq_length"),
+            "batch_size": training_cfg.get("batch_size"),
+            "grad_accum_steps": training_cfg.get("gradient_accumulation_steps"),
+            "fp16": training_cfg.get("fp16"),
+            "lr": training_cfg.get("learning_rate"),
+            "patience": training_cfg.get("early_stopping_patience"),
+        }
+        # Only apply YAML value when the user did not pass the flag on CLI.
+        sentinel = parser.parse_args([])  # defaults only
+        for key, yaml_val in _yaml_defaults.items():
+            if yaml_val is not None and getattr(args, key) == getattr(sentinel, key):
+                setattr(args, key, yaml_val)
+        logger.info("Loaded config from %s", cfg_path)
+    else:
+        logger.warning("Config file not found: %s — using CLI defaults", cfg_path)
 
     import torch
     from torch.utils.data import DataLoader, Dataset
     from torch.amp import GradScaler
+    from torch.utils.tensorboard import SummaryWriter
 
     from src.model.baseline import BaselineGEC
+    from src.evaluation.f05_scorer import evaluate_corpus
+    from src.data.curriculum import CurriculumSampler
 
-    logger.info("Device: %s", "cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logger.info("Auto-Device: %s", "cuda" if torch.cuda.is_available() else "cpu")
+    if args.device:
+        device = torch.device(args.device)
+        logger.info("Using explicitly requested device: %s", device)
+    else:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Load model
     logger.info("Loading model: %s", args.model)
     model = BaselineGEC(model_name=args.model)
     model = model.to(device)
+    total_params = sum(p.numel() for p in model.parameters())
+    logger.info("Total parameters: %s", f"{total_params:,}")
 
     # Load data
     data_dir = Path(args.data_dir)
@@ -127,7 +167,21 @@ def main():
             }
 
     train_dataset = GECDataset(train_sources, train_targets, model.tokenizer, args.max_length)
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+
+    # Curriculum learning: sort by difficulty (word count), progressively
+    # expose harder examples across epochs.
+    # 6B.8: Use word count instead of character length.
+    curriculum_sampler = None
+    if args.curriculum:
+        difficulties = [len(s.split()) for s in train_sources]
+        curriculum_sampler = CurriculumSampler(
+            difficulties, total_epochs=args.epochs,
+        )
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
+                                  sampler=curriculum_sampler)
+        logger.info("Curriculum learning enabled (%d samples)", len(train_dataset))
+    else:
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
     dev_loader = None
     if dev_sources:
@@ -146,40 +200,96 @@ def main():
 
     scaler = GradScaler("cuda", enabled=args.fp16 and device.type == "cuda")
 
+    # Resume from checkpoint if requested (ARCH-4)
+    if args.resume_from:
+        ckpt = torch.load(args.resume_from, map_location=device, weights_only=False)
+        model.load_state_dict(ckpt["model_state_dict"])
+        optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+        scheduler.load_state_dict(ckpt["scheduler_state_dict"])
+        scaler.load_state_dict(ckpt["scaler_state_dict"])
+        start_epoch = ckpt["epoch"] + 1
+        global_step = ckpt["global_step"]
+        # Re-evaluate to get current best_f05 from actual model state
+        if dev_loader and dev_sources:
+            best_f05, _ = compute_val_f05(model, dev_sources, dev_targets)
+            logger.info("Re-evaluated resumed checkpoint: F0.5=%.4f", best_f05)
+        else:
+            best_f05 = ckpt.get("best_f05", 0.0)
+        logger.info("Resumed from %s (epoch %d, step %d, best_f05=%.4f)",
+                     args.resume_from, start_epoch, global_step, best_f05)
+
     # Training loop
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Checkpoint manager — keeps top-K checkpoints ranked by val loss
+    # TensorBoard writer
+    tb_writer = SummaryWriter(log_dir=str(output_dir / "tensorboard"))
+
+    # CSV training log for easy downstream plotting
+    import csv
+    csv_log_path = output_dir / "training_log.csv"
+    csv_log_file = open(csv_log_path, "w", newline="", encoding="utf-8")
+    csv_writer = csv.writer(csv_log_file)
+    csv_writer.writerow(["epoch", "train_loss", "val_loss", "val_f05", "val_precision", "val_recall", "lr"])
+
+    import atexit
+    atexit.register(csv_log_file.close)
+    atexit.register(tb_writer.close)
+
+    # Checkpoint manager — keeps top-K checkpoints ranked by val F0.5 (higher=better)
     top_k = args.save_top_k
-    # List of (val_loss, path) sorted ascending by loss (best first)
+    # List of (f05, path) sorted descending by F0.5 (best first)
     saved_checkpoints: list[tuple[float, Path]] = []
 
-    def save_checkpoint(model_, val_loss_: float, tag: str) -> None:
-        """Save a checkpoint and evict the worst if we exceed top_k."""
-        ckpt_path = output_dir / f"checkpoint_{tag}_loss{val_loss_:.4f}.pt"
-        torch.save(model_.state_dict(), ckpt_path)
-        saved_checkpoints.append((val_loss_, ckpt_path))
-        saved_checkpoints.sort(key=lambda x: x[0])
+    def save_checkpoint(model_, optimizer_, scheduler_, scaler_, epoch_: int,
+                        global_step_: int, best_f05_: float, val_f05: float,
+                        tag: str) -> None:
+        """Save a full training checkpoint and evict worst if exceeding top_k."""
+        ckpt_path = output_dir / f"checkpoint_{tag}_f05{val_f05:.4f}.pt"
+        torch.save({
+            "model_state_dict": model_.state_dict(),
+            "optimizer_state_dict": optimizer_.state_dict(),
+            "scheduler_state_dict": scheduler_.state_dict(),
+            "scaler_state_dict": scaler_.state_dict(),
+            "epoch": epoch_,
+            "global_step": global_step_,
+            "best_f05": best_f05_,
+        }, ckpt_path)
+        saved_checkpoints.append((val_f05, ckpt_path))
+        saved_checkpoints.sort(key=lambda x: x[0], reverse=True)  # best (highest F0.5) first
         while len(saved_checkpoints) > top_k:
-            _, evicted = saved_checkpoints.pop()  # worst (highest loss)
+            _, evicted = saved_checkpoints.pop()  # worst (lowest F0.5)
             if evicted.exists():
                 evicted.unlink()
                 logger.info("Evicted checkpoint: %s", evicted.name)
-        # Always keep a symlink/copy as best_model.pt for convenience
+        # Copy best to best_model.pt
         best_path = output_dir / "best_model.pt"
         if saved_checkpoints:
             import shutil
             shutil.copy2(str(saved_checkpoints[0][1]), str(best_path))
 
-    best_loss = float("inf")
+    best_f05 = 0.0
     patience_counter = 0
     global_step = 0  # counts optimizer steps
+    start_epoch = 0
 
-    for epoch in range(args.epochs):
+    def compute_val_f05(model_, dev_srcs, dev_tgts):
+        """Generate corrections on dev set and compute F0.5."""
+        model_.eval()
+        hypotheses = []
+        with torch.no_grad():
+            for i in range(0, len(dev_srcs), args.batch_size):
+                batch_src = dev_srcs[i:i + args.batch_size]
+                hypotheses.extend(model_.correct_batch(batch_src, num_beams=4))
+        metrics = evaluate_corpus(dev_srcs, hypotheses, dev_tgts)
+        return metrics.f05, metrics
+
+    for epoch in range(start_epoch, args.epochs):
         model.train()
         total_loss = 0
         optimizer.zero_grad()
+        if curriculum_sampler is not None:
+            curriculum_sampler.set_epoch(epoch)
 
         for batch_idx, batch in enumerate(train_loader):
             batch = {k: v.to(device) for k, v in batch.items()}
@@ -203,6 +313,10 @@ def main():
                 scheduler.step()
                 global_step += 1
 
+                # Log training loss and LR to TensorBoard
+                tb_writer.add_scalar("train/loss", loss.item() * args.grad_accum_steps, global_step)
+                tb_writer.add_scalar("train/lr", optimizer.param_groups[0]["lr"], global_step)
+
                 # Intra-epoch eval every N optimizer steps
                 if (args.eval_every_n_steps > 0
                         and dev_loader
@@ -220,10 +334,7 @@ def main():
                             step_val_loss += vo["loss"].item()
                     step_val_loss /= max(len(dev_loader), 1)
                     logger.info("Step %d val loss: %.4f", global_step, step_val_loss)
-                    save_checkpoint(model, step_val_loss, f"step{global_step}")
-                    if step_val_loss < best_loss:
-                        best_loss = step_val_loss
-                        patience_counter = 0
+                    tb_writer.add_scalar("val/loss", step_val_loss, global_step)
                     model.train()
 
             total_loss += loss.item() * args.grad_accum_steps
@@ -244,8 +355,9 @@ def main():
 
         avg_train_loss = total_loss / max(len(train_loader), 1)
         logger.info("Epoch %d train loss: %.4f", epoch + 1, avg_train_loss)
+        tb_writer.add_scalar("epoch/train_loss", avg_train_loss, epoch + 1)
 
-        # Validation
+        # Validation — use F0.5 (task metric) for model selection
         if dev_loader:
             model.eval()
             val_loss = 0
@@ -260,13 +372,30 @@ def main():
                     val_loss += outputs["loss"].item()
             eval_loss = val_loss / max(len(dev_loader), 1)
             logger.info("Epoch %d val loss: %.4f", epoch + 1, eval_loss)
+            tb_writer.add_scalar("epoch/val_loss", eval_loss, epoch + 1)
 
-            # Early stopping + top-K checkpointing
-            save_checkpoint(model, eval_loss, f"epoch{epoch + 1}")
-            if eval_loss < best_loss:
-                best_loss = eval_loss
+            # Compute F0.5 on dev set for model selection
+            val_f05, val_metrics = compute_val_f05(model, dev_sources, dev_targets)
+            logger.info("Epoch %d val F0.5: %.4f (%s)", epoch + 1, val_f05, val_metrics)
+            tb_writer.add_scalar("epoch/val_f05", val_f05, epoch + 1)
+            tb_writer.add_scalar("epoch/val_precision", val_metrics.precision, epoch + 1)
+            tb_writer.add_scalar("epoch/val_recall", val_metrics.recall, epoch + 1)
+
+            # Log to CSV
+            csv_writer.writerow([
+                epoch + 1, f"{avg_train_loss:.6f}", f"{eval_loss:.6f}",
+                f"{val_f05:.6f}", f"{val_metrics.precision:.6f}", f"{val_metrics.recall:.6f}",
+                f"{optimizer.param_groups[0]['lr']:.8f}",
+            ])
+            csv_log_file.flush()
+
+            # Early stopping + top-K checkpointing by F0.5
+            save_checkpoint(model, optimizer, scheduler, scaler, epoch,
+                            global_step, best_f05, val_f05, f"epoch{epoch + 1}")
+            if val_f05 > best_f05:
+                best_f05 = val_f05
                 patience_counter = 0
-                logger.info("Saved best model (loss=%.4f)", best_loss)
+                logger.info("Saved best model (F0.5=%.4f)", best_f05)
             else:
                 patience_counter += 1
                 logger.info("No improvement (%d/%d patience)", patience_counter, args.patience)
@@ -278,7 +407,10 @@ def main():
             torch.save(model.state_dict(), output_dir / "best_model.pt")
 
     torch.save(model.state_dict(), output_dir / "final_model.pt")
-    logger.info("Training complete. Best loss: %.4f", best_loss)
+    csv_log_file.close()
+    tb_writer.close()
+    logger.info("Training complete. Best F0.5: %.4f", best_f05)
+    logger.info("Training log saved to %s", csv_log_path)
 
 
 if __name__ == "__main__":

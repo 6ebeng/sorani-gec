@@ -25,13 +25,17 @@ def test_basic_normalization():
 def test_arabic_digit_normalization():
     normalizer = SoraniNormalizer()
     
-    # Western digits should become Arabic-Indic (Sorani Kurdish uses Arabic-Indic)
+    # Western digits should become Extended Arabic-Indic (Sorani uses U+06F0–U+06F9)
     result = normalizer.normalize("2026")
-    assert result == "٢٠٢٦", f"Expected '٢٠٢٦', got '{result}'"
+    assert result == "۲۰۲۶", f"Expected Extended Arabic-Indic '۲۰۲۶', got '{result}'"
     
-    # Arabic-Indic digits should stay as-is
-    result2 = normalizer.normalize("٢٠٢٦")
-    assert result2 == "٢٠٢٦", f"Expected '٢٠٢٦', got '{result2}'"
+    # Extended Arabic-Indic digits should stay as-is
+    result2 = normalizer.normalize("۲۰۲۶")
+    assert result2 == "۲۰۲۶", f"Expected '۲۰۲۶', got '{result2}'"
+    
+    # Standard Arabic-Indic digits should become Extended
+    result3 = normalizer.normalize("٢٠٢٦")
+    assert result3 == "۲۰۲۶", f"Expected Extended form, got '{result3}'"
 
 
 def test_sentence_split():

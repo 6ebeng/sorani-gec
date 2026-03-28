@@ -54,6 +54,14 @@ def test_clitic_generator():
     print(f"Original:  {result.original}")
     print(f"Corrupted: {result.corrupted}")
 
+    if positions:
+        assert result.has_errors, "With eligible positions and error_rate=1.0, errors should be injected"
+        assert result.corrupted != result.original, "Corrupted should differ from original"
+    else:
+        # No eligible positions → no corruption, no errors
+        assert result.corrupted == result.original, "No eligible positions → no corruption"
+        assert not result.has_errors, "No eligible positions → has_errors should be False"
+
 
 def test_case_role_generator():
     gen = CaseRoleErrorGenerator(error_rate=1.0, seed=42)
@@ -134,7 +142,8 @@ def test_negative_concord_generator():
     gen = NegativeConcordErrorGenerator(error_rate=1.0, seed=42)
     sentence = "من هیچم پێ ناخورێ"
     positions = gen.find_eligible_positions(sentence)
-    assert len(positions) == 1
+    # 2 positions: verb negation removal + negative pronoun deletion
+    assert len(positions) == 2
 
     result = gen.inject_errors(sentence)
     assert result.has_errors
@@ -505,6 +514,75 @@ class TestPoliteImperativeFunctional:
         positions = self.gen.find_eligible_positions(sentence)
         assert len(positions) == 0
 
+
+# ─── TEST-2: Error span position validation ────────────────────────────────
+
+
+class TestErrorSpanPositions:
+    """Verify that start_pos/end_pos in ErrorAnnotation point to valid spans."""
+
+    GENERATORS = [
+        (SubjectVerbErrorGenerator, "من دەچم بۆ بازاڕ"),
+        (CliticErrorGenerator, "کتێبەکەم لەسەر مێزەکەت بوو"),
+        (NounAdjectiveErrorGenerator, "پیاوی گەورەکە هات"),
+        (CaseRoleErrorGenerator, "دەرگاکە لەلایەن کاوەوە بە کلیل کرایەوە"),
+        (DialectalParticipleErrorGenerator, "ئەو پیاوە مردوە و کتێبەکەی سوتاوە"),
+        (RelativeClauseErrorGenerator, "ئەو پەرداخەکەی کە من کڕیم شکا"),
+        (OrthographicErrorGenerator, "من حەوت باخ دەبینم"),
+        (NegativeConcordErrorGenerator, "من هیچم پێ ناخورێ"),
+        (QuantifierAgreementErrorGenerator, "هەموو کوڕەکان هاتن"),
+        (PossessiveCliticErrorGenerator, "کتێبەکەم لەسەر مێزەکە بوو"),
+    ]
+
+    def _validate_spans(self, result):
+        """Assert every error annotation has valid span positions.
+
+        Note: start_pos/end_pos refer to the *original* sentence, not the
+        corrupted sentence (multi-error interaction can shift offsets).
+        We validate against the original length.
+        """
+        for err in result.errors:
+            assert err.start_pos >= 0, (
+                f"start_pos negative: {err.start_pos} for {err.error_type}"
+            )
+            assert err.end_pos >= err.start_pos, (
+                f"end_pos < start_pos: {err.end_pos} < {err.start_pos}"
+            )
+            assert err.end_pos <= len(result.original), (
+                f"end_pos {err.end_pos} > original length {len(result.original)}"
+            )
+
+    def test_span_positions_non_negative(self):
+        """All generators produce non-negative span positions."""
+        for gen_cls, sentence in self.GENERATORS:
+            gen = gen_cls(error_rate=1.0, seed=42)
+            result = gen.inject_errors(sentence)
+            if result.has_errors:
+                self._validate_spans(result)
+
+    def test_span_end_within_original(self):
+        """end_pos never exceeds original string length."""
+        for gen_cls, sentence in self.GENERATORS:
+            gen = gen_cls(error_rate=1.0, seed=42)
+            result = gen.inject_errors(sentence)
+            for err in result.errors:
+                assert err.end_pos <= len(result.original), (
+                    f"{gen_cls.__name__}: end_pos={err.end_pos} > "
+                    f"len(original)={len(result.original)}"
+                )
+
+    def test_pipeline_span_positions(self):
+        """Pipeline errors also have valid span positions."""
+        pipeline = ErrorPipeline(error_rate=0.5, seed=42)
+        sentences = [
+            "من دەچم بۆ قوتابخانە",
+            "ئەوان دەنوسن بۆ مامۆستاکانیان",
+            "تۆ دەزانیت ئەم بابەتە",
+        ]
+        for sentence in sentences:
+            result = pipeline.process_sentence(sentence)
+            if result.has_errors:
+                self._validate_spans(result)
 
 if __name__ == "__main__":
     test_subject_verb_generator()

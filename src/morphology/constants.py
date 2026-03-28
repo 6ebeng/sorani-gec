@@ -620,6 +620,43 @@ CLITIC_HOST_CATEGORIES: list[str] = [
 VERB_BOUND_PREFIXES: set[str] = {"دە", "نا", "نە"}
 
 # ---------------------------------------------------------------------------
+# Canonical verb agreement endings (single form per slot)
+# Source: Amin (2016), pp. 17-18, 21-22; Slevanayi (2001), pp. 60-61
+# ---------------------------------------------------------------------------
+PAST_ENDINGS: dict[str, str] = {
+    "1sg": "م",
+    "2sg": "ت",
+    "3sg": "",       # zero morpheme in past 3sg
+    "1pl": "مان",
+    "2pl": "تان",
+    "3pl": "یان",
+}
+PRESENT_ENDINGS: dict[str, str] = {
+    "1sg": "م",
+    "2sg": "یت",
+    "3sg": "ێت",
+    "1pl": "ین",
+    "2pl": "ن",
+    "3pl": "ن",
+}
+
+# Recognition patterns for each slot (includes allomorphic variants)
+PRESENT_VERB_ENDINGS: dict[str, list[str]] = {
+    "1sg": ["م", "ەم"],
+    "2sg": ["یت", "ی", "ێت"],
+    "3sg": ["ێت", "ێ", "ات"],
+    "1pl": ["ین"],
+    "2pl": ["ن"],
+    "3pl": ["ن", "ەن"],
+}
+
+# Eight verbs whose 3SG present takes ات instead of ێت
+# Source: Amin (2016), pp. 21-22 — Finding #96
+AT_ALLOMORPH_STEMS: set[str] = {
+    "با", "کا", "خا", "شوا", "پوا", "خوا", "گا", "دا",
+}
+
+# ---------------------------------------------------------------------------
 # Morpheme collision tolerance: identical stacking is grammatical
 # Fatah & Qadir (2006), pp. 44-46 (Finding #130)
 # ---------------------------------------------------------------------------
@@ -1557,6 +1594,684 @@ DETERMINER_ALLOMORPHS: dict[str, tuple[str, ...]] = {
     "indefinite_plural": ("ان",),
 }
 
+# ===========================================================================
+# F#257–F#378: EXTENDED LINGUISTIC DATA STRUCTURES
+# ===========================================================================
+# Data structures for findings from Books 31–36 (noun morphology, izafe,
+# adjective, number/quantifier, adverb, verb morphology, clitic).
+
+# ── F#257: Ten parts of speech in Sorani Kurdish ──
+POS_CATEGORIES: tuple[str, ...] = (
+    "ناو",         # noun
+    "جێناو",       # pronoun
+    "کار",         # verb
+    "ئاوەڵناو",    # adjective
+    "ئاوەڵکار",    # adverb
+    "دانەوشە",     # preposition
+    "بەستەوشە",    # conjunction
+    "ئامرازەوشە",  # particle
+    "دەنگدانەوشە", # interjection
+    "ژمارە",       # numeral
+)
+
+# ── F#258: Content vs function word diagnostic ──
+CONTENT_WORD_POS: frozenset[str] = frozenset({"ناو", "کار", "ئاوەڵناو", "ئاوەڵکار"})
+FUNCTION_WORD_POS: frozenset[str] = frozenset({"دانەوشە", "بەستەوشە", "ئامرازەوشە", "ژمارە"})
+
+# ── F#262: Noun derivation suffixes (58+ morphemes) ──
+NOUN_DERIVATION_SUFFIXES: dict[str, tuple[str, ...]] = {
+    "agent_professional": ("گەر", "دار", "وان", "ەوان", "چی", "باز", "کەر", "مەند", "بەند", "ساز"),
+    "abstract_quality":   ("ی", "ەتی", "یەتی", "ایەتی", "ایی"),
+    "place_locus":        ("گا", "گە", "ستان", "خانە", "دان", "ەڵان", "لان", "زار"),
+    "diminutive":         ("ڵە", "لە", "ۆکە", "ۆک", "چە", "وو", "یلکە", "چکە", "وولکە"),
+    "verbal_noun":        ("ار", "یار", "ەر", "ۆک", "ۆکە", "ک", "ن"),
+}
+
+# ── F#263/F#299: Compound noun structural types (8 basic + 5 extended) ──
+COMPOUND_NOUN_PATTERNS: tuple[str, ...] = (
+    "noun+noun",                    # سەرباز (soldier)
+    "noun+interfix(و)+noun",        # هاتوچۆ (traffic), گفتوگۆ (discussion)
+    "noun+interfix(بە)+noun",       # سەربەسەر (end-to-end)
+    "number+noun",                  # سێگۆشە (triangle), چوارگۆشە (rectangle)
+    "adj+noun",                     # نوێکار (innovator)
+    "noun+verb_stem",               # بەردەنوێژ (gunner)
+    "verb_stem+noun",               # چاوبەست (blindfold)
+    "verb_stem_reduplication",      # قرچەقرچ, شرنگەشرنگ (onomatopoeic)
+    "prep+noun",                    # پێشمەرگە (peshmerga)
+    "noun+ئینتەرفیکس+verb_stem",
+    "number+noun+suffix",
+    "proper+common",
+    "adverb+noun",
+)
+
+# ── F#264: Proper noun blocks definite article ──
+PROPER_NOUN_BLOCKS_DEFINITE: bool = True
+
+# ── F#266: Four-gender system in Sorani ──
+SORANI_GENDER_CATEGORIES: tuple[str, ...] = ("masculine", "feminine", "common", "neuter")
+
+# ── F#267: Plural formation -ان with 4 phonological rules ──
+PLURAL_AN_PHONOLOGICAL_RULES: dict[str, str] = {
+    "consonant_final":  "ان",    # ژن → ژنان
+    "vowel_final_ayei": "یان",   # برا → برایان (ا,ۆ,ی,ێ glide)
+    "vowel_final_uu":   "ان",    # بەڕوو → بەڕووان (w-glide)
+    "e_final":          "ان",    # بەرە → بەران (ە drops)
+}
+
+# ── F#268: Secondary plural markers ──
+SECONDARY_PLURAL_MARKERS: dict[str, str] = {
+    "ات":  "Arabic loanwords",    # باخ → باخات
+    "ەها": "rare/Persian loans",  # دەرد → دەردەها
+    "گەل": "animate collective",  # کوڕ → کوڕگەل (F#304: animate-only)
+}
+
+# ── F#270: Definite -ەکە four phonological attachment types ──
+DEFINITE_ATTACHMENT_TYPES: dict[str, str] = {
+    "consonant_final": "ەکە",   # دڵ → دڵەکە
+    "vowel_final":     "کە",    # هەوا → هەواکە  (ا,ۆ,ی,ێ)
+    "uu_final":        "ەکە",   # ئارەزوو → ئارەزووەکە
+    "e_final":         "کە",    # پەنجەرە → پەنجەرەکە (ە absorbed)
+}
+
+# ── F#272: Indefinite article phonological rules ──
+INDEFINITE_ARTICLE_FORMS: dict[str, str] = {
+    "sulaimani_mukri":  "ێک",   # standard
+    "soran_northern":   "ەک",   # dialectal
+    "vowel_final":      "یەک",  # glide insertion
+    "plural_indefinite": "انێک",
+}
+
+# ── F#273: Izafe markers in Sorani — ی and ە ──
+IZAFE_MARKERS: dict[str, str] = {
+    "ی": "possessive/genitive/attributive (after consonant)",
+    "ە": "attributive only (not genitive, per F#291)",
+}
+
+# ── F#275: Izafe with coordinated nouns: last-noun-only ──
+IZAFE_COORDINATED_LAST_ONLY: bool = True
+
+# ── F#276: Bare izafe (no marker) in some sub-dialects ──
+BARE_IZAFE_DIALECTS: tuple[str, ...] = ("Hawlêr", "Soran")
+
+# ── F#279: Collective noun agreement: singular morphology, plural semantics ──
+COLLECTIVE_SINGULAR_MORPHOLOGY_PLURAL_SEMANTICS: bool = True
+
+# ── F#281: Diminutive noun suffixes (10+) ──
+DIMINUTIVE_NOUN_SUFFIXES: tuple[str, ...] = (
+    "ڵە", "لە", "ۆکە", "ۆک", "چە", "وو", "یلکە", "چکە", "وولکە", "وڵە", "ۆ",
+)
+
+# ── F#282: Izafe ی/ە are NOT gender markers in Sorani ──
+IZAFE_NOT_GENDER_AGREEMENT: bool = True  # confirmed cross-dialectally
+
+# ── F#283: Suffix -ی has 3 distinct functions ──
+SUFFIX_YI_FUNCTIONS: dict[str, str] = {
+    "izafe": "links head to modifier (noun+ی+adjective)",
+    "feminine": "marks feminine gender (Arabic loans: مامۆستای)",
+    "attribution": "derives relational adjective (ئابووری=economic)",
+}
+
+# ── F#284: Plural -ان is ONE morpheme; -یان and -هات are NOT variant plurals ──
+PLURAL_AN_SINGLE_MORPHEME: bool = True
+
+# ── F#289: Non-morphological plural expression (5 mechanisms) ──
+NON_MORPHOLOGICAL_PLURAL_MECHANISMS: tuple[str, ...] = (
+    "quantifier",       # زۆر کوڕ (many boys)
+    "numeral",          # سێ کوڕ (three boys)
+    "context",          # pragmatic/discourse-level
+    "verb_agreement",   # verb marks plural
+    "collective_noun",  # خەڵک (people)
+)
+
+# ── F#291: Izafe -ە creates attributive relations ONLY (not genitive) ──
+IZAFE_E_ATTRIBUTIVE_ONLY: bool = True
+
+# ── F#293: Four noun-deriving prefixes ──
+NOUN_DERIVING_PREFIXES: dict[str, tuple[str, ...]] = {
+    "بەر": ("بەرنامە", "بەرهەم", "بەرپرس"),
+    "هاو": ("هاوڕێ", "هاوسەر", "هاوکار"),
+    "ڕا":  ("ڕاگر", "ڕاگەیاندن", "ڕاگرتن"),
+    "پێ":  ("پێشمەرگە", "پێوانە", "پێکەنین"),
+}
+
+# ── F#295: Izafe ی vs ە substitution creates semantic shift ──
+IZAFE_SUBSTITUTION_SEMANTIC_SHIFT: bool = True
+
+# ── F#302: Definite ەکە blocks secondary plural markers ات/ەها ──
+DEFINITE_BLOCKS_SECONDARY_PLURAL: bool = True
+
+# ── F#303: Double plural stacking: -ات + -ان via ەکە ──
+DOUBLE_PLURAL_STACKING_PERMITTED: bool = True  # باخاتەکان = باخ + ات + ەکان
+
+# ── F#304: Secondary plural -گەل restricted to animate nouns ──
+GEL_PLURAL_ANIMATE_ONLY: bool = True
+
+# ── F#305: Verbal nouns (infinitives) default to feminine gender ──
+VERBAL_NOUN_DEFAULT_FEMININE: bool = True
+
+# ── F#309: Reflexive خۆ double-clitic ordering: patient-first ──
+REFLEXIVE_XO_CLITIC_ORDER: str = "patient_first"  # خۆتم (ت=patient, م=agent)
+REFLEXIVE_XO_TRANSITIVE_ONLY: bool = True
+
+# ── F#310: Preverb compound verbs: uniform past clitic position (middle) ──
+PREVERB_COMPOUND_PAST_CLITIC_POSITION: str = "middle"
+
+# ── F#311: Three groups of intransitive compound verbs by clitic behavior ──
+INTRANSITIVE_COMPOUND_CLITIC_GROUPS: dict[str, dict[str, str]] = {
+    "group_a": {
+        "clitic": "set2_end",
+        "desc": "Set 2 at end in all tenses",
+        "examples": "سووربوون, بەهێزبوون, سەرکەوتن",
+    },
+    "group_b": {
+        "clitic": "mixed",
+        "desc": "Non-past: Set 2 end; All past: Set 1 middle",
+        "examples": "ملدانان, بڕیاردان, جنیودان",
+    },
+    "group_c": {
+        "clitic": "set1_middle",
+        "desc": "Set 1 middle in ALL tenses (transitive-mimicking)",
+        "examples": "گەڕەمان بوون, سەرەمان بوون, پەکمان کەوتن",
+    },
+}
+
+# ── F#312: Demonstrative ە/ان+ە marker migration to head noun ──
+DEMONSTRATIVE_MARKER_MIGRATION: bool = True
+
+# ── F#314: Adjective lacks independent case/gender/number; only degree is unique ──
+ADJECTIVE_INDEPENDENT_FEATURES: tuple[str, ...] = ("degree",)  # no case, gender, number
+
+# ── F#316: Comparative -تر/-ترین phonological assimilation (5 rules) ──
+COMPARATIVE_ASSIMILATION_RULES: dict[str, str] = {
+    "t_consonant":         "ت + consonant → drop one ت (کورت→کورتر not *کورتتر)",
+    "t_vowel":             "ت + vowel → keep both ت (مات→ماتتر)",
+    "sh_consonant":        "ش cluster → ش+ت before تر (کاش→کاشتر)",
+    "multi_consonant":     "triple consonant → drop one before تر (نەنگ→نەنگتر)",
+    "vowel_stem":          "vowel stem + تر → normal (بەرز→بەرزتر)",
+}
+
+# ── F#317: ە-Izafe blocks indefinite adjective modifiers ──
+IZAFE_E_BLOCKS_INDEFINITE_ADJECTIVE: bool = True
+
+# ── F#318: Chain adjective rules ──
+CHAIN_ADJECTIVE_LAST_TAKES_MARKER: bool = True
+CHAIN_ADJECTIVE_FREE_ORDERING: bool = True
+CHAIN_ADJECTIVE_WA_SUBSTITUTION: bool = True  # و can replace listing
+
+# ── F#319: Lexical superlative هەرە post-nominal position allowed ──
+HERE_SUPERLATIVE_POST_NOMINAL: bool = True  # contrast with -ترین
+
+# ── F#323: Adjective diminutive/attenuation suffixes (14 forms) ──
+ADJECTIVE_DIMINUTIVE_SUFFIXES: tuple[str, ...] = (
+    "ڵە", "لە", "چە", "وو", "یوو", "یکی", "یک",
+    "ئە", "ۆکە", "ێنە", "اوی", "ەکی", "انە", "ە",
+)
+
+# ── F#324: Compound adjective formation (15 patterns) ──
+COMPOUND_ADJECTIVE_PATTERN_COUNT: int = 15
+
+# ── F#327: Noun takes SINGULAR form after cardinal number ──
+NOUN_SINGULAR_AFTER_CARDINAL: bool = True  # دوو مناڵ (not *دوو مناڵان)
+
+# ── F#328: Ordinal formation morphophonology (-ەم / -ەمین) ──
+ORDINAL_SUFFIX_SHORT: str = "ەم"
+ORDINAL_SUFFIX_LONG: str = "ەمین"
+
+# ── F#329: Compound ordinal: only last number takes ordinal marker ──
+COMPOUND_ORDINAL_LAST_ONLY: bool = True
+
+# ── F#330: Indefinite marker -ێک gives approximate numeric meaning ──
+INDEFINITE_APPROXIMATE_NUMERIC: bool = True  # سی یەک = "about thirty"
+
+# ── F#333: Distributive reduplication forms are adverbs, not numbers ──
+DISTRIBUTIVE_IS_ADVERB: bool = True  # یەک یەک, دوو دوو
+
+# ── F#334: Adverb derivation patterns (prefix-suffix) ──
+ADVERB_DERIVATION_PATTERNS: dict[str, tuple[str, ...]] = {
+    "from_adj_suffix":  ("انە",  "یی"),                    # دوورانە, باشیی
+    "from_adj_prefix":  ("بە",),                           # بەباش, بەخێرا
+    "from_noun_prefix": ("بە",),                           # بەشتوڤ, بەشەو
+    "from_noun_suffix": ("انە",),                          # ڕۆژانە, شەوانە
+}
+
+# ── F#336: Fractional number formation ──
+FRACTIONAL_NUMBER_PATTERNS: tuple[str, ...] = (
+    "نیو",          # half
+    "سێ‌یەک",      # one-third
+    "چوار‌یەک",    # one-quarter
+)
+
+# ── F#337: Indefinite quantifiers are NOT numbers ──
+INDEFINITE_QUANTIFIER_WORDS: frozenset[str] = frozenset({"زۆر", "کەم", "هەندێ", "چەند"})
+
+# ── F#340: نیو vs نیوە — abstract vs concrete "half" ──
+NIWE_ABSTRACT_CONCRETE: dict[str, str] = {
+    "نیو":  "abstract half (e.g., نیو شەو = midnight)",
+    "نیوە": "concrete half (e.g., نیوەی سێوەکەم = half of my apple)",
+}
+
+# ── F#342: Negation slot-replacement system: 3 primary morphemes ──
+NEGATION_SLOT_MORPHEMES: dict[str, str] = {
+    "نا": "past tense negation (replaces دە- progressive marker)",
+    "نە": "present/subjunctive negation (replaces ئە-/بـ-)",
+    "مە": "imperative negation (replaces بـ-)",
+}
+
+# ── F#343: Past transitive negation: clitic between نە and past stem ──
+PAST_TRANSITIVE_NEGATION_CLITIC_INTERPOSITION: bool = True  # نەمکرد (نە+م+کرد)
+
+# ── F#344: ویستن and هەبوون: unique strong-clitic exception in present ──
+STRONG_CLITIC_PRESENT_EXCEPTION_VERBS: frozenset[str] = frozenset({"ویستن", "هەبون"})
+
+# ── F#345: Clitic position with -ەوە vs -اندن derivational suffixes ──
+# Already encoded in CAUSATIVE_SUFFIX_EWE / CAUSATIVE_SUFFIX_ANDN (F#127)
+CLITIC_EWE_BEFORE: bool = True   # clitic goes BEFORE -ەوە
+CLITIC_ANDN_AFTER: bool = True   # clitic goes AFTER -اندن
+
+# ── F#347: Five verbs refusing -اندن causativization ──
+CAUSATIVE_BANNED_VERBS: frozenset[str] = frozenset({
+    "خواردن",   # eat
+    "بوون",     # be/exist
+    "کەوتن",    # fall
+    "ڕۆیشتن",   # go
+    "هاتن",     # come
+})
+
+# ── F#348: هەبوون dual semantics: existence vs possession ──
+# Extends F#72 (EXISTENTIAL_STEMS) — possession uses Set 2, different negation
+HABUN_POSSESSION_NEGATION: str = "نیە"   # possessive negation form
+HABUN_EXISTENCE_NEGATION: str = "نییە"   # existential negation form
+
+# ── F#351: Five infinitive groups with transitivity correlations ──
+INFINITIVE_GROUPS: dict[str, dict[str, str]] = {
+    "group_a": {"transitivity": "transitive", "examples": "بردن, خستن, دان, کردن, نان"},
+    "group_b": {"transitivity": "intransitive", "examples": "چوون, مان, ڕۆیشتن, هاتن"},
+    "group_c": {"transitivity": "mixed", "examples": "plural-only Set-2 paradigm"},
+    "group_d": {"transitivity": "comparative", "examples": "لەپاڵ, داخوی, تێپەڕ"},
+    "group_e": {"transitivity": "modal_future", "examples": "دەتوانی, دەنیویست"},
+}
+
+# ── F#354: Intransitive -ان/-ین doublet verb pairs (both valid) ──
+INTRANSITIVE_DOUBLET_PAIRS: tuple[tuple[str, str], ...] = (
+    ("لەرزان", "لەرزین"),
+    ("تەزان", "تەزین"),
+    ("لەوەران", "لەوەرین"),
+    ("خزان", "خزین"),
+    ("تەقان", "تەقین"),
+    ("ڕژان", "ڕژین"),
+    ("گەڕان", "گەڕین"),
+    ("سووڕان", "سووڕین"),
+    ("هەڵچوون", "هەڵچین"),
+    ("وەستان", "وەستین"),
+)
+
+# ── F#355: Preverbs NEVER change transitivity in Kurdish ──
+PREVERB_NO_TRANSITIVITY_CHANGE: bool = True  # only -اندن changes transitivity
+
+# ── F#357: Roots requiring obligatory preverb or suffix ──
+OBLIGATORY_PREVERB_ROOTS: tuple[str, ...] = (
+    "پڕووزان",   # requires هەڵ- (هەڵپڕووزان)
+    "پشکنین",    # requires هەڵ- (هەڵپشکنین)
+)
+
+# ── F#362: Passive verbs ALWAYS conjugate with intransitive (Set 2) clitic ──
+PASSIVE_ALWAYS_INTRANSITIVE_CLITIC: bool = True
+
+# ── F#363: Passive from past-root exceptions: 6 verbs ──
+PASSIVE_PAST_ROOT_EXCEPTION_VERBS: dict[str, tuple[str, str]] = {
+    "وتن":     ("وتران", "وترا"),       # (گوتن variant)
+    "ویستن":   ("ویستران", "ویسترا"),
+    "هاویشتن": ("هاویشتران", "هاویشترا"),
+    "خواستن":  ("خواستران", "خواسترا"),
+    "خستن":    ("خستران", "خسترا"),
+    "گرتن":    ("گرتران", "گرترا"),
+}
+
+# ── F#364: Past stem always ends in one of 5 sounds ──
+PAST_STEM_FINAL_SOUNDS: dict[str, str] = {
+    "ت": "کەوتن → کەوت",      # t
+    "د": "خوێندن → خوێند",     # d
+    "ا": "گەڕان → گەڕا",       # ā
+    "ی": "کڕین → کڕی",         # ī
+    "وو": "بوون → بوو",        # ū
+}
+
+# ── F#367: Passive vowel changes for ە/ی-final present roots ──
+PASSIVE_VOWEL_CHANGES: dict[str, tuple[str, str]] = {
+    "بردن":  ("بە", "بران"),    # بە → بران
+    "دان":   ("دە", "دران"),    # دە → دران
+    "کردن":  ("کە", "کران"),    # کە → کران
+    "خستن":  ("خە", "خران"),    # خە → خران
+    "نان":   ("نێ", "نران"),    # نێ → نران
+}
+
+# ── F#370: Present stem consonant mutations (5 irregular patterns) ──
+PRESENT_STEM_CONSONANT_MUTATIONS: dict[str, dict[str, str]] = {
+    "sh_to_zh":          {"from": "ش", "to": "ژ", "example": "کوشتن → کوژ"},
+    "s_to_z":            {"from": "س", "to": "ز", "example": "خواستن → خواز"},
+    "sh_zh_vowel":       {"from": "اش", "to": "ێژ", "example": "ناشتن → نێژ"},
+    "transitive_a_to_e": {"from": "ا", "to": "ێ", "example": "بژاردن → بژێر"},
+    "causative_an_to_en": {"from": "ان", "to": "ێن", "example": "سووتان → سووتێن"},
+}
+
+# ── F#372: -ەوە suffix four distinct semantic functions ──
+EWE_SUFFIX_FUNCTIONS: dict[str, str] = {
+    "repetition":      "action repeated (کردنەوە = do again)",
+    "meaning_change":  "shifts verb meaning (دانەوە = give back)",
+    "return":          "return to origin (گەڕانەوە = return)",
+    "concept_change":  "abstract shift (هاتنەوە = revival/return)",
+}
+
+# ── F#374: Agent noun suffix system: 9 suffixes in 3 classes ──
+AGENT_NOUN_SUFFIX_CLASSES: dict[str, dict[str, tuple[str, ...]]] = {
+    "transitive_only":   {"suffixes": ("ەر", "ا", "یار", "گار"),
+                          "examples": ("کوژەر", "چنا", "خەریدیار", "کارگار")},
+    "intransitive_only": {"suffixes": ("ۆک", "نۆک", "ەک"),
+                          "examples": ("فڕۆک", "تووڕەبوونۆک", "کەوتەک")},
+    "both":              {"suffixes": ("نده", "ده", "یده"),
+                          "examples": ("خوێندنده", "بەرده", "")},
+}
+
+# ── F#376: Instrument noun requires obligatory پێ- prefix ──
+INSTRUMENT_NOUN_PREFIX: str = "پێ"  # پێکوتەک, پێچنک (unique among 5 deverbal types)
+
+# ── F#377: Compound verb transitivity by light-verb choice ──
+COMPOUND_VERB_LIGHT_VERBS: dict[str, str] = {
+    "کردن":  "transitive",    # سوورکردن (make red)
+    "بوون":  "intransitive",  # سووربوون (become red)
+    "دان":   "transitive",
+    "نان":   "transitive",
+    "بردن":  "transitive",
+    "گرتن":  "transitive",
+    "هێشتن": "transitive",
+    "خواردن": "transitive",
+    "کەوتن": "intransitive",
+    "هاتن":  "intransitive",
+    "چوون":  "intransitive",
+    "مان":   "intransitive",
+    "هێنان": "transitive",
+    "کێشان": "transitive",
+    "خستن":  "transitive",
+}
+
+# ── F#378: Present stem 7 irregular derivation classes ──
+PRESENT_STEM_IRREGULAR_CLASSES: dict[str, str] = {
+    "class_0":      "zero removal (مان → مێن)",
+    "class_3a":     "3-sound past (هاویشتن → هاوێژ)",
+    "class_3b":     "3-sound + vowel (بردن → بە)",
+    "class_4":      "4-sound removal (گەیشتن → گە)",
+    "class_5":      "5-sound + vowel shift (خواردن → خۆ)",
+    "class_misc":   "misc (نووستن → نوو)",
+    "class_suppl":  "suppletive (گوتن → ڵێ)",
+}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DOCUMENTED FINDING REFERENCES — BACKGROUND LINGUISTIC KNOWLEDGE
+# ═══════════════════════════════════════════════════════════════════════════════
+# The findings below are documented in book_findings_report.md and inform
+# the thesis write-up and the GEC system's linguistic foundation. They are
+# referenced here for traceability; they describe rules, patterns, or
+# typological facts already encoded implicitly or used as background
+# knowledge for the agreement-aware GEC pipeline.
+#
+# Organised by category (14 categories, 99 findings total).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ---------------------------------------------------------------------------
+# Verb morphology / valency (27 findings)
+# ---------------------------------------------------------------------------
+# F#3   — Case Roles (Fillmore Framework) with Kurdish Examples
+#         Agent, Patient, Instrument, etc. inform argument structure
+# F#4   — Middle Verbs / Causative Restriction
+#         Some intransitives resist causativisation (cf. CAUSATIVE_BANNED_VERBS)
+# F#7   — Verb Classification by Case Frame
+#         Verbs grouped by argument count (1-place, 2-place, 3-place)
+# F#16  — Causative Formation Pattern
+#         Rules for -اندن / -ێن derivation (data in CAUSATIVE_SUFFIX_ANDN/EWE)
+# F#19  — Every Verb Has Exactly One Root
+#         Foundational axiom; present root is always derived from past root
+# F#32  — Verb Argument Structure Types
+#         Transitive, intransitive, ditransitive argument frames
+# F#37  — Passive Formation: Complete Morphological Rules
+#         Passive morpheme را/ران insertion (cf. tense_agreement.py)
+# F#38  — Complete Tense System: 8+ Distinct Forms
+#         8 tenses in MOOD_TENSE_MAP, each with conjugation templates
+# F#41  — Non-Past Formation: Stem Derivation Rules
+#         Present stem via regular rules + 32 irregular forms (F#378)
+# F#44  — Verb Classification: Complete Intransitive/Transitive Pairs
+#         Pairs in SUPPLETIVE_CAUSATIVE_PAIRS
+# F#54  — VP Structure: Transitive vs. Intransitive Formulas
+#         Maaruf (2010) templates: [V+Tense+Person] vs [V+Tense+Obj+Subj]
+# F#58  — Verb Valency Types
+#         0-valency (weather), 1 (intrans), 2 (trans), 3 (ditrans)
+# F#192 — Unified Present Root Derivation: Two-Step Rule (Fatah et al.)
+#         Collapses Amin's 5-class system into a 2-step rule
+# F#199 — Passive of Intransitive = Causative Inverse: Morphological Cycle
+#         intrans → causative → passive → intrans (round-trip)
+# F#200 — Compound Verb Derivation: 13 Productivity Patterns
+#         13 light-verb + noun/adj templates (cf. COMPOUND_VERB_PREVERBAL_ELEMENTS)
+# F#209 — Present Tense Markers: ێ / Zero / ە (Contrasting with Past)
+#         Present uses ده prefix; past has no overt prefix (asymmetry)
+# F#210 — Aspect Decomposition: Three Pure Aspect Markers
+#         Progressive ده, perfective Ø, habitual ده (3-way split)
+# F#211 — Copula بوون: Three Tense Roots + Possessive vs Existential
+#         بوو (past), بووە (perf), بـ (present); extends EXISTENTIAL_STEMS
+# F#212 — Onomatopoeia Verb Derivation via اندن/ێن
+#         Sound nouns deriving verbs (e.g., قیژاندن from قیژە)
+# F#213 — Syntactic Causative: وا+لە Periphrastic Transitivization
+#         Alternative to morphological -اندن: وایلێکرد = made him do
+# F#349 — Passive of ر/ڕ-Final Roots: Three Dialectal Variants
+#         ر+ر coalescence: بران vs بردران vs بردرا
+# F#350 — Passive of Causative -اندن Verbs: Two Formation Paths
+#         -اندن → -ێنرا (present root) or -اندرا (past root)
+# F#356 — No morphological marker distinguishes transitivity
+#         Transitivity is syntactic (clitic position), not morphological
+# F#365 — Transitive past stems cannot form active participles
+#         Only intransitive past stems → active participle
+# F#368 — Source-dependent transitivity of -اندن derivatives
+#         Sound-noun + اندن → intransitive (exception to general rule)
+# F#371 — Auxiliary هێنان/خستن as syntactic causative
+#         Volitional causative without morphological marking
+# F#375 — -ە Suffix Creates Different Deverbal Nouns by Transitivity
+#         Transitive → result noun; intransitive → action noun
+
+# ---------------------------------------------------------------------------
+# Sentence structure / syntax (7 findings)
+# ---------------------------------------------------------------------------
+# F#18  — Sentence Types Taxonomy
+#         Declarative, interrogative, imperative, exclamatory (4 types)
+# F#23  — Sentence = Root + Obligatory Components
+#         Minimal sentence is predicate; subject may be pro-dropped
+# F#31  — Pro-drop and Empty Subject
+#         Subject omission licensed in Sorani (cf. PRO_DROP_OBJECT_EXCEPTION_VERBS)
+# F#57  — Default Word Order: SOV
+#         Subject-Object-Verb canonical; data in DEFAULT_CONSTITUENT_ORDER
+# F#78  — Semantic Anomaly Typology (Three Levels)
+#         Selectional, collocational, pragmatic anomaly classification
+# F#148 — Ten Verb-Deletion Contexts (Valid Verbless Sentences)
+#         Copula deletion in equative, locative, possessive + 7 others
+# F#175 — Coordination Semantic Compatibility with Shared Predicate
+#         Conjoined NPs must be semantically compatible for shared verb
+
+# ---------------------------------------------------------------------------
+# Negation system (3 findings)
+# ---------------------------------------------------------------------------
+# F#43  — Negation Patterns Across All Tenses
+#         نا (present), نە (past/subjunctive), مە (prohibition)
+# F#62  — Negation Prefixes
+#         Three prefixes: نا-, نە-, مە- (data in VERB_NEGATION_PREFIXES)
+# F#104 — Negation: Five Particles with Tense-Specific Distribution
+#         نا, نە, مە, هیچ, نە...نە (paired); cf. MOOD_NEG_PREFIX
+
+# ---------------------------------------------------------------------------
+# Clitic system (4 findings)
+# ---------------------------------------------------------------------------
+# F#26  — Phonological Reduction / Clitic Fusion Rules
+#         Fast-speech elision: vowel coalescence in clitic chains
+# F#52  — Two Clitics Together: Distribution Constraints
+#         Double clitic ordering in ditransitive: DO + IO
+# F#188 — 3sg Clitic: Full 12-Allomorph Inventory
+#         Context-dependent allomorphs of 3sg (ی, ێ, Ø, ە, etc.)
+# F#197 — تی Portmanteau: 3sg Clitic + Copula = Epenthetic (تی)
+#         Morpheme fusion: 3sg + copula → -ەتی (cf. F#109)
+
+# ---------------------------------------------------------------------------
+# Imperative system (5 findings)
+# ---------------------------------------------------------------------------
+# F#61  — Imperative Markers
+#         بـ (positive), مە (prohibition); cf. IMPERATIVE_MOOD_PREFIXES
+# F#359 — Subjunctive past three-marker ordering (ب > با > ایە)
+#         Strict ordering: optative < concessive < conditional
+# F#361 — Imperative -ە absorption with vowel-final roots
+#         Vowel-final roots absorb -ە epenthesis
+# F#366 — Imperative ب-marker omitted in compound/preverbed verbs
+#         هەڵبچن → هەڵچن (ب drops after preverb in casual speech)
+# F#373 — Imperative -ڕە suffix: Sulaymaniyah emphatic singular
+#         Dialectal variant: بچۆڕە (go!-emphatic)
+
+# ---------------------------------------------------------------------------
+# Morphophonology (8 findings)
+# ---------------------------------------------------------------------------
+# F#27  — Double ی in Past Tense of ی-Root Verbs
+#         ی-final roots + ی past → double ی (cf. YI_DOUBLE_SCENARIOS)
+# F#97  — Optional 2sg/3sg ت Deletion Rule
+#         In compound verbs, 2sg/3sg -ت may optionally delete
+# F#105 — Perfect Continuous: لە+Infinitive+دا (Always Set 2)
+#         Aspect construction using circumposition لە...دا
+# F#106 — Inchoative Aspect: کەوتنە + Infinitive
+#         Beginning-of-action marker (started to...)
+# F#193 — Stress Disambiguates Compound-Verb Tense vs. Copula + Adj
+#         سووربوو (became red) vs سوور بوو (was red): stress differs
+# F#194 — False Agreement in ویستن-Derived Verbs
+#         ویستن 3sg -ێت looks like agreement but is part of root
+# F#195 — ڕ Epenthesis Between Two Vowels in Compound Imperatives
+#         Vowel hiatus resolution: بدۆڕە (not *بدۆە)
+# F#196 — ت Epenthesis in Present Perfect + Directional ـە
+#         -وە + -ە → -وتە (epenthetic ت); cf. EPENTHETIC_T_ENVIRONMENTS
+
+# ---------------------------------------------------------------------------
+# Agreement system (4 findings)
+# ---------------------------------------------------------------------------
+# F#81  — Case Determines Agreement Domain
+#         Nominative → sentence-level; oblique → NP-internal agreement
+# F#177 — Sorani Kurdish Lacks Morphological Case Marking
+#         Unlike Kurmanji, Sorani has no overt case morphemes on nouns
+# F#205 — Inanimate Nouns Carry Arbitrary Grammatical Gender
+#         Gender assignment to inanimates is lexical, not semantic
+# F#206 — Post-Head Determiners Always in Nominative Case Internally
+#         ەکە, ان, ێک in nominative regardless of sentential case
+
+# ---------------------------------------------------------------------------
+# Noun morphology (18 findings)
+# ---------------------------------------------------------------------------
+# F#251 — Definite Article -ەکە: Unique Among Living Iranian Languages
+#         Only Sorani has a true suffix definite article
+# F#259 — Part-of-Speech Conversion (Word Category Transfer)
+#         Nouns → adjectives, verbs → nouns via zero derivation/affixation
+# F#260 — Noun Definition and Scope
+#         Nouns name entities, qualities, actions; broadest open class
+# F#261 — Noun Classification: Simple, Derived, Compound
+#         Simple (root), derived (root+affix), compound (root+root)
+# F#269 — Plural + Definite/Indefinite Article Combinations
+#         -ەکان (def+pl), -انێک (indef+pl); ordering constraints
+# F#280 — Derivational vs. Inflectional Morpheme Ordering
+#         Derivational suffixes precede inflectional (universal constraint)
+# F#285 — Kurdish Academy's Noun Analysis: Gaps Filled by Maarif
+#         Maarif's 45+ suffixes expand earlier 12-suffix analyses
+# F#288 — Vocative Case Paradigm: Gender Markers and Constraints
+#         Masculine vocative -ۆ, feminine vocative -ێ
+# F#290 — Definite -ە is Singular-Only
+#         Short definite -ە never co-occurs with plural -ان
+# F#292 — Indefinite/Definite Marker Placement Asymmetry in NP
+#         Indefinite on last modifier; definite on head noun
+# F#294 — Coordination Plural Sharing: Last Noun Takes -ان
+#         In X و Y, plural suffix attaches to Y only
+# F#296 — Place Names Default to Feminine Gender
+#         Geographical names are grammatically feminine
+# F#297 — (کار) Is an Independent Word, NOT a Suffix
+#         -کار is a compound element, not derivational
+# F#298 — Short Definite -ە: Phonological Attachment Rules
+#         Extends F#271; -ە attaches after consonant, absorbed by vowel
+# F#300 — Gender Specification Words for Dual-Gender Nouns
+#         نێر/مێ for animals; پیاو/ئافرەت for humans
+# F#301 — Indefinite+Plural Mirror: -انێک vs -ەکان
+#         Extends F#269; structural mirror of ordering
+# F#306 — Clitic/Izafe Misidentified as Plural (Jigarkhwin Critique)
+#         Historical confusion between clitic ی and plural ان
+# F#307 — Definite-Plural -ەکان: Vowel Elision Mechanics
+#         Extends F#269; vowel-final nouns elide before -ەکان
+
+# ---------------------------------------------------------------------------
+# Izafe system (2 findings)
+# ---------------------------------------------------------------------------
+# F#274 — Izafe Marker: Possessive ی vs. Attributive ە Distribution
+#         Possessive izafe marks possession; attributive marks quality
+# F#277 — Northern Kurmanji Izafe: 6-Marker Gender-Number System
+#         Kurmanji izafe inflects for gender/number (contrast w/ Sorani)
+
+# ---------------------------------------------------------------------------
+# Adjective morphology (4 findings)
+# ---------------------------------------------------------------------------
+# F#315 — Indefinite Adjective Exception to Marker Migration
+#         Indefinite adjs (تر, دی, دیکە) block -ەکە migration
+# F#320 — تر Homophone: 'Other' (Independent) vs Comparative (Suffix)
+#         تر = "other" (adj) vs -تر = "more" (comparative suffix)
+# F#322 — Comparative لە Construction: Ellipsis and يان-Substitution
+#         لە + comparative allows NP ellipsis and يان substitution
+# F#325 — Quality-Adj-Only Substantivization, Marker Complementarity
+#         Only quality adjectives substantivize; require def/indef marker
+
+# ---------------------------------------------------------------------------
+# Number / quantifier morphology (2 findings)
+# ---------------------------------------------------------------------------
+# F#331 — Determiners Blocked When Cardinal = یەک
+#         یەک (one) blocks both definite and indefinite markers
+# F#332 — Ordinal Syntactic Position: Before vs. After Noun
+#         Pre-nominal (دووەم کەس) vs post-nominal (کەسی دووەم)
+
+# ---------------------------------------------------------------------------
+# Adverb morphology (2 findings)
+# ---------------------------------------------------------------------------
+# F#335 — Time/Place Nouns Function As Adverbs (No Derivation)
+#         ئەمشەو, دوێنێ = nouns used adverbially
+# F#338 — Dual-Category Adverbs: Qualifier and Circumstantial
+#         Some adverbs function as both ئاوەڵکات and ئاوەڵکار
+
+# ---------------------------------------------------------------------------
+# Preposition / postposition (4 findings)
+# ---------------------------------------------------------------------------
+# F#142 — Preposition Removal Requires Cascading Compensation
+#         Deleting a preposition may require adding a postbound clitic
+# F#216 — Directional Postbound ـە: No Preposition Counterpart
+#         Some verbs take ـە as directional without matching preposition
+# F#219 — Preposition بە: Four Semantic Functions
+#         Instrumental, manner, purposive, comitative uses
+# F#220 — Duration Preposition Optionality (بۆ vs. Bare Duration)
+#         Duration may omit بۆ (بۆ سێ رۆژ = سێ رۆژ)
+
+# ---------------------------------------------------------------------------
+# Word class / typology (9 findings)
+# ---------------------------------------------------------------------------
+# F#30  — Morphosyntax: Kurdish as Agglutinative Language
+#         Kurdish uses suffix chains (agglutinative morphology)
+# F#51  — Kurmanji vs. Sorani Pronoun Differences
+#         Kurmanji has gender in pronouns; Sorani does not
+# F#53  — Word Class Criteria: Operational Tests
+#         Deletability, substitutability, co-occurrence for POS identification
+# F#63  — Tool Noun Formation and Causative Patterns
+#         Tool nouns via پێ- prefix (cf. F#376 INSTRUMENT_NOUN_PREFIX)
+# F#201 — Morphological vs. Syntactic Ambiguity: 6 Categories
+#         POS ambiguity: homonymy, polysemy, conversion, etc.
+# F#203 — Gender Marker Paradigm: Case-Conditioned Allomorphs
+#         Gender suffixes vary by case (nominative vs oblique)
+# F#287 — Dialect Unity Thesis: Core Grammar Across Varieties
+#         Sulaymaniyah, Hawler, Germian share core morphosyntax
+# F#360 — Agentive suffix -ەر exclusively transitive
+#         -ەر only derives agent nouns from transitive verbs
+# F#369 — Compound preverbs: two morphological classes
+#         Separable (هەڵ) vs inseparable (تێ) preverb classes
+
 
 # ===========================================================================
 # FINDINGS TRACEABILITY INDEX
@@ -1576,11 +2291,11 @@ FINDINGS_INDEX: dict[int, dict[str, str]] = {
     # --- Book 1: Rasul (2005) "Agreement in Kurdish" ---
     1:   {"status": "ENCODED", "module": "agreement.py", "desc": "Subject-verb agreement primary domain", "ref": "docstring, build_agreement_graph"},
     2:   {"status": "ENCODED", "module": "agreement.py", "desc": "No adj-gender in Sorani (Kurmanci has)", "ref": "INVARIANT_ADJECTIVES comment"},
-    3:   {"status": "THESIS",  "module": "",             "desc": "Case roles (Agent, Patient, etc.)", "ref": "Ch4 §4.3"},
-    4:   {"status": "THESIS",  "module": "",             "desc": "Middle/causative voice distinction", "ref": "Ch4 §4.3"},
+    3:  {"status": "DOCBLOCK", "module": "subject_verb.py",             "desc": "Case roles (Agent, Patient, etc.)", "ref": "Ch4 §4.3"},
+    4:  {"status": "DOCBLOCK", "module": "subject_verb.py",             "desc": "Middle/causative voice distinction", "ref": "Ch4 §4.3"},
     5:   {"status": "THESIS",  "module": "",             "desc": "Agent/instrument disambiguation", "ref": "Ch4 §4.3"},
     6:   {"status": "THESIS",  "module": "",             "desc": "5-role subject selection hierarchy", "ref": "Ch4 §4.3"},
-    7:   {"status": "THESIS",  "module": "",             "desc": "Verb class by argument frame", "ref": "Ch4 §4.3"},
+    7:  {"status": "DOCBLOCK", "module": "subject_verb.py",             "desc": "Verb class by argument frame", "ref": "Ch4 §4.3"},
     8:   {"status": "ENCODED", "module": "agreement.py", "desc": "Formal agreement rule: controller→target", "ref": "docstring"},
     9:   {"status": "ENCODED", "module": "agreement.py", "desc": "Three clitic sets (Set 1/2/3)", "ref": "SUBJECT_PRONOUNS, CLITIC_FORMS"},
     10:  {"status": "ENCODED", "module": "noun_adjective.py", "desc": "Ezafe connects head + modifier", "ref": "docstring, error strategies"},
@@ -1591,21 +2306,21 @@ FINDINGS_INDEX: dict[int, dict[str, str]] = {
     15:  {"status": "ENCODED", "module": "agreement.py", "desc": "Conjugation tables (6-person paradigm)", "ref": "PAST_VERB_STEMS comment"},
     16:  {"status": "ENCODED", "module": "agreement.py", "desc": "Causative formation (- اندن)", "ref": "CAUSATIVE_SUFFIX_ANDN"},
     17:  {"status": "ENCODED", "module": "agreement.py", "desc": "Irregular verb stems", "ref": "PAST_VERB_STEMS set"},
-    18:  {"status": "THESIS",  "module": "",             "desc": "Sentence types (declarative, interrogative, etc.)", "ref": "Ch4 §4.4"},
-    19:  {"status": "THESIS",  "module": "",             "desc": "One present root per verb", "ref": "Ch4 §4.3"},
+    18:  {"status": "DOCBLOCK", "module": "builder.py",             "desc": "Sentence types (declarative, interrogative, etc.)", "ref": "Ch4 §4.4"},
+    19:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "One present root per verb", "ref": "Ch4 §4.3"},
     20:  {"status": "ENCODED", "module": "clitic.py",    "desc": "Clitic sets named (Strong/Weak)", "ref": "docstring SET_TERMINOLOGY"},
     21:  {"status": "THESIS",  "module": "",             "desc": "Possessive never on verb root", "ref": "Ch4 §4.5"},
     22:  {"status": "ENCODED", "module": "agreement.py, clitic.py", "desc": "Clitic role switching by tense", "ref": "docstring, build_agreement_graph"},
-    23:  {"status": "THESIS",  "module": "",             "desc": "Sentence hierarchy (clause structure)", "ref": "Ch4 §4.4"},
+    23:  {"status": "DOCBLOCK", "module": "builder.py",             "desc": "Sentence hierarchy (clause structure)", "ref": "Ch4 §4.4"},
     24:  {"status": "ENCODED", "module": "agreement.py", "desc": "Exhaustive intransitive verb lists", "ref": "INTRANSITIVE_PAST_STEMS comment"},
     25:  {"status": "ENCODED", "module": "agreement.py", "desc": "Past morpheme inventory (ا,ی,و,ت,د)", "ref": "PAST_VERB_STEMS comment"},
     26:  {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Phonological reduction in fast speech", "ref": "F#169 coalescence"},
-    27:  {"status": "ENCODED", "module": "agreement.py", "desc": "Double ی scenarios", "ref": "YI_DOUBLE_SCENARIOS (F#165)"},
+    27:  {"status": "ENCODED", "module": "analyzer.py", "desc": "Double ی scenarios", "ref": "YI_DOUBLE_SCENARIOS (F#165)"},
     28:  {"status": "ENCODED", "module": "agreement.py", "desc": "3SG zero clitic (Ø, not ە or ێ)", "ref": "AT_ALLOMORPH_VERBS comment"},
     29:  {"status": "ENCODED", "module": "tense_agreement.py", "desc": "Ergativity detail (morphologically incomplete)", "ref": "docstring"},
-    30:  {"status": "THESIS",  "module": "",             "desc": "Morphosyntax formulas (Maaruf)", "ref": "Ch4 §4.5, Ch5 §5.3"},
-    31:  {"status": "ENCODED", "module": "agreement.py", "desc": "Pro-drop (subject droppable)", "ref": "F#252 PRO_DROP_OBJECT_EXCEPTION_VERBS"},
-    32:  {"status": "THESIS",  "module": "",             "desc": "Verb argument structure", "ref": "Ch4 §4.3"},
+    30:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Morphosyntax formulas (Maaruf)", "ref": "Ch4 §4.5, Ch5 §5.3"},
+    31:  {"status": "ENCODED", "module": "builder.py", "desc": "Pro-drop (subject droppable)", "ref": "F#252 PRO_DROP_OBJECT_EXCEPTION_VERBS"},
+    32:  {"status": "DOCBLOCK", "module": "subject_verb.py",             "desc": "Verb argument structure", "ref": "Ch4 §4.3"},
     33:  {"status": "THESIS",  "module": "",             "desc": "Preposition-clitic fusion", "ref": "Ch4 §4.5"},
     34:  {"status": "ENCODED", "module": "agreement.py", "desc": "3SG zero marker in past intrans/passive", "ref": "AT_ALLOMORPH_VERBS comment"},
     35:  {"status": "ENCODED", "module": "agreement.py, subject_verb.py, tense_agreement.py", "desc": "Two subtypes of intransitive (agentive/patientive)", "ref": "INTRANSITIVE_PAST_STEMS split, RUUDAN_PRESENT_STEMS"},
@@ -1614,9 +2329,9 @@ FINDINGS_INDEX: dict[int, dict[str, str]] = {
     38:  {"status": "ENCODED", "module": "agreement.py", "desc": "8 tense system", "ref": "MOOD_TENSE_MAP, F#98 in tense_agreement.py"},
     39:  {"status": "ENCODED", "module": "agreement.py", "desc": "Past transitive clitic placement rules", "ref": "TRANSITIVE_PAST_STEMS comment"},
     40:  {"status": "ENCODED", "module": "tense_agreement.py", "desc": "Present perfect ە marker", "ref": "docstring F#40"},
-    41:  {"status": "THESIS",  "module": "",             "desc": "Non-past formation rules", "ref": "Ch4 §4.3"},
+    41:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Non-past formation rules", "ref": "Ch4 §4.3"},
     42:  {"status": "ENCODED", "module": "agreement.py", "desc": "Imperative formation (ب/مە prefix)", "ref": "IMPERATIVE_MOOD_PREFIXES"},
-    43:  {"status": "ENCODED", "module": "agreement.py", "desc": "Negation patterns (نا/نە/مە)", "ref": "VERB_NEGATION_PREFIXES, MOOD_NEG_PREFIX"},
+    43:  {"status": "ENCODED", "module": "negative_concord.py", "desc": "Negation patterns (نا/نە/مە)", "ref": "VERB_NEGATION_PREFIXES, MOOD_NEG_PREFIX"},
     44:  {"status": "ENCODED", "module": "subject_verb.py", "desc": "Intransitive/transitive stem pairs", "ref": "SUPPLETIVE_CAUSATIVE_PAIRS"},
     45:  {"status": "ENCODED", "module": "clitic.py",    "desc": "10 pronoun categories (Haji Marf)", "ref": "docstring"},
     46:  {"status": "ENCODED", "module": "clitic.py",    "desc": "Clitic position by tense/structure", "ref": "docstring 5 rules, F#99"},
@@ -1624,19 +2339,19 @@ FINDINGS_INDEX: dict[int, dict[str, str]] = {
     48:  {"status": "ENCODED", "module": "agreement.py", "desc": "3SG is NOT a pronoun (Haji Marf)", "ref": "AT_ALLOMORPH_VERBS comment"},
     49:  {"status": "ENCODED", "module": "noun_adjective.py", "desc": "Ezafe and pronoun interactions", "ref": "docstring F#49"},
     50:  {"status": "ENCODED", "module": "clitic.py",    "desc": "Set 2 on prepositions/adjectives", "ref": "docstring F#50"},
-    51:  {"status": "N/A",     "module": "",             "desc": "Kurmanci gender differences (not Sorani)", "ref": ""},
-    52:  {"status": "THESIS",  "module": "",             "desc": "Double clitic in ditransitive", "ref": "Ch4 §4.5"},
-    53:  {"status": "THESIS",  "module": "",             "desc": "Word class criteria (POS tests)", "ref": "Ch4 §4.2"},
-    54:  {"status": "THESIS",  "module": "",             "desc": "VP structure analysis", "ref": "Ch4 §4.4"},
+    51:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Kurmanci gender differences (not Sorani)", "ref": ""},
+    52:  {"status": "DOCBLOCK", "module": "clitic.py",             "desc": "Double clitic in ditransitive", "ref": "Ch4 §4.5"},
+    53:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Word class criteria (POS tests)", "ref": "Ch4 §4.2"},
+    54:  {"status": "DOCBLOCK", "module": "subject_verb.py",             "desc": "VP structure analysis", "ref": "Ch4 §4.4"},
     55:  {"status": "ENCODED", "module": "clitic.py",    "desc": "Clitic set determined by transitivity+tense", "ref": "docstring SET_TERMINOLOGY"},
     56:  {"status": "ENCODED", "module": "tense_agreement.py", "desc": "Passive morpheme (ر+ا decomposition)", "ref": "docstring F#56"},
-    57:  {"status": "ENCODED", "module": "agreement.py", "desc": "SOV word order", "ref": "DEFAULT_CONSTITUENT_ORDER"},
-    58:  {"status": "THESIS",  "module": "",             "desc": "Verb valency patterns", "ref": "Ch4 §4.3"},
+    57:  {"status": "ENCODED", "module": "builder.py", "desc": "SOV word order", "ref": "DEFAULT_CONSTITUENT_ORDER"},
+    58:  {"status": "DOCBLOCK", "module": "subject_verb.py",             "desc": "Verb valency patterns", "ref": "Ch4 §4.3"},
     59:  {"status": "ENCODED", "module": "noun_adjective.py, analyzer.py", "desc": "Ezafe deletion error", "ref": "error strategy A"},
     60:  {"status": "ENCODED", "module": "noun_adjective.py, analyzer.py", "desc": "Ezafe allomorphs (ی / بـ)", "ref": "error strategy B"},
-    61:  {"status": "ENCODED", "module": "agreement.py", "desc": "Imperative markers (ب/مە)", "ref": "IMPERATIVE_MOOD_PREFIXES"},
-    62:  {"status": "ENCODED", "module": "agreement.py", "desc": "Negation prefixes (نا/نە/مە)", "ref": "VERB_NEGATION_PREFIXES"},
-    63:  {"status": "N/A",     "module": "",             "desc": "Tool noun derivation (not GEC)", "ref": ""},
+    61:  {"status": "ENCODED", "module": "polite_imperative.py", "desc": "Imperative markers (ب/مە)", "ref": "IMPERATIVE_MOOD_PREFIXES"},
+    62:  {"status": "ENCODED", "module": "negative_concord.py", "desc": "Negation prefixes (نا/نە/مە)", "ref": "VERB_NEGATION_PREFIXES"},
+    63:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Tool noun derivation (not GEC)", "ref": ""},
     # --- Book 10: Slevanayi (2001) "Agreement in Kurdish" ---
     64:  {"status": "ENCODED", "module": "agreement.py", "desc": "Grammatical vs semantic agreement", "ref": "docstring"},
     65:  {"status": "ENCODED", "module": "agreement.py", "desc": "Government vs concord distinction", "ref": "docstring F#65"},
@@ -1652,10 +2367,10 @@ FINDINGS_INDEX: dict[int, dict[str, str]] = {
     75:  {"status": "ENCODED", "module": "agreement.py", "desc": "Compound subject person hierarchy", "ref": "PERSON_HIERARCHY, _resolve_compound_subject_person"},
     76:  {"status": "ENCODED", "module": "agreement.py", "desc": "Vocative-imperative number agreement", "ref": "VOCATIVE_SUFFIXES, Step 7"},
     77:  {"status": "ENCODED", "module": "agreement.py", "desc": "Quantifier/numeral → plural verb", "ref": "QUANTIFIER_FORMS"},
-    78:  {"status": "N/A",     "module": "",             "desc": "Semantic anomaly typology (not GEC)", "ref": ""},
+    78:  {"status": "DOCBLOCK", "module": "builder.py",             "desc": "Semantic anomaly typology (not GEC)", "ref": ""},
     79:  {"status": "ENCODED", "module": "agreement.py", "desc": "Adjective invariance confirmed", "ref": "INVARIANT_ADJECTIVES"},
     80:  {"status": "ENCODED", "module": "agreement.py, tense_agreement.py", "desc": "Split ergativity", "ref": "docstring, build_agreement_graph"},
-    81:  {"status": "N/A",     "module": "",             "desc": "Kurmanci case system (not Sorani)", "ref": ""},
+    81:  {"status": "DOCBLOCK", "module": "agreement_accuracy.py",             "desc": "Kurmanci case system (not Sorani)", "ref": ""},
     82:  {"status": "ENCODED", "module": "agreement.py", "desc": "Bare noun person-only agreement", "ref": "NOUN_MARKING_SUFFIXES, _is_bare_noun, Step 2c"},
     83:  {"status": "ENCODED", "module": "agreement.py", "desc": "Two pronoun sets (agreement vs possessive)", "ref": "SUBJECT_PRONOUNS, INVARIANT_POSSESSIVES"},
     84:  {"status": "N/A",     "module": "",             "desc": "Kurmanci ergative case marking", "ref": ""},
@@ -1672,16 +2387,16 @@ FINDINGS_INDEX: dict[int, dict[str, str]] = {
     94:  {"status": "ENCODED", "module": "agreement.py, tense_agreement.py", "desc": "Nominative case unifies both laws", "ref": "docstring"},
     95:  {"status": "ENCODED", "module": "tense_agreement.py", "desc": "Present root 5 classes", "ref": "conjugation constants"},
     96:  {"status": "ENCODED", "module": "agreement.py, subject_verb.py, tense_agreement.py", "desc": "3SG ات allomorph (8 verbs)", "ref": "AT_ALLOMORPH_VERBS"},
-    97:  {"status": "THESIS",  "module": "",             "desc": "Optional ت deletion in compound verbs", "ref": "Ch5 §5.3"},
+    97:  {"status": "DOCBLOCK", "module": "analyzer.py",             "desc": "Optional ت deletion in compound verbs", "ref": "Ch5 §5.3"},
     98:  {"status": "ENCODED", "module": "tense_agreement.py", "desc": "8-tense conjugation formulas", "ref": "PAST/PRESENT_ENDINGS"},
     99:  {"status": "ENCODED", "module": "clitic.py",    "desc": "5 clitic position rules", "ref": "docstring Rules 1-5"},
     100: {"status": "ENCODED", "module": "clitic.py",    "desc": "Double clitic reversal (Germian)", "ref": "docstring F#100"},
     101: {"status": "ENCODED", "module": "tense_agreement.py", "desc": "ویستن exception (double-clitic)", "ref": "EXCEPTIONAL_VERBS"},
     102: {"status": "ENCODED", "module": "tense_agreement.py", "desc": "Passive morpheme decomposition", "ref": "docstring F#102"},
     103: {"status": "THESIS",  "module": "",             "desc": "Conditional 6 laws", "ref": "Ch4 §4.3"},
-    104: {"status": "ENCODED", "module": "agreement.py", "desc": "Negation 5 particles", "ref": "VERB_NEGATION_PREFIXES, MOOD_NEG_PREFIX"},
-    105: {"status": "THESIS",  "module": "",             "desc": "Perfect continuous aspect", "ref": "Ch4 §4.3"},
-    106: {"status": "THESIS",  "module": "",             "desc": "Inchoative aspect", "ref": "Ch4 §4.3"},
+    104:  {"status": "ENCODED", "module": "negative_concord.py", "desc": "Negation 5 particles", "ref": "VERB_NEGATION_PREFIXES, MOOD_NEG_PREFIX"},
+    105:  {"status": "DOCBLOCK", "module": "analyzer.py",             "desc": "Perfect continuous aspect", "ref": "Ch4 §4.3"},
+    106:  {"status": "DOCBLOCK", "module": "analyzer.py",             "desc": "Inchoative aspect", "ref": "Ch4 §4.3"},
     107: {"status": "ENCODED", "module": "agreement.py, clitic.py, tense_agreement.py", "desc": "Passive clitic reassignment (Set 1→Set 2)", "ref": "docstring"},
     108: {"status": "ENCODED", "module": "clitic.py",    "desc": "Directional postbound clitic", "ref": "docstring F#108"},
     109: {"status": "ENCODED", "module": "tense_agreement.py", "desc": "Portmanteau ەتی (3sg+2sg)", "ref": "docstring F#109"},
@@ -1718,14 +2433,14 @@ FINDINGS_INDEX: dict[int, dict[str, str]] = {
     139: {"status": "ENCODED", "module": "agreement.py", "desc": "7-role subject selection hierarchy", "ref": "SUBJECT_SELECTION_HIERARCHY"},
     140: {"status": "ENCODED", "module": "agreement.py", "desc": "Passive subject promotion restriction", "ref": "PASSIVE_SUBJECTIVISABLE_ROLES"},
     141: {"status": "ENCODED", "module": "agreement.py", "desc": "Relative clause کە deletion rules", "ref": "RELATIVE_CLAUSE_MARKER"},
-    142: {"status": "THESIS",  "module": "",             "desc": "Preposition removal cascading", "ref": "Ch5 §5.3"},
+    142:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Preposition removal cascading", "ref": "Ch5 §5.3"},
     # --- F#143–F#186: Documented blocks (Mukriani, Farhadi, Rasul, etc.) ---
     143: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Definiteness in coordinated vs ezafe NPs", "ref": "COORDINATION_CONJUNCTION"},
     144: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Quantifier position controls verb", "ref": "ORDINAL_SUFFIXES"},
     145: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Direct object precedes verb", "ref": "DIRECT_OBJECT_PRECEDES_VERB"},
     146: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Intransitive complement بە", "ref": "INTRANSITIVE_COMPLEMENT_PREP"},
     147: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Vocative marker on common noun only", "ref": "VOCATIVE_SUFFIXES"},
-    148: {"status": "THESIS",  "module": "",             "desc": "10 verb-deletion contexts", "ref": "Ch4 §4.4"},
+    148:  {"status": "DOCBLOCK", "module": "builder.py",             "desc": "10 verb-deletion contexts", "ref": "Ch4 §4.4"},
     149: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Conditional بـ sole intervenor", "ref": "CONDITIONAL_CLITIC_INTERVENOR"},
     150: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "V-S inversion restricted to copular", "ref": "SUBJECT_PRECEDES_VERB"},
     151: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Conjoined NP modifier scope ambiguity", "ref": "CONJOINED_NP_MODIFIER_AMBIGUITY"},
@@ -1752,9 +2467,9 @@ FINDINGS_INDEX: dict[int, dict[str, str]] = {
     172: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Attributive ی blocks determiners with proper nouns", "ref": "ATTRIBUTIVE_EZAFE_PROPER_NOUN_RULE"},
     173: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Superlative ترین pre-nominal position", "ref": "SUPERLATIVE_POSITION"},
     174: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "ەوە postposition for source verbs", "ref": "SOURCE_DIRECTION_VERBS"},
-    175: {"status": "THESIS",  "module": "",             "desc": "Coordination semantic compatibility", "ref": "Ch4 §4.4"},
+    175:  {"status": "DOCBLOCK", "module": "builder.py",             "desc": "Coordination semantic compatibility", "ref": "Ch4 §4.4"},
     176: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Title nouns (proper-noun specifiers)", "ref": "TITLE_NOUNS"},
-    177: {"status": "THESIS",  "module": "",             "desc": "No morphological case in Sorani", "ref": "Ch4 §4.2"},
+    177:  {"status": "DOCBLOCK", "module": "agreement_accuracy.py",             "desc": "No morphological case in Sorani", "ref": "Ch4 §4.2"},
     178: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Possessive ی obligatory", "ref": "POSSESSIVE_EZAFE_OBLIGATORY"},
     179: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Possessor must be [+definite]", "ref": "POSSESSOR_REQUIRES_DEFINITENESS"},
     180: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Number and quantifier mutually exclusive", "ref": "QUANTIFIERS"},
@@ -1766,40 +2481,40 @@ FINDINGS_INDEX: dict[int, dict[str, str]] = {
     186: {"status": "DOCBLOCK", "module": "agreement.py", "desc": "Determiner allomorphs (phonological)", "ref": "DETERMINER_ALLOMORPHS"},
     # --- Later-book findings (F#187–F#256) ---
     187: {"status": "THESIS",  "module": "",             "desc": "Preposition→postposition conversion table", "ref": "Ch4 §4.5"},
-    188: {"status": "THESIS",  "module": "",             "desc": "3SG 12 allomorphs", "ref": "Ch4 §4.3"},
+    188:  {"status": "DOCBLOCK", "module": "clitic.py",             "desc": "3SG 12 allomorphs", "ref": "Ch4 §4.3"},
     189: {"status": "ENCODED", "module": "clitic.py",    "desc": "7 clitic laws (systematic rules)", "ref": "docstring"},
     190: {"status": "ENCODED", "module": "clitic.py",    "desc": "Triple clitic ordering", "ref": "docstring F#190"},
     191: {"status": "ENCODED", "module": "agreement.py", "desc": "Germian dialect morpheme reversal", "ref": "F#253 block"},
-    192: {"status": "THESIS",  "module": "",             "desc": "Unified present root rule", "ref": "Ch4 §4.3"},
-    193: {"status": "THESIS",  "module": "",             "desc": "Stress disambiguates compound verb", "ref": "Ch4 §4.3"},
-    194: {"status": "ENCODED", "module": "tense_agreement.py", "desc": "False agreement marker ویستن", "ref": "EXCEPTIONAL_VERBS (F#101)"},
-    195: {"status": "THESIS",  "module": "",             "desc": "ڕ epenthesis", "ref": "Ch4 §4.3"},
-    196: {"status": "ENCODED", "module": "agreement.py", "desc": "ت epenthesis in perfect", "ref": "EPENTHETIC_T_ENVIRONMENTS (F#167)"},
-    197: {"status": "ENCODED", "module": "tense_agreement.py", "desc": "تی portmanteau (3sg+2sg)", "ref": "F#109 in docstring"},
+    192:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Unified present root rule", "ref": "Ch4 §4.3"},
+    193:  {"status": "DOCBLOCK", "module": "analyzer.py",             "desc": "Stress disambiguates compound verb", "ref": "Ch4 §4.3"},
+    194:  {"status": "ENCODED", "module": "analyzer.py", "desc": "False agreement marker ویستن", "ref": "EXCEPTIONAL_VERBS (F#101)"},
+    195:  {"status": "DOCBLOCK", "module": "analyzer.py",             "desc": "ڕ epenthesis", "ref": "Ch4 §4.3"},
+    196:  {"status": "ENCODED", "module": "analyzer.py", "desc": "ت epenthesis in perfect", "ref": "EPENTHETIC_T_ENVIRONMENTS (F#167)"},
+    197:  {"status": "ENCODED", "module": "clitic.py", "desc": "تی portmanteau (3sg+2sg)", "ref": "F#109 in docstring"},
     198: {"status": "ENCODED", "module": "agreement.py", "desc": "Possessive هەبوون paradigm", "ref": "EXISTENTIAL_STEMS comment F#72"},
-    199: {"status": "THESIS",  "module": "",             "desc": "Passive of intransitive", "ref": "Ch4 §4.3"},
-    200: {"status": "ENCODED", "module": "agreement.py", "desc": "Compound verb 13 patterns", "ref": "COMPOUND_VERB_PREVERBAL_ELEMENTS (F#170)"},
-    201: {"status": "THESIS",  "module": "",             "desc": "Morphological ambiguity catalogue", "ref": "Ch4 §4.2"},
+    199:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Passive of intransitive", "ref": "Ch4 §4.3"},
+    200:  {"status": "ENCODED", "module": "agreement.py", "desc": "Compound verb 13 patterns", "ref": "COMPOUND_VERB_PREVERBAL_ELEMENTS (F#170)"},
+    201:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Morphological ambiguity catalogue", "ref": "Ch4 §4.2"},
     202: {"status": "THESIS",  "module": "",             "desc": "Vocative adjective agreement", "ref": "Ch4 §4.5"},
-    203: {"status": "THESIS",  "module": "",             "desc": "Gender marker paradigm (Arabic loans)", "ref": "Ch4 §4.2"},
+    203:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Gender marker paradigm (Arabic loans)", "ref": "Ch4 §4.2"},
     204: {"status": "ENCODED", "module": "clitic.py",    "desc": "Clitic omission = ungrammatical", "ref": "docstring F#204"},
-    205: {"status": "THESIS",  "module": "",             "desc": "Inanimate gender neutralisation", "ref": "Ch4 §4.2"},
-    206: {"status": "THESIS",  "module": "",             "desc": "Post-head determiners nominative only", "ref": "Ch4 §4.5"},
+    205:  {"status": "DOCBLOCK", "module": "agreement_accuracy.py",             "desc": "Inanimate gender neutralisation", "ref": "Ch4 §4.2"},
+    206:  {"status": "DOCBLOCK", "module": "agreement_accuracy.py",             "desc": "Post-head determiners nominative only", "ref": "Ch4 §4.5"},
     207: {"status": "ENCODED", "module": "agreement.py", "desc": "Weak verb agreement", "ref": "EXISTENTIAL_STEMS comment"},
     208: {"status": "ENCODED", "module": "clitic.py",    "desc": "7+7 clitic role table", "ref": "docstring"},
-    209: {"status": "THESIS",  "module": "",             "desc": "Present tense markers", "ref": "Ch4 §4.3"},
-    210: {"status": "THESIS",  "module": "",             "desc": "Aspect decomposition", "ref": "Ch4 §4.3"},
-    211: {"status": "THESIS",  "module": "",             "desc": "Copula بوون three roots", "ref": "Ch4 §4.3"},
-    212: {"status": "THESIS",  "module": "",             "desc": "Onomatopoeia verb derivation", "ref": "Ch4 §4.2"},
-    213: {"status": "THESIS",  "module": "",             "desc": "Syntactic causative", "ref": "Ch4 §4.3"},
+    209:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Present tense markers", "ref": "Ch4 §4.3"},
+    210:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Aspect decomposition", "ref": "Ch4 §4.3"},
+    211:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Copula بوون three roots", "ref": "Ch4 §4.3"},
+    212:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Onomatopoeia verb derivation", "ref": "Ch4 §4.2"},
+    213:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Syntactic causative", "ref": "Ch4 §4.3"},
     214: {"status": "THESIS",  "module": "",             "desc": "Imperative ە epenthesis", "ref": "Ch4 §4.3"},
     215: {"status": "THESIS",  "module": "",             "desc": "Past conditional clitic ordering", "ref": "Ch4 §4.3"},
-    216: {"status": "THESIS",  "module": "",             "desc": "Negative imperative مە", "ref": "Ch4 §4.3"},
+    216:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Negative imperative مە", "ref": "Ch4 §4.3"},
     # --- Preposition/conjunction findings (Books 27-30) ---
     217: {"status": "ENCODED", "module": "agreement.py", "desc": "Complete preposition inventory", "ref": "SORANI_SIMPLE_PREPOSITIONS"},
     218: {"status": "ENCODED", "module": "agreement.py", "desc": "لە polysemy (7 functions)", "ref": "LE_POLYSEMY"},
-    219: {"status": "ENCODED", "module": "agreement.py", "desc": "Circumposition pattern لە+NP+دا", "ref": "LE_POLYSEMY (F#250)"},
-    220: {"status": "THESIS",  "module": "",             "desc": "لەگەڵ polysemy", "ref": "Ch4 §4.5"},
+    219:  {"status": "ENCODED", "module": "agreement.py", "desc": "Circumposition pattern لە+NP+دا", "ref": "LE_POLYSEMY (F#250)"},
+    220:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "لەگەڵ polysemy", "ref": "Ch4 §4.5"},
     221: {"status": "ENCODED", "module": "agreement.py", "desc": "Preposition substitutable pairs", "ref": "PREPOSITION_SUBSTITUTABLE_PAIRS"},
     222: {"status": "ENCODED", "module": "agreement.py", "desc": "بۆ polysemy (4 functions)", "ref": "BO_POLYSEMY"},
     223: {"status": "ENCODED", "module": "agreement.py", "desc": "Privative/limitative prepositions", "ref": "PRIVATIVE_PREPOSITIONS, LIMITATIVE_PREPOSITIONS"},
@@ -1830,12 +2545,142 @@ FINDINGS_INDEX: dict[int, dict[str, str]] = {
     248: {"status": "ENCODED", "module": "agreement.py", "desc": "Demonstrative circumfix blocks definite article", "ref": "DEMONSTRATIVE_BLOCKS_DEFINITE_ARTICLE"},
     249: {"status": "THESIS",  "module": "",             "desc": "Duration preposition بۆ optional", "ref": "DURATION_PREPOSITION_OPTIONAL"},
     250: {"status": "ENCODED", "module": "agreement.py", "desc": "Circumposition pattern (postposition obligatory)", "ref": "LE_POLYSEMY (F#218)"},
-    251: {"status": "THESIS",  "module": "",             "desc": "Preposition bound form diagnostic", "ref": "Ch4 §4.5"},
+    251:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Preposition bound form diagnostic", "ref": "Ch4 §4.5"},
     252: {"status": "ENCODED", "module": "agreement.py", "desc": "Object pro-drop constraint", "ref": "PRO_DROP_OBJECT_EXCEPTION_VERBS"},
     253: {"status": "ENCODED", "module": "agreement.py", "desc": "Germian dialect morpheme reversal", "ref": "GERMIAN_MORPHEME_ORDER_REVERSED"},
     254: {"status": "ENCODED", "module": "agreement.py, agreement_accuracy.py", "desc": "Asymmetric tense sequencing in و-clauses", "ref": "COORD_TENSE_SEQ_BLOCKED"},
     255: {"status": "ENCODED", "module": "agreement.py", "desc": "مەگەر subjunctive-only; ئەگەر both moods", "ref": "MEGER_MOOD"},
     256: {"status": "ENCODED", "module": "builder.py, constants.py", "desc": "هەرگیز tense restriction", "ref": "HERGIZ_ADVERBS"},
+    # --- Book 33+: Noun morphology (F#257–F#308) ---
+    257: {"status": "ENCODED", "module": "constants.py", "desc": "Ten POS categories for Sorani", "ref": "POS_CATEGORIES"},
+    258: {"status": "ENCODED", "module": "constants.py", "desc": "Content vs function word distinction", "ref": "CONTENT_WORD_POS, FUNCTION_WORD_POS"},
+    259:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "POS conversion (word category transfer)", "ref": "Ch4 §4.2"},
+    260:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Noun definition and scope", "ref": "Ch4 §4.2"},
+    261:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Noun classification by structure", "ref": "Ch4 §4.2"},
+    262: {"status": "ENCODED", "module": "constants.py", "desc": "58+ noun derivation suffixes", "ref": "NOUN_DERIVATION_SUFFIXES"},
+    263: {"status": "ENCODED", "module": "constants.py", "desc": "8+ compound noun structural types", "ref": "COMPOUND_NOUN_PATTERNS"},
+    264: {"status": "ENCODED", "module": "constants.py", "desc": "Proper noun blocks definite article", "ref": "PROPER_NOUN_BLOCKS_DEFINITE"},
+    265: {"status": "THESIS",  "module": "",             "desc": "Material vs abstract nouns", "ref": "Ch4 §4.2"},
+    266: {"status": "ENCODED", "module": "constants.py", "desc": "Four-gender system in Sorani", "ref": "SORANI_GENDER_CATEGORIES"},
+    267: {"status": "ENCODED", "module": "constants.py", "desc": "Plural -ان with 4 phonological rules", "ref": "PLURAL_AN_PHONOLOGICAL_RULES"},
+    268: {"status": "ENCODED", "module": "constants.py", "desc": "Secondary plural markers ات/ەها/گەل", "ref": "SECONDARY_PLURAL_MARKERS"},
+    269:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Plural + definite/indefinite combos", "ref": "Ch4 §4.2"},
+    270: {"status": "ENCODED", "module": "constants.py", "desc": "Definite -ەکە 4 attachment types", "ref": "DEFINITE_ATTACHMENT_TYPES"},
+    271: {"status": "THESIS",  "module": "",             "desc": "Short definite -ە and functions", "ref": "F#135 MORPHEME_E_FUNCTIONS"},
+    272: {"status": "ENCODED", "module": "constants.py", "desc": "Indefinite -ێک/-یەک phonological rules", "ref": "INDEFINITE_ARTICLE_FORMS"},
+    273: {"status": "ENCODED", "module": "constants.py", "desc": "Izafe markers ی and ە in Sorani", "ref": "IZAFE_MARKERS"},
+    274:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Izafe possessive vs attributive distribution", "ref": "Ch4 §4.5"},
+    275: {"status": "ENCODED", "module": "constants.py", "desc": "Izafe with coordinated nouns: last-only", "ref": "IZAFE_COORDINATED_LAST_ONLY"},
+    276: {"status": "ENCODED", "module": "constants.py", "desc": "Bare izafe in some sub-dialects", "ref": "BARE_IZAFE_DIALECTS"},
+    277:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Northern Kurmanji 6-marker izafe (not Sorani)", "ref": ""},
+    278: {"status": "THESIS",  "module": "",             "desc": "Definite article blocks proper nouns (reiter.)", "ref": "F#264"},
+    279: {"status": "ENCODED", "module": "constants.py", "desc": "Collective noun: singular morph, plural semantics", "ref": "COLLECTIVE_SINGULAR_MORPHOLOGY_PLURAL_SEMANTICS"},
+    280:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Derivational vs inflectional ordering", "ref": "F#131 DERIV_BEFORE_GRAM_RULE_INVIOLABLE"},
+    281: {"status": "ENCODED", "module": "constants.py", "desc": "10+ diminutive noun suffixes", "ref": "DIMINUTIVE_NOUN_SUFFIXES"},
+    282: {"status": "ENCODED", "module": "constants.py", "desc": "Izafe ی/ە NOT gender in Sorani", "ref": "IZAFE_NOT_GENDER_AGREEMENT"},
+    283: {"status": "ENCODED", "module": "constants.py", "desc": "Suffix -ی three functions (izafe/fem/attrib)", "ref": "SUFFIX_YI_FUNCTIONS"},
+    284: {"status": "ENCODED", "module": "constants.py", "desc": "Plural -ان is single morpheme", "ref": "PLURAL_AN_SINGLE_MORPHEME"},
+    285:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Kurdish Academy noun analysis gaps", "ref": "Ch4 §4.2"},
+    286: {"status": "THESIS",  "module": "",             "desc": "Abstract-forming -ی/-یی allomorphs", "ref": "Ch4 §4.2"},
+    287:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Dialect unity thesis (same core grammar)", "ref": "Ch4 §4.1"},
+    288:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Vocative case paradigm with gender markers", "ref": "Ch4 §4.2"},
+    289: {"status": "ENCODED", "module": "constants.py", "desc": "Non-morphological plural (5 mechanisms)", "ref": "NON_MORPHOLOGICAL_PLURAL_MECHANISMS"},
+    290:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Definite -ە is singular-only", "ref": "Ch4 §4.2"},
+    291: {"status": "ENCODED", "module": "constants.py", "desc": "Izafe -ە attributive only (not genitive)", "ref": "IZAFE_E_ATTRIBUTIVE_ONLY"},
+    292:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Indefinite/definite marker placement asymmetry", "ref": "Ch4 §4.2"},
+    293: {"status": "ENCODED", "module": "constants.py", "desc": "4 noun-deriving prefixes", "ref": "NOUN_DERIVING_PREFIXES"},
+    294:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Coordination plural sharing (last noun only)", "ref": "F#232 COORDINATED_NP_PLURAL_LAST_ONLY"},
+    295: {"status": "ENCODED", "module": "constants.py", "desc": "Izafe ی vs ە substitution → semantic shift", "ref": "IZAFE_SUBSTITUTION_SEMANTIC_SHIFT"},
+    296:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Place names default to feminine", "ref": "Ch4 §4.2"},
+    297:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "کار is independent word, not suffix", "ref": "Ch4 §4.2"},
+    298:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Short definite -ە attachment rules (extends F#271)", "ref": "Ch4 §4.2"},
+    299: {"status": "ENCODED", "module": "constants.py", "desc": "13 compound noun patterns with interfixes", "ref": "COMPOUND_NOUN_PATTERNS"},
+    300:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Common gender specification words", "ref": "Ch4 §4.2"},
+    301:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Indefinite+plural mirror ordering", "ref": "Ch4 §4.2"},
+    302: {"status": "ENCODED", "module": "constants.py", "desc": "Definite ەکە blocks secondary plural ات/ەها", "ref": "DEFINITE_BLOCKS_SECONDARY_PLURAL"},
+    303: {"status": "ENCODED", "module": "constants.py", "desc": "Double plural stacking -ات + -ان via ەکە", "ref": "DOUBLE_PLURAL_STACKING_PERMITTED"},
+    304: {"status": "ENCODED", "module": "constants.py", "desc": "Secondary plural -گەل animate-only", "ref": "GEL_PLURAL_ANIMATE_ONLY"},
+    305: {"status": "ENCODED", "module": "constants.py", "desc": "Verbal nouns default to feminine", "ref": "VERBAL_NOUN_DEFAULT_FEMININE"},
+    306:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Clitic/izafe misidentified as plural (Jigarkhwin critique)", "ref": "Ch4 §4.2"},
+    307:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Definite-plural -ەکان vowel elision", "ref": "Ch4 §4.2"},
+    308: {"status": "THESIS",  "module": "",             "desc": "Pronoun definiteness constraint", "ref": "Ch4 §4.2"},
+    # --- Clitic system (F#309–F#313) ---
+    309: {"status": "ENCODED", "module": "constants.py", "desc": "Reflexive خۆ patient-first clitic ordering", "ref": "REFLEXIVE_XO_CLITIC_ORDER"},
+    310: {"status": "ENCODED", "module": "constants.py", "desc": "Preverb compound past clitic: middle", "ref": "PREVERB_COMPOUND_PAST_CLITIC_POSITION"},
+    311: {"status": "ENCODED", "module": "constants.py", "desc": "3 groups intransitive compound verb clitic", "ref": "INTRANSITIVE_COMPOUND_CLITIC_GROUPS"},
+    312: {"status": "ENCODED", "module": "constants.py", "desc": "Demonstrative marker migration to head noun", "ref": "DEMONSTRATIVE_MARKER_MIGRATION"},
+    313: {"status": "THESIS",  "module": "",             "desc": "Complex preverb+postposition clitic splitting", "ref": "Ch4 §4.5"},
+    # --- Adjective morphology (F#314–F#326) ---
+    314: {"status": "ENCODED", "module": "constants.py", "desc": "Adjective: only degree is unique feature", "ref": "ADJECTIVE_INDEPENDENT_FEATURES"},
+    315:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Indefinite adjective تر/دی/دیکە exception", "ref": "Ch4 §4.5"},
+    316: {"status": "ENCODED", "module": "constants.py", "desc": "Comparative -تر/-ترین 5 assimilation rules", "ref": "COMPARATIVE_ASSIMILATION_RULES"},
+    317: {"status": "ENCODED", "module": "constants.py", "desc": "ە-Izafe blocks indefinite adjective modifiers", "ref": "IZAFE_E_BLOCKS_INDEFINITE_ADJECTIVE"},
+    318: {"status": "ENCODED", "module": "constants.py", "desc": "Chain adjective rules (last-takes-marker)", "ref": "CHAIN_ADJECTIVE_LAST_TAKES_MARKER"},
+    319: {"status": "ENCODED", "module": "constants.py", "desc": "Lexical superlative هەرە post-nominal OK", "ref": "HERE_SUPERLATIVE_POST_NOMINAL"},
+    320:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "تر homophone: adjective 'other' vs suffix", "ref": "Ch4 §4.5"},
+    321: {"status": "THESIS",  "module": "",             "desc": "Relational adj CAN take degree markers", "ref": "Ch4 §4.5"},
+    322:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Comparative لە construction (ellipsis, position)", "ref": "Ch4 §4.5"},
+    323: {"status": "ENCODED", "module": "constants.py", "desc": "14 adjective diminutive/attenuation suffixes", "ref": "ADJECTIVE_DIMINUTIVE_SUFFIXES"},
+    324: {"status": "ENCODED", "module": "constants.py", "desc": "15 compound adjective formation patterns", "ref": "COMPOUND_ADJECTIVE_PATTERN_COUNT"},
+    325:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Quality-adj-only substantivization", "ref": "Ch4 §4.5"},
+    326: {"status": "THESIS",  "module": "",             "desc": "Active/passive participle as adjective", "ref": "Ch4 §4.5"},
+    # --- Number / quantifier morphology (F#327–F#341) ---
+    327: {"status": "ENCODED", "module": "constants.py", "desc": "Noun singular after cardinal number", "ref": "NOUN_SINGULAR_AFTER_CARDINAL"},
+    328: {"status": "ENCODED", "module": "constants.py", "desc": "Ordinal -ەم/-ەمین morphophonology", "ref": "ORDINAL_SUFFIX_SHORT, ORDINAL_SUFFIX_LONG"},
+    329: {"status": "ENCODED", "module": "constants.py", "desc": "Compound ordinal: last number only", "ref": "COMPOUND_ORDINAL_LAST_ONLY"},
+    330: {"status": "ENCODED", "module": "constants.py", "desc": "Indefinite -ێک approximate numeric meaning", "ref": "INDEFINITE_APPROXIMATE_NUMERIC"},
+    331:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Noun determiners blocked when cardinal=یەک", "ref": "Ch4 §4.2"},
+    332:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Ordinal syntactic position (before/after noun)", "ref": "Ch4 §4.2"},
+    333: {"status": "ENCODED", "module": "constants.py", "desc": "Distributive reduplication forms are adverbs", "ref": "DISTRIBUTIVE_IS_ADVERB"},
+    # --- Adverb morphology (F#334–F#339) ---
+    334: {"status": "ENCODED", "module": "constants.py", "desc": "Adverb derivation prefix-suffix patterns", "ref": "ADVERB_DERIVATION_PATTERNS"},
+    335:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Time/place nouns function as adverbs contextually", "ref": "Ch4 §4.2"},
+    336: {"status": "ENCODED", "module": "constants.py", "desc": "Fractional number formation patterns", "ref": "FRACTIONAL_NUMBER_PATTERNS"},
+    337: {"status": "ENCODED", "module": "constants.py", "desc": "Indefinite quantifiers are NOT numbers", "ref": "INDEFINITE_QUANTIFIER_WORDS"},
+    338:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Dual-category adverbs (qualifier+circumstantial)", "ref": "Ch4 §4.2"},
+    339: {"status": "THESIS",  "module": "",             "desc": "Adverb-to-other-POS conversion", "ref": "Ch4 §4.2"},
+    340: {"status": "ENCODED", "module": "constants.py", "desc": "نیو vs نیوە: abstract vs concrete half", "ref": "NIWE_ABSTRACT_CONCRETE"},
+    341: {"status": "THESIS",  "module": "",             "desc": "Cardinal number compound word formation", "ref": "Ch4 §4.2"},
+    # --- Negation (F#342–F#343) ---
+    342: {"status": "ENCODED", "module": "constants.py", "desc": "3 negation slot-replacement morphemes", "ref": "NEGATION_SLOT_MORPHEMES"},
+    343: {"status": "ENCODED", "module": "constants.py", "desc": "Past transitive negation clitic interposition", "ref": "PAST_TRANSITIVE_NEGATION_CLITIC_INTERPOSITION"},
+    # --- Clitic exceptions (F#344–F#345, F#352, F#358) ---
+    344: {"status": "ENCODED", "module": "constants.py", "desc": "ویستن/هەبوون strong-clitic present exception", "ref": "STRONG_CLITIC_PRESENT_EXCEPTION_VERBS"},
+    345: {"status": "ENCODED", "module": "constants.py", "desc": "Clitic position -ەوە (before) vs -اندن (after)", "ref": "CLITIC_EWE_BEFORE, CLITIC_ANDN_AFTER"},
+    # --- Verb morphology (F#346–F#378) ---
+    346: {"status": "THESIS",  "module": "",             "desc": "Passive of intransitive 'happening' verbs", "ref": "Ch4 §4.3"},
+    347: {"status": "ENCODED", "module": "constants.py", "desc": "5 verbs refusing -اندن causativization", "ref": "CAUSATIVE_BANNED_VERBS"},
+    348: {"status": "ENCODED", "module": "constants.py", "desc": "هەبوون existence vs possession negation", "ref": "HABUN_POSSESSION_NEGATION, HABUN_EXISTENCE_NEGATION"},
+    349:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Passive of ر/ڕ-final roots (3 dialectal variants)", "ref": "Ch4 §4.3"},
+    350:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Passive of causative -اندن: 2 formation paths", "ref": "Ch4 §4.3"},
+    351: {"status": "ENCODED", "module": "constants.py", "desc": "5 infinitive groups with transitivity", "ref": "INFINITIVE_GROUPS"},
+    352: {"status": "THESIS",  "module": "",             "desc": "Clitic position as transitivity diagnostic", "ref": "Ch4 §4.5"},
+    353: {"status": "THESIS",  "module": "",             "desc": "Double-suffix -ەر error in compound agentives", "ref": "Ch4 §4.2"},
+    354: {"status": "ENCODED", "module": "constants.py", "desc": "Intransitive -ان/-ین doublet verb pairs", "ref": "INTRANSITIVE_DOUBLET_PAIRS"},
+    355: {"status": "ENCODED", "module": "constants.py", "desc": "Preverbs never change transitivity", "ref": "PREVERB_NO_TRANSITIVITY_CHANGE"},
+    356:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "No morphological marker for transitivity", "ref": "Ch4 §4.3"},
+    357: {"status": "ENCODED", "module": "constants.py", "desc": "Bare roots requiring obligatory preverb", "ref": "OBLIGATORY_PREVERB_ROOTS"},
+    358: {"status": "THESIS",  "module": "",             "desc": "Clitic position in derived/compound past verbs", "ref": "Ch4 §4.5"},
+    359:  {"status": "DOCBLOCK", "module": "polite_imperative.py",             "desc": "Subjunctive past 3-marker ordering (ب>با>ایە)", "ref": "Ch4 §4.3"},
+    360:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Agentive -ەر transitive-only; dialectal -ی participle", "ref": "Ch4 §4.2"},
+    361:  {"status": "DOCBLOCK", "module": "polite_imperative.py",             "desc": "Imperative -ە absorption with vowel-final roots", "ref": "Ch4 §4.3"},
+    362: {"status": "ENCODED", "module": "constants.py", "desc": "Passive verbs always intransitive (Set 2) clitic", "ref": "PASSIVE_ALWAYS_INTRANSITIVE_CLITIC"},
+    363: {"status": "ENCODED", "module": "constants.py", "desc": "6 verbs with passive from past-root exception", "ref": "PASSIVE_PAST_ROOT_EXCEPTION_VERBS"},
+    364: {"status": "ENCODED", "module": "constants.py", "desc": "Past stem ends in 5 sounds only (ت,د,ا,ی,وو)", "ref": "PAST_STEM_FINAL_SOUNDS"},
+    365:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Transitive past stems cannot form active participle", "ref": "Ch4 §4.3"},
+    366:  {"status": "DOCBLOCK", "module": "polite_imperative.py",             "desc": "Imperative ب-marker omission in compound verbs", "ref": "Ch4 §4.3"},
+    367: {"status": "ENCODED", "module": "constants.py", "desc": "Passive vowel change ە/ی→ا in present roots", "ref": "PASSIVE_VOWEL_CHANGES"},
+    368:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Sound-noun -اندن derivatives are intransitive", "ref": "Ch4 §4.3"},
+    369:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Compound preverbs: 2 morphological classes", "ref": "Ch4 §4.3"},
+    370: {"status": "ENCODED", "module": "constants.py", "desc": "5 present stem consonant mutation patterns", "ref": "PRESENT_STEM_CONSONANT_MUTATIONS"},
+    371:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "Auxiliary هێنان/خستن as syntactic causative", "ref": "Ch4 §4.3"},
+    372: {"status": "ENCODED", "module": "constants.py", "desc": "-ەوە 4 semantic functions", "ref": "EWE_SUFFIX_FUNCTIONS"},
+    373:  {"status": "DOCBLOCK", "module": "polite_imperative.py",             "desc": "Imperative -ڕە suffix (Sulaymaniyah dialect)", "ref": "Ch4 §4.3"},
+    374: {"status": "ENCODED", "module": "constants.py", "desc": "9 agent noun suffixes in 3 transitivity classes", "ref": "AGENT_NOUN_SUFFIX_CLASSES"},
+    375:  {"status": "DOCBLOCK", "module": "constants.py",             "desc": "-ە suffix transitivity-dependent function split", "ref": "Ch4 §4.2"},
+    376: {"status": "ENCODED", "module": "constants.py", "desc": "Instrument noun requires obligatory پێ- prefix", "ref": "INSTRUMENT_NOUN_PREFIX"},
+    377: {"status": "ENCODED", "module": "constants.py", "desc": "15 compound verb light verbs by transitivity", "ref": "COMPOUND_VERB_LIGHT_VERBS"},
+    378: {"status": "ENCODED", "module": "constants.py", "desc": "7 irregular present stem derivation classes", "ref": "PRESENT_STEM_IRREGULAR_CLASSES"},
 }
 
 

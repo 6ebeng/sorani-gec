@@ -150,6 +150,8 @@ class DetectionResult:
 # ---------------------------------------------------------------------------
 # Detector
 # ---------------------------------------------------------------------------
+from .tokenize import sorani_word_tokenize
+
 
 class SoraniDetector:
     """Detect whether text is Sorani Kurdish.
@@ -181,7 +183,7 @@ class SoraniDetector:
                 morphology_score=0.0, rival_language=None,
             )
 
-        words = text.split()
+        words = sorani_word_tokenize(text)
         word_count = len(words)
 
         # --- Signal 1: Script analysis (weight 0.35) ---
@@ -225,7 +227,25 @@ class SoraniDetector:
 
     def filter_corpus(self, sentences: list[str]) -> list[str]:
         """Filter a list of sentences, keeping only Sorani Kurdish ones."""
-        return [s for s in sentences if self.is_sorani(s)]
+        kept = []
+        rejected = 0
+        for s in sentences:
+            result = self.detect(s)
+            if result.is_sorani:
+                kept.append(s)
+            else:
+                rejected += 1
+                if rejected <= 10:
+                    logger.debug(
+                        "Rejected (conf=%.3f, rival=%s): %.60s",
+                        result.confidence, result.rival_language, s,
+                    )
+        if rejected:
+            logger.info(
+                "Sorani filter: kept %d, rejected %d out of %d sentences",
+                len(kept), rejected, len(sentences),
+            )
+        return kept
 
     # -------------------------------------------------------------------
     # Scoring components
@@ -292,6 +312,10 @@ class SoraniDetector:
         """Score based on function word presence.
 
         Returns (score, rival_language_if_detected).
+
+        6B.6: Ambiguous function words (e.g. "من" appearing in both
+        Sorani and Arabic) are now weighted at 0.5x to reduce false
+        positive classification of Arabic text as Sorani.
         """
         if not words:
             return 0.0, None
@@ -299,7 +323,13 @@ class SoraniDetector:
         lower_words = set(w.lower() for w in words)
         word_count = len(words)
 
-        sorani_hits = len(lower_words & _SORANI_FUNCTION_WORDS)
+        # 6B.6: Words shared between Sorani and Arabic/Persian
+        _AMBIGUOUS_WORDS = _SORANI_FUNCTION_WORDS & (_ARABIC_FUNCTION_WORDS | _PERSIAN_FUNCTION_WORDS)
+        # Count unambiguous Sorani hits at full weight, ambiguous at 0.5
+        sorani_unambig = len(lower_words & (_SORANI_FUNCTION_WORDS - _AMBIGUOUS_WORDS))
+        sorani_ambig = len(lower_words & _AMBIGUOUS_WORDS)
+        sorani_hits = sorani_unambig + sorani_ambig * 0.5
+
         kurmanji_hits = len(lower_words & _KURMANJI_FUNCTION_WORDS)
         arabic_hits = len(lower_words & _ARABIC_FUNCTION_WORDS)
         persian_hits = len(lower_words & _PERSIAN_FUNCTION_WORDS)

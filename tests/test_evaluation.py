@@ -6,7 +6,16 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.evaluation.f05_scorer import compute_f05, evaluate_corpus, GECMetrics
+from src.evaluation.f05_scorer import (
+    compute_f05,
+    evaluate_corpus,
+    evaluate_corpus_span,
+    evaluate_corpus_with_sentences,
+    evaluate_sentence,
+    span_based_edits,
+    GECMetrics,
+    SpanEdit,
+)
 from src.evaluation.agreement_accuracy import AgreementChecker, evaluate_agreement_accuracy
 
 
@@ -201,6 +210,136 @@ def test_h2_verb_suffix_not_conflated_with_clitic():
     print(f"  H2: Verb suffixes not conflated with clitics — violations={result.violations}")
 
 
+# ============================================================================
+# Span-based Edit Tests (EVAL-1)
+# ============================================================================
+
+def test_span_based_edits_substitution():
+    """Span-based edits detect word substitution with position."""
+    edits = span_based_edits("من دەچین بۆ بازاڕ", "من دەچم بۆ بازاڕ")
+    assert len(edits) == 1
+    assert edits[0].src_text == "دەچین"
+    assert edits[0].tgt_text == "دەچم"
+    assert edits[0].src_start == 1
+    assert edits[0].edit_type == "morphological"  # shares stem دەچ
+    print(f"  Span edit: {edits[0]}")
+
+
+def test_span_based_edits_insertion():
+    """Span-based edits detect word insertion."""
+    edits = span_based_edits("من دەچم", "من دەچم بۆ بازاڕ")
+    insertions = [e for e in edits if e.edit_type == "insertion"]
+    assert len(insertions) >= 1
+    print(f"  Insertions: {insertions}")
+
+
+def test_span_based_edits_deletion():
+    """Span-based edits detect word deletion."""
+    edits = span_based_edits("من دەچم بۆ بازاڕ", "من دەچم")
+    deletions = [e for e in edits if e.edit_type == "deletion"]
+    assert len(deletions) >= 1
+    print(f"  Deletions: {deletions}")
+
+
+def test_span_based_edits_morphological_classification():
+    """Morphological edits (shared stem >=50%) classified correctly."""
+    edits = span_based_edits("دەچین", "دەچم")
+    assert len(edits) == 1
+    assert edits[0].edit_type == "morphological"
+
+
+def test_span_based_edits_full_substitution():
+    """Unrelated words classified as substitution (not morphological)."""
+    edits = span_based_edits("کتێب", "قوتابخانە")
+    assert len(edits) == 1
+    assert edits[0].edit_type == "substitution"
+
+
+def test_evaluate_corpus_span_basic():
+    """Span-based corpus evaluation returns overall + per-type metrics."""
+    sources =    ["من دەچین بۆ قوتابخانە"]
+    hypotheses = ["من دەچم بۆ قوتابخانە"]
+    references = ["من دەچم بۆ قوتابخانە"]
+
+    overall, per_type = evaluate_corpus_span(sources, hypotheses, references)
+    assert overall.f05 == 1.0
+    assert "morphological" in per_type
+    print(f"  Span eval: {overall}, types: {list(per_type.keys())}")
+
+
+def test_evaluate_corpus_span_empty():
+    """Empty corpus span evaluation."""
+    overall, per_type = evaluate_corpus_span([], [], [])
+    assert overall.f05 == 0.0
+    assert len(per_type) == 0
+
+
+# ============================================================================
+# Sentence-level Metric Tests (EVAL-3)
+# ============================================================================
+
+def test_evaluate_sentence_perfect():
+    """Single sentence, perfect correction."""
+    m = evaluate_sentence(
+        "من دەچین بۆ قوتابخانە",
+        "من دەچم بۆ قوتابخانە",
+        "من دەچم بۆ قوتابخانە",
+    )
+    assert m.f05 == 1.0
+    assert m.tp == 1
+    print(f"  Sentence perfect: {m}")
+
+
+def test_evaluate_sentence_no_correction():
+    """Sentence with no correction (source copied)."""
+    m = evaluate_sentence(
+        "من دەچین بۆ قوتابخانە",
+        "من دەچین بۆ قوتابخانە",
+        "من دەچم بۆ قوتابخانە",
+    )
+    assert m.recall == 0.0
+    assert m.fn >= 1
+    print(f"  Sentence no correction: {m}")
+
+
+def test_evaluate_corpus_with_sentences_basic():
+    """Corpus + sentence-level metrics returned together."""
+    sources =    ["من دەچین", "تۆ دەچم"]
+    hypotheses = ["من دەچم",  "تۆ دەچیت"]
+    references = ["من دەچم",  "تۆ دەچیت"]
+
+    corpus, sentences = evaluate_corpus_with_sentences(
+        sources, hypotheses, references,
+    )
+    assert len(sentences) == 2
+    assert sentences[0].f05 == 1.0
+    assert sentences[1].f05 == 1.0
+    assert corpus.f05 == 1.0
+    print(f"  Corpus+sentences: corpus={corpus}")
+
+
+def test_evaluate_corpus_with_sentences_mixed():
+    """Mixed results: one perfect, one clean (no edits needed)."""
+    sources =    ["من دەچین", "ئەو باشە"]
+    hypotheses = ["من دەچم",  "ئەو باشە"]
+    references = ["من دەچم",  "ئەو باشە"]
+
+    corpus, sentences = evaluate_corpus_with_sentences(
+        sources, hypotheses, references,
+    )
+    assert len(sentences) == 2
+    assert sentences[0].f05 == 1.0
+    assert sentences[1].tp == 0
+    print(f"  Mixed: corpus={corpus}")
+
+
+def test_evaluate_corpus_with_sentences_empty():
+    """Empty corpus."""
+    corpus, sentences = evaluate_corpus_with_sentences([], [], [])
+    assert corpus.f05 == 0.0
+    assert len(sentences) == 0
+
+
 def test_agreement_checker_object_verb_ergative():
     """Object-verb ergative check (Law 2) runs and produces results."""
     checker = AgreementChecker()
@@ -209,8 +348,45 @@ def test_agreement_checker_object_verb_ergative():
     assert result.checks_total == 5, (
         f"Expected 5 checks (including ergative), got {result.checks_total}"
     )
-    print(f"  Ergative check: passed={result.checks_passed}/{result.checks_total}, "
-          f"violations={result.violations}")
+
+
+# ============================================================================
+# Manual F₀.₅ Verification Tests (Fix 5.6)
+# ============================================================================
+
+def test_compute_f05_known_values():
+    """F₀.₅ with P=0.8, R=0.6 should be ≈ 0.7692.
+
+    Manual: F₀.₅ = (1 + 0.25) * (0.8 * 0.6) / (0.25 * 0.8 + 0.6)
+                  = 1.25 * 0.48 / (0.2 + 0.6)
+                  = 0.6 / 0.8
+                  = 0.75
+    """
+    result = compute_f05(0.8, 0.6)
+    assert abs(result - 0.75) < 1e-6, f"Expected ~0.75, got {result}"
+    print(f"  F₀.₅(P=0.8, R=0.6) = {result:.6f}")
+
+
+def test_compute_f05_high_precision_low_recall():
+    """F₀.₅ at P=1.0, R=0.2 — precision dominates.
+
+    Manual: F₀.₅ = 1.25 * (1.0 * 0.2) / (0.25 * 1.0 + 0.2)
+                  = 0.25 / 0.45
+                  ≈ 0.5556
+    """
+    result = compute_f05(1.0, 0.2)
+    assert abs(result - 0.25 / 0.45) < 1e-6, f"Expected ~0.5556, got {result}"
+    print(f"  F₀.₅(P=1.0, R=0.2) = {result:.6f}")
+
+
+def test_compute_f05_balanced():
+    """F₀.₅ at P=0.5, R=0.5 should equal 0.5.
+
+    Manual: F₀.₅ = 1.25 * 0.25 / (0.125 + 0.5) = 0.3125 / 0.625 = 0.5
+    """
+    result = compute_f05(0.5, 0.5)
+    assert abs(result - 0.5) < 1e-6, f"Expected 0.5, got {result}"
+    print(f"  F₀.₅(P=0.5, R=0.5) = {result:.6f}")
 
 
 def test_agreement_checker_five_checks_counted():
@@ -256,6 +432,22 @@ if __name__ == "__main__":
 
     print("\n=== Round 18 High Gap Fix Tests — H2 (verb suffix not clitic) ===")
     test_h2_verb_suffix_not_conflated_with_clitic()
+
+    print("\n=== Span-based Edit Tests (EVAL-1) ===")
+    test_span_based_edits_substitution()
+    test_span_based_edits_insertion()
+    test_span_based_edits_deletion()
+    test_span_based_edits_morphological_classification()
+    test_span_based_edits_full_substitution()
+    test_evaluate_corpus_span_basic()
+    test_evaluate_corpus_span_empty()
+
+    print("\n=== Sentence-level Metric Tests (EVAL-3) ===")
+    test_evaluate_sentence_perfect()
+    test_evaluate_sentence_no_correction()
+    test_evaluate_corpus_with_sentences_basic()
+    test_evaluate_corpus_with_sentences_mixed()
+    test_evaluate_corpus_with_sentences_empty()
 
     print("\n=== Object-Verb Ergative & Five-Check Tests ===")
     test_agreement_checker_object_verb_ergative()

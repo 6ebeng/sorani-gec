@@ -74,15 +74,23 @@ def load_test_data(test_path: str) -> tuple[list[str], list[str]]:
 
 
 def evaluate_model(model, sources: list[str], references: list[str],
-                   batch_size: int = 16) -> dict:
+                   batch_size: int = 16,
+                   analyzer=None, feature_extractor=None) -> dict:
     """Run F0.5 and agreement accuracy on model outputs."""
     import torch
+    from src.model.morphology_aware import MorphologyAwareGEC
+
+    is_morphaware = isinstance(model, MorphologyAwareGEC) and analyzer and feature_extractor
     model.eval()
     hypotheses = []
     with torch.no_grad():
         for i in range(0, len(sources), batch_size):
             batch = sources[i:i + batch_size]
-            if hasattr(model, "correct_batch") and callable(model.correct_batch):
+            if is_morphaware:
+                hypotheses.extend(
+                    model.correct_batch(batch, analyzer, feature_extractor)
+                )
+            elif hasattr(model, "correct_batch") and callable(model.correct_batch):
                 hypotheses.extend(model.correct_batch(batch))
             else:
                 for src in batch:
@@ -141,15 +149,18 @@ def train_model(config: dict, use_morphology: bool,
     if use_morphology:
         from src.model.morphology_aware import MorphologyAwareGEC
         from src.morphology.analyzer import MorphologicalAnalyzer
+        from src.morphology.features import FeatureExtractor
 
         analyzer = MorphologicalAnalyzer(use_klpt=False)
         feature_vocab = analyzer.build_feature_vocabulary()
+        feature_extractor = FeatureExtractor(analyzer=analyzer)
 
         model = MorphologyAwareGEC(
             model_name=backbone,
             feature_vocab_size=len(feature_vocab),
             max_length=max_length,
         )
+        model.set_training_tools(analyzer, feature_extractor)
 
         # If feature_subset is provided, zero out features not in subset
         if feature_subset:
@@ -245,7 +256,11 @@ def run_individual_features(config: dict, sources: list[str],
         exp_dir = output_dir / "individual_features" / feature
         model = train_model(config, use_morphology=True,
                             feature_subset=[feature], output_dir=exp_dir)
-        results = evaluate_model(model, sources, references)
+        results = evaluate_model(
+            model, sources, references,
+            analyzer=getattr(model, '_training_analyzer', None),
+            feature_extractor=getattr(model, '_training_feature_extractor', None),
+        )
         results["experiment"] = "individual_features"
         results["feature"] = feature
 
@@ -272,7 +287,11 @@ def run_data_size_variation(config: dict, sources: list[str],
         exp_dir = output_dir / "data_size_variation" / f"{size}"
         model = train_model(config, use_morphology=True,
                             data_size=size, output_dir=exp_dir)
-        results = evaluate_model(model, sources, references)
+        results = evaluate_model(
+            model, sources, references,
+            analyzer=getattr(model, '_training_analyzer', None),
+            feature_extractor=getattr(model, '_training_feature_extractor', None),
+        )
         results["experiment"] = "data_size_variation"
         results["data_size"] = size
 

@@ -21,7 +21,12 @@ import re
 from typing import Optional
 
 from .base import BaseErrorGenerator
-from ..morphology.constants import QUANTIFIER_FORMS
+from ..data.tokenize import sorani_word_tokenize
+from ..morphology.constants import (
+    INDEFINITE_APPROXIMATE_NUMERIC,
+    NOUN_SINGULAR_AFTER_CARDINAL,
+    QUANTIFIER_FORMS,
+)
 
 # Present-tense plural verb endings that can be flipped to singular
 # Source: Amin (2016), pp. 17-18
@@ -50,6 +55,12 @@ class QuantifierAgreementErrorGenerator(BaseErrorGenerator):
 
     Correct:  زۆر کەس هاتن  ('many people came')
     Error:    *زۆر کەس هات  (singular verb with quantifier subject)
+
+    Additional rules applied:
+      F#327 (NOUN_SINGULAR_AFTER_CARDINAL): After cardinal numbers
+        the noun stays morphologically singular (دوو کوڕ not *دوو کوڕان).
+      F#330 (INDEFINITE_APPROXIMATE_NUMERIC): Approximate numerals like
+        چەند ('some/several') also trigger plural verb agreement.
     """
 
     @property
@@ -65,7 +76,7 @@ class QuantifierAgreementErrorGenerator(BaseErrorGenerator):
             return positions
 
         # Find words after the quantifier (potential verb targets)
-        words = sentence.split()
+        words = sorani_word_tokenize(sentence)
         quant_indices = []
         for i, w in enumerate(words):
             if w in QUANTIFIER_FORMS:
@@ -74,13 +85,10 @@ class QuantifierAgreementErrorGenerator(BaseErrorGenerator):
         if not quant_indices:
             return positions
 
-        # Build word-to-offset mapping using cursor tracking
-        word_offsets: list[int] = []
-        cursor = 0
-        for w in words:
-            idx = sentence.find(w, cursor)
-            word_offsets.append(idx if idx >= 0 else cursor)
-            cursor = (idx if idx >= 0 else cursor) + len(w)
+        # Build word-to-offset mapping using regex for robustness
+        word_offsets: list[int] = [
+            m.start() for m in re.finditer(r'\S+', sentence)
+        ]
 
         # Look for plural verbs in the sentence (after the quantifier)
         for qi in quant_indices:

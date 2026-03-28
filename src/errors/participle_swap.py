@@ -23,15 +23,33 @@ class ParticipleSwapErrorGenerator(BaseErrorGenerator):
     """
     
     AGENT_TO_PATIENT = {
-        "نووسەر": "نووسراو",
-        "بکەر": "کراو",
-        "کوژەر": "کوژراو",
-        "سووتێنەر": "سووتێنراو",
-        "سووتێنەرە": "سوتاوە",
-        "بیسەر": "بیستراو",
-        "بینەر": "بینراو",
-        "خوێنەر": "خوێندراو",
-        "تێکدەر": "تێکدراو"
+        # Core agent → patient pairs (Finding #159)
+        "نووسەر": "نووسراو",       # writer → written
+        "بکەر": "کراو",            # doer → done
+        "کوژەر": "کوژراو",         # killer → killed
+        "سووتێنەر": "سووتێنراو",   # burner → burnt
+        "سووتێنەرە": "سوتاوە",     # burner (alt) → burnt
+        "بیسەر": "بیستراو",        # listener → heard
+        "بینەر": "بینراو",         # seer → seen
+        "خوێنەر": "خوێندراو",     # reader → read
+        "تێکدەر": "تێکدراو",      # mixer → mixed
+        # Expanded pairs from Kurdish grammar resources
+        "فرۆشەر": "فرۆشراو",      # seller → sold
+        "کڕیار": "کڕدراو",        # buyer → bought
+        "دروستکەر": "دروستکراو",  # maker → made
+        "چاپکەر": "چاپکراو",     # printer → printed
+        "داهێنەر": "داهێنراو",     # inventor → invented
+        "دابەشکەر": "دابەشکراو",  # distributor → distributed
+        "پەروەردەکەر": "پەروەردەکراو",  # educator → educated
+        "ناردەر": "ناردراو",       # sender → sent
+        "وەرگێڕەر": "وەرگێڕدراو", # translator → translated
+        "ئامادەکەر": "ئامادەکراو", # preparer → prepared
+        "بەرهەمهێنەر": "بەرهەمهێنراو",  # producer → produced
+        "ڕێکخەر": "ڕێکخراو",      # organizer → organized
+        "داواکەر": "داواکراو",     # requester → requested
+        "پێشکەشکەر": "پێشکەشکراو", # presenter → presented
+        "تاقیکەر": "تاقیکراو",    # tester → tested
+        "ئاڵوگۆڕکەر": "ئاڵوگۆڕکراو", # exchanger → exchanged
     }
     
     # Reverse mapping

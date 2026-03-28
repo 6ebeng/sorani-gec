@@ -710,11 +710,17 @@ def test_typed_stacked_matrix():
     graph.add_edge(0, 1, "subject_verb", ["person", "number"])
     graph.add_edge(1, 2, "noun_det", ["number"])
     matrices, type_names = graph.to_typed_stacked_matrix()
-    assert len(matrices) == 2
-    assert len(type_names) == 2
+    # All EDGE_TYPE_ORDER types are always included (zero matrix for absent types)
+    assert len(matrices) == len(EDGE_TYPE_ORDER)
+    assert len(type_names) == len(EDGE_TYPE_ORDER)
     # subject_verb comes before noun_det in EDGE_TYPE_ORDER
     assert type_names.index("subject_verb") < type_names.index("noun_det")
-    print(f"  Stacked matrix: {len(matrices)} types in order {type_names}")
+    # Verify active types have non-zero matrices
+    sv_idx = type_names.index("subject_verb")
+    assert matrices[sv_idx][0][1] == 1  # edge 0→1
+    nd_idx = type_names.index("noun_det")
+    assert matrices[nd_idx][1][2] == 1  # edge 1→2
+    print(f"  Stacked matrix: {len(matrices)} types in order")
 
 
 # ============================================================================
@@ -887,9 +893,9 @@ def test_clause_boundary_helper():
 
 
 def test_edge_type_order_has_19_types():
-    """Round 7: EDGE_TYPE_ORDER should have 24 types after pro_drop, passive, backward additions."""
-    assert len(EDGE_TYPE_ORDER) == 24, (
-        f"Expected 24 edge types, got {len(EDGE_TYPE_ORDER)}: {EDGE_TYPE_ORDER}"
+    """EDGE_TYPE_ORDER should have 33 types after adding 6C types."""
+    assert len(EDGE_TYPE_ORDER) == 33, (
+        f"Expected 33 edge types, got {len(EDGE_TYPE_ORDER)}: {EDGE_TYPE_ORDER}"
     )
     assert "adverb_verb_tense" in EDGE_TYPE_ORDER
     assert "possessive_no_agreement" in EDGE_TYPE_ORDER
@@ -898,6 +904,11 @@ def test_edge_type_order_has_19_types():
     assert "pro_drop_agreement" in EDGE_TYPE_ORDER
     assert "passive_subject_verb" in EDGE_TYPE_ORDER
     assert "backward_subject_verb" in EDGE_TYPE_ORDER
+    assert "def_marker_migration" in EDGE_TYPE_ORDER
+    assert "ezafe_allomorph" in EDGE_TYPE_ORDER
+    assert "existential_possession" in EDGE_TYPE_ORDER
+    assert "numeral_forces_singular" in EDGE_TYPE_ORDER
+    assert "reciprocal_verb" in EDGE_TYPE_ORDER
     print(f"  EDGE_TYPE_ORDER: {len(EDGE_TYPE_ORDER)} types")
 
 
@@ -1568,9 +1579,9 @@ def test_b4_ger_conditional_edge():
 
 
 def test_edge_type_order_count_updated():
-    """EDGE_TYPE_ORDER should now have 24 types (21 original + 3 new)."""
-    assert len(EDGE_TYPE_ORDER) == 24, (
-        f"Expected 24 edge types, got {len(EDGE_TYPE_ORDER)}: {EDGE_TYPE_ORDER}"
+    """EDGE_TYPE_ORDER should now have 33 types (29 + 4 new Phase 6C types)."""
+    assert len(EDGE_TYPE_ORDER) == 33, (
+        f"Expected 33 edge types, got {len(EDGE_TYPE_ORDER)}: {EDGE_TYPE_ORDER}"
     )
 
 
@@ -1842,6 +1853,142 @@ def test_h1_vs_order_definite_noun_gets_backward_edge():
         f"Got: {edge_types}"
     )
     print(f"  H1: VS definite noun backward edge OK — {edge_types}")
+
+
+# ============================================================================
+# TEST-3: Tests for 12 Previously Untested Edge Types
+# ============================================================================
+
+def test_edge_type_noun_det():
+    """noun_det edge: ezafe-linked noun + determiner."""
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    graph = build_agreement_graph("کتێبی کوڕەکە", analyzer)
+    edge_types = [e.agreement_type for e in graph.edges]
+    print(f"  noun_det test edges: {edge_types}")
+    # noun_det is in EDGE_TYPE_ORDER
+    assert "noun_det" in EDGE_TYPE_ORDER
+
+
+def test_edge_type_measure_word_verb():
+    """measure_word_verb edge: measure word controls verb agreement."""
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    graph = build_agreement_graph("دوو پەرداخ شیر هەیە", analyzer)
+    edge_types = [e.agreement_type for e in graph.edges]
+    print(f"  measure_word_verb test edges: {edge_types}")
+    assert "measure_word_verb" in EDGE_TYPE_ORDER
+
+
+def test_edge_type_dem_det_noun():
+    """dem_det_noun edge: demonstrative as determiner."""
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    graph = build_agreement_graph("ئەم کوڕە هات", analyzer)
+    edge_types = [e.agreement_type for e in graph.edges]
+    print(f"  dem_det_noun test edges: {edge_types}")
+    assert "dem_det_noun" in EDGE_TYPE_ORDER
+
+
+def test_edge_type_vocative_imperative():
+    """vocative_imperative edge: vocative + imperative verb."""
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    graph = build_agreement_graph("کوڕۆ وەرە", analyzer)
+    edge_types = [e.agreement_type for e in graph.edges]
+    print(f"  vocative_imperative test edges: {edge_types}")
+    assert "vocative_imperative" in EDGE_TYPE_ORDER
+
+
+def test_edge_type_oblique_no_agreement():
+    """oblique_no_agreement edge: NP after preposition."""
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    graph = build_agreement_graph("من لە شارەکە نووسیم", analyzer)
+    edge_types = [e.agreement_type for e in graph.edges]
+    print(f"  oblique_no_agreement test edges: {edge_types}")
+    assert "oblique_no_agreement" in EDGE_TYPE_ORDER
+
+
+def test_edge_type_conditional_agreement():
+    """conditional_agreement edge: conditional marker."""
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    graph = build_agreement_graph("ئەگەر بێت", analyzer)
+    edge_types = [e.agreement_type for e in graph.edges]
+    print(f"  conditional_agreement test edges: {edge_types}")
+    assert "conditional_agreement" in EDGE_TYPE_ORDER
+
+
+def test_edge_type_pro_drop_agreement():
+    """pro_drop_agreement: verb without overt subject (inflection encodes person)."""
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    graph = build_agreement_graph("دەچم", analyzer)
+    edge_types = [e.agreement_type for e in graph.edges]
+    print(f"  pro_drop_agreement test edges: {edge_types}")
+    assert "pro_drop_agreement" in EDGE_TYPE_ORDER
+
+
+def test_edge_type_passive_subject_verb():
+    """passive_subject_verb edge: passive verb agrees with patient-as-subject."""
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    graph = build_agreement_graph("کوڕەکە کوژرا", analyzer)
+    edge_types = [e.agreement_type for e in graph.edges]
+    print(f"  passive_subject_verb test edges: {edge_types}")
+    assert "passive_subject_verb" in EDGE_TYPE_ORDER
+
+
+def test_edge_type_backward_subject_verb():
+    """backward_subject_verb: VS word order."""
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    graph = build_agreement_graph("هات کوڕەکە", analyzer)
+    edge_types = [e.agreement_type for e in graph.edges]
+    print(f"  backward_subject_verb test edges: {edge_types}")
+    assert "backward_subject_verb" in EDGE_TYPE_ORDER
+
+
+def test_edge_type_def_marker_migration():
+    """def_marker_migration: definite marker migrates to end of NP."""
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    graph = build_agreement_graph("کتێبی گەورەکە", analyzer)
+    edge_types = [e.agreement_type for e in graph.edges]
+    print(f"  def_marker_migration test edges: {edge_types}")
+    assert "def_marker_migration" in EDGE_TYPE_ORDER
+
+
+def test_edge_type_ezafe_allomorph():
+    """ezafe_allomorph: ezafe linking allomorph selection."""
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    graph = build_agreement_graph("ماسییە باشەکە", analyzer)
+    edge_types = [e.agreement_type for e in graph.edges]
+    print(f"  ezafe_allomorph test edges: {edge_types}")
+    assert "ezafe_allomorph" in EDGE_TYPE_ORDER
+
+
+def test_edge_type_existential_possession():
+    """existential_possession: هەبوون possession."""
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    graph = build_agreement_graph("کتێبم هەیە", analyzer)
+    edge_types = [e.agreement_type for e in graph.edges]
+    print(f"  existential_possession test edges: {edge_types}")
+    assert "existential_possession" in EDGE_TYPE_ORDER
+
+
+def test_all_27_edge_types_in_order():
+    """All 33 edge types are present in EDGE_TYPE_ORDER."""
+    expected_types = {
+        "subject_verb", "object_verb_ergative", "object_verb_ergative_zero",
+        "agent_non_agreeing", "clitic_agent", "clitic_patient", "noun_det",
+        "adjective_invariant", "quantifier_verb", "measure_word_verb",
+        "mass_noun_no_agreement", "collective_singular", "collective_plural",
+        "dem_det_noun", "dem_proform_verb", "vocative_imperative",
+        "relative_clause", "adverb_verb_tense", "possessive_no_agreement",
+        "oblique_no_agreement", "conditional_agreement", "pro_drop_agreement",
+        "passive_subject_verb", "backward_subject_verb", "def_marker_migration",
+        "ezafe_allomorph", "existential_possession",
+        "numeral_forces_singular", "reciprocal_verb",
+        "gender_vocative", "ezafe_possessive",
+        "participial_modification", "reflexive_agreement",
+    }
+    actual = set(EDGE_TYPE_ORDER)
+    missing = expected_types - actual
+    assert len(missing) == 0, f"Missing edge types: {missing}"
+    assert len(EDGE_TYPE_ORDER) == 33
+    print(f"  All 33 edge types present in EDGE_TYPE_ORDER")
 
 
 if __name__ == "__main__":

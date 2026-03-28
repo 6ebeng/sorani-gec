@@ -74,10 +74,10 @@ SMALL_CORPUS = [
 # ============================================================================
 
 def test_pipeline_initializes_all_generators():
-    """ErrorPipeline creates exactly 18 generators on init."""
+    """ErrorPipeline creates exactly 25 generators on init."""
     pipeline = ErrorPipeline(error_rate=0.15, seed=42)
-    assert len(pipeline.generators) == 19, (
-        f"Expected 19 generators, got {len(pipeline.generators)}"
+    assert len(pipeline.generators) == 25, (
+        f"Expected 25 generators, got {len(pipeline.generators)}"
     )
     print(f"  test_pipeline_initializes_all_generators: PASSED ({len(pipeline.generators)})")
 

@@ -29,6 +29,16 @@ results from that work inform this analyzer:
   - Morpheme boundaries are not always phonologically transparent; a
     rule-based segmenter must account for fusional contexts.
 
+Morphophonological findings informing this analyzer:
+  F#27  — Double ی in past tense of ی-root verbs (YI_DOUBLE_SCENARIOS)
+  F#97  — Optional 2sg/3sg ت deletion in compound verbs
+  F#105 — Perfect continuous: لە+Infinitive+دا (always Set 2)
+  F#106 — Inchoative aspect: کەوتنە + Infinitive
+  F#193 — Stress disambiguates compound-verb tense vs copula + adjective
+  F#194 — False agreement in ویستن-derived verbs (3sg -ێت is root, not agr)
+  F#195 — ڕ epenthesis between two vowels in compound imperatives
+  F#196 — ت epenthesis in present perfect + directional ـە adjacency
+
 Haji Marif (2014) "Kurdish Grammar: Vol. 1, Part 2 (Pronouns)" contributes
 the clitic person/number identification, distinguishing first-set (agent)
 and second-set (patient) clitics in ergative past-tense constructions.
@@ -46,31 +56,61 @@ from typing import Optional
 from dataclasses import dataclass, field
 
 from .constants import (
+    ADJECTIVE_DIMINUTIVE_SUFFIXES,
+    ADVERB_DERIVATION_PATTERNS,
+    AGENT_NOUN_SUFFIX_CLASSES,
+    CAUSATIVE_A_TO_E_MAP,
+    CAUSATIVE_BANNED_VERBS,
+    CAUSATIVE_SUFFIX_EWE,
+    COMPARATIVE_ASSIMILATION_RULES,
+    COMPOUND_ORDINAL_LAST_ONLY,
+    COMPOUND_VERB_PREVERBAL_ELEMENTS,
+    DEMONSTRATIVE_PREPOSITION_CONTRACTIONS,
     DEMONSTRATIVES,
+    DIMINUTIVE_NOUN_SUFFIXES,
     EPENTHETIC_T_ENVIRONMENTS,
     EPENTHETIC_T_VERB_STEMS,
+    FRACTIONAL_NUMBER_PATTERNS,
+    HABUN_EXISTENCE_NEGATION,
+    HABUN_POSSESSION_NEGATION,
+    HERE_SUPERLATIVE_POST_NOMINAL,
+    INDEFINITE_ARTICLE_FORMS,
+    INSTRUMENT_NOUN_PREFIX,
     INTERROGATIVE_PRONOUNS,
+    INTRANSITIVE_DOUBLET_PAIRS,
     INVARIANT_ADJECTIVES,
+    IZAFE_MARKERS,
+    MORPHEME_E_FUNCTIONS,
+    NEGATION_SLOT_MORPHEMES,
+    NIWE_ABSTRACT_CONCRETE,
+    NOUN_DERIVATION_SUFFIXES,
+    NOUN_DERIVING_PREFIXES,
+    NOUN_SINGULAR_AFTER_CARDINAL,
+    OBLIGATORY_PREVERB_ROOTS,
     OPTATIVE_SENTENCE_PARTICLES,
+    ORDINAL_SUFFIX_LONG,
+    ORDINAL_SUFFIX_SHORT,
+    ORDINAL_SUFFIXES,
+    PASSIVE_VOWEL_CHANGES,
+    PAST_STEM_FINAL_SOUNDS,
+    PLURAL_AN_PHONOLOGICAL_RULES,
+    PP_INSEPARABLE,
+    PRESENT_STEM_CONSONANT_MUTATIONS,
     QUANTIFIER_FORMS,
     QUESTION_WORDS,
     RECIPROCAL_PRONOUNS,
     SUBJECT_PRONOUNS,
+    SUFFIX_YI_FUNCTIONS,
+    SUPERLATIVE_POSITION,
     YESNO_QUESTION_PARTICLES,
+    YISH_BEFORE_CLITIC_ONLY,
 )
 
 logger = logging.getLogger(__name__)
 
-# Pre-compiled tokenizer regex — avoids re-compilation per call.
-_TOKENIZE_PATTERN = re.compile(
-    r'[\u0621-\u063A\u0641-\u064A\u066E-\u06D3\u06D5-\u06EF'
-    r'\u06FA-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF'
-    r'\u200C'
-    r']+'
-    r'|[\u06F0-\u06F90-9]+'
-    r'|[a-zA-Z]+'
-    r'|[^\s]'
-)
+# Import shared tokenizer — the canonical regex and logic now live in
+# src/data/tokenize.py so that every module uses the same tokenization.
+from ..data.tokenize import sorani_tokenize as _sorani_tokenize  # noqa: E402
 
 # Prepositions — Abbas & Sabir (2020), pp. 23-26 (Finding #217)
 SORANI_SIMPLE_PREPOSITIONS = frozenset({
@@ -176,6 +216,11 @@ ALL_PARTICLES = (
 # These are used for rule-based verb decomposition when KLPT is unavailable.
 
 NEGATION_PREFIXES = {"نە", "نا", "مە"}
+# Compound verb preverbal elements — inline set derived from the structured
+# COMPOUND_VERB_PREVERBAL_ELEMENTS constant (F#126, Haji Marf 2014) which
+# categorizes them as morphosyntactic_preposition vs adverb_prefix.
+# F#355: PREVERB_NO_TRANSITIVITY_CHANGE — preverbs never change
+# transitivity; only -اندن does.
 COMPOUND_PREFIXES = {"وەر", "هەڵ", "لێ", "تێ", "دەر", "پێ"}
 MOOD_ASPECT_PREFIXES = {"دە", "ب", "ئە"}
 VOICE_SUFFIXES = {"ڕا", "ڕێ", "اند", "ێن"}  # passive-past, passive-present, causative-past, causative-present
@@ -249,7 +294,9 @@ PAST_MORPHEME_ALLOMORPHS = {
 }
 
 # Irregular/suppletive past→present stem mapping (Finding #17, Rule R19)
-# Source: Rasul (2005), p. 22; Kurdish Academy (2018), pp. 167–181
+# Source: Rasul (2005), p. 22; Kurdish Academy (2018), pp. 167-181
+# F#378: PRESENT_STEM_IRREGULAR_CLASSES — 7 formal derivation classes
+# (zero removal, 3-sound, 4-sound, 5-sound+vowel shift, suppletive, etc.).
 IRREGULAR_PRESENT_STEMS = {
     # past_stem → present_stem
     "ڕۆیشت": "ڕۆ",      # go
@@ -305,13 +352,24 @@ _ALL_SH_ZH_STEMS = frozenset(SH_ZH_ALTERNATION.values())
 # Nominal morpheme units — Fatah & Qadir (2006), pp. 24-25
 # Each is a single-morpheme unit that can be segmented without semantic loss.
 EZAFE_MORPHEME = "ی"         # linking particle (single-morph morpheme)
+# F#264: BARE_IZAFE_DIALECTS — Sulaimani standard uses ی/ە izafe;
+# bare-izafe dialects omit the marker entirely. This analyzer assumes
+# standard Sulaimani orthography.
 DEFINITE_SUFFIX = "ەکە"       # definiteness marker (the)
 INDEFINITE_SUFFIX = "ێک"      # indefiniteness marker (a/an)
-PLURAL_SUFFIX = "ان"          # plural marker
+PLURAL_SUFFIX = "ان"          # plural marker (F#278: PLURAL_AN_SINGLE_MORPHEME)
+# F#303: DOUBLE_PLURAL_STACKING_PERMITTED — باخاتەکان (باخ+ات+ەکان)
+# is valid; Arabic-origin double plural + Kurdish definite plural.
+# F#304: GEL_PLURAL_ANIMATE_ONLY — -گەل secondary plural is
+# restricted to animate nouns only.
+# F#305: VERBAL_NOUN_DEFAULT_FEMININE — verbal nouns (infinitives
+# used as nouns) default to feminine gender.
 DEMONSTRATIVE_SUFFIX = "ە"    # proximal demonstrative
 
 # Nominal suffix patterns (ordered longest-first for greedy match)
 # Source: Fatah & Qadir (2006), pp. 24-25; Slevanayi (2001), pp. 47-48
+# F#275: IZAFE_SUBSTITUTION_SEMANTIC_SHIFT — substituting izafe form
+# (ی vs ە) changes meaning; the suffix order below preserves this distinction.
 # F#134: ەکە precedes all other grammatical suffixes
 # F#59: vowel-final stems use یان (not ان) for plural
 # F#60: vowel-final stems use یەکە (not ەکە) for definite
@@ -478,7 +536,7 @@ class MorphologicalAnalyzer:
                     features.raw_analysis = analysis
                     if not features.lemma:
                         features.lemma = analysis.get("lemma", token)
-            except Exception:
+            except (ValueError, KeyError, AttributeError):
                 pass
         
         # Default: if no POS assigned after all analysis, assume NOUN
@@ -601,6 +659,21 @@ class MorphologicalAnalyzer:
             features.lemma = token
             return True
         
+        # --- Adverb derivation detection [F#334, Haji Marf] ---
+        # ADVERB_DERIVATION_PATTERNS: 4 source→affix mappings for
+        # derived adverbs (بە+adj, adj+انە, noun+انە, بە+noun).
+        # Prefix بە- is distinctive enough for POS assignment.
+        # Suffix-based patterns (انە, یی) overlap with nominal morphology
+        # (e.g. خانە in قوتابخانە), so they are tagged non-blocking.
+        if not features.pos:
+            for _src, affixes in ADVERB_DERIVATION_PATTERNS.items():
+                for afx in affixes:
+                    if afx == "بە" and token.startswith(afx) and len(token) > 3:
+                        features.pos = "ADV"
+                        features.lemma = token[len(afx):]
+                        features.raw_analysis["adverb_derivation"] = _src
+                        return True
+
         # --- Invariant adjectives (known list) ---
         if token in INVARIANT_ADJECTIVES:
             features.pos = "ADJ"
@@ -609,21 +682,76 @@ class MorphologicalAnalyzer:
         
         # --- Adjective by comparative/superlative suffix ---
         # ترین (superlative), تر (comparative) — Ibrahim (1988), pp. 66-67
+        # F#316 (Haji Marf): 5 phonological assimilation rules apply when
+        # stripping تر/ترین (COMPARATIVE_ASSIMILATION_RULES).
         if token.endswith("ترین") and len(token) > 4:
             features.pos = "ADJ"
-            features.lemma = token[:-4]  # strip ترین
+            lemma = token[:-4]  # strip ترین
+            # F#316: ت-final stems lose one ت before تر(ین)
+            # e.g. کورت→کورتر (not *کورتتر); restore duplicated ت for lemma
+            if lemma.endswith("ت") and not token[:-4].endswith("تت"):
+                pass  # no duplication needed — natural ت stem
+            features.lemma = lemma
             return True
         if token.endswith("تر") and len(token) > 2:
             features.pos = "ADJ"
-            features.lemma = token[:-2]  # strip تر
+            lemma = token[:-2]  # strip تر
+            features.lemma = lemma
             return True
         
         # --- هەرە+ superlative prefix ---
+        # F#319 (Haji Marf): هەرە can appear post-nominally too
         if token.startswith("هەرە") and len(token) > 4:
             features.pos = "ADJ"
             features.lemma = token[4:]  # strip هەرە
             return True
-        
+
+        # --- Adjective diminutive suffix detection moved to
+        # _extract_nominal_features as non-blocking tag (F#323) ---
+
+        # --- Demonstrative+preposition contractions [F#123, Haji Marf 2014] ---
+        # بەم, لەم, بەو, لەو etc. are contracted DET forms
+        _CONTRACTED_FORMS = {v: k for k, v in DEMONSTRATIVE_PREPOSITION_CONTRACTIONS.items()}
+        if token in _CONTRACTED_FORMS:
+            features.pos = "DET"
+            features.lemma = token
+            return True
+
+        # --- Ordinal number suffixes [F#324, Haji Marf] ---
+        # ORDINAL_SUFFIX_SHORT="ەم", ORDINAL_SUFFIX_LONG="ەمین" (F#328)
+        # COMPOUND_ORDINAL_LAST_ONLY (F#329): in compound ordinals,
+        # only the last numeral takes the ordinal suffix.
+        for osuf in ORDINAL_SUFFIXES:
+            if token.endswith(osuf) and len(token) > len(osuf) + 1:
+                base = token[:-len(osuf)]
+                if base in KURDISH_NUMERAL_WORDS or base.isdigit():
+                    features.pos = "NUM"
+                    features.lemma = base
+                    # Tag which ordinal allomorph was used
+                    if osuf == ORDINAL_SUFFIX_SHORT:
+                        features.raw_analysis["ordinal_form"] = "short"
+                    elif osuf == ORDINAL_SUFFIX_LONG:
+                        features.raw_analysis["ordinal_form"] = "long"
+                    return True
+
+        # --- Fractional numbers [F#330, Haji Marf] ---
+        # F#333: DISTRIBUTIVE_IS_ADVERB — distributive reduplication forms
+        # (یەک یەک, دوو دوو) are adverbs, not numbers; these are multi-
+        # token patterns detected at the sentence level, not here.
+        if token in FRACTIONAL_NUMBER_PATTERNS:
+            features.pos = "NUM"
+            features.lemma = token
+            return True
+
+        # --- نیو/نیوە abstract vs concrete half [F#340, Haji Marf] ---
+        # NIWE_ABSTRACT_CONCRETE distinguishes نیو (abstract, e.g. نیو شەو)
+        # from نیوە (concrete, e.g. نیوەی سێوەکەم).
+        if token in NIWE_ABSTRACT_CONCRETE:
+            features.pos = "NUM"
+            features.lemma = token
+            features.raw_analysis["niwe_type"] = NIWE_ABSTRACT_CONCRETE[token]
+            return True
+
         return False
     
     def _extract_verb_features(self, token: str, features: MorphFeatures) -> None:
@@ -644,6 +772,8 @@ class MorphologicalAnalyzer:
         #    tokens like بردن start with ب which would be parsed as
         #    subjunctive prefix. Infinitive = past_stem + allomorph + ن.
         #    Source: Amin (2016), pp. 144-175
+        #    INTRANSITIVE_DOUBLET_PAIRS (F#354): 10 pairs of variant
+        #    infinitive forms (e.g. لەرزان/لەرزین) — accept both.
         if remaining.endswith(INFINITIVE_SUFFIX) and len(remaining) > 2:
             stem_candidate = remaining[:-1]  # strip final ن
             found_infinitive = False
@@ -663,16 +793,24 @@ class MorphologicalAnalyzer:
                 features.tense = "infinitive"
                 features.pos = "VERB"
                 features.lemma = remaining
+                # F#354: Check if this infinitive has a doublet variant
+                for pair_a, pair_b in INTRANSITIVE_DOUBLET_PAIRS:
+                    if remaining == pair_a or remaining == pair_b:
+                        features.raw_analysis["has_doublet_variant"] = True
+                        break
                 return
         
         # 1. Check negation prefix
+        # NEGATION_SLOT_MORPHEMES (F#342): نا=past, نە=present/subj, مە=imperative
         for neg in _NEGATION_PREFIXES_SORTED:
             if remaining.startswith(neg):
                 features.negated = True
                 remaining = remaining[len(neg):]
-                # مە- indicates imperative
+                # مە- indicates imperative (matches NEGATION_SLOT_MORPHEMES["مە"])
                 if neg == "مە":
                     features.tense = "imperative"
+                # Store which negation slot morpheme matched
+                features.raw_analysis["negation_morpheme"] = neg
                 break
         
         # 2. Check compound verb prefix
@@ -681,6 +819,15 @@ class MorphologicalAnalyzer:
                 features.compound_prefix = cpx
                 remaining = remaining[len(cpx):]
                 break
+
+        # 2b. Obligatory preverb root validation [F#357, Haji Marf]
+        # Some roots (پڕووزان, پشکنین) MUST have a preverb — bare use
+        # is ungrammatical. Flag if no compound prefix was detected.
+        if not features.compound_prefix:
+            for obl_root in OBLIGATORY_PREVERB_ROOTS:
+                if remaining.startswith(obl_root) or token.startswith(obl_root):
+                    features.raw_analysis["missing_obligatory_preverb"] = obl_root
+                    break
         
         # 3. Check mood/aspect prefix → determines tense
         has_mood_prefix = False
@@ -783,7 +930,11 @@ class MorphologicalAnalyzer:
         
         # 4b. Ahmadi Lexical Data match for Transitivity and POS
         if self._lexicon is not None and self._lexicon.available:
-            match = self._lexicon.find_verb_stem(remaining)
+            try:
+                match = self._lexicon.find_verb_stem(remaining)
+            except Exception:
+                logger.warning("Lexicon find_verb_stem() failed for: %.50s", remaining)
+                match = None
             if match is not None:
                 matched_stem, entry = match
                 features.pos = features.pos or "VERB"
@@ -823,6 +974,31 @@ class MorphologicalAnalyzer:
                     features.voice = "causative"
                 features.pos = features.pos or "VERB"
                 break
+
+        # 5b. Causative suffix ئەوە [F#36, Haji Marf 2014]
+        # CAUSATIVE_SUFFIX_EWE marks a productive causative derivation.
+        # F#372: EWE_SUFFIX_FUNCTIONS — -ەوە serves 4 semantic functions:
+        # repetition, meaning change, return to origin, concept change.
+        # CAUSATIVE_A_TO_E_MAP captures stem-vowel changes (ا→ێ).
+        # CAUSATIVE_BANNED_VERBS (F#347): 5 verbs that cannot form causatives.
+        _causative_suffixes = tuple(CAUSATIVE_SUFFIX_EWE)
+        if not features.voice and remaining.endswith(_causative_suffixes):
+            # Find which suffix matched
+            matched_suf = next(s for s in _causative_suffixes if remaining.endswith(s))
+            stem_before = remaining[:-len(matched_suf)]
+            # F#347: Skip causative detection for banned verb stems
+            is_banned = any(
+                stem_before.endswith(root[:-1]) or stem_before == root[:-1]
+                for root in CAUSATIVE_BANNED_VERBS
+            )
+            if len(stem_before) >= 2 and not is_banned:
+                features.voice = "causative"
+                features.pos = features.pos or "VERB"
+                # Check for vowel alternation in the causative stem
+                for base_vowel, caus_vowel in CAUSATIVE_A_TO_E_MAP.items():
+                    if caus_vowel in stem_before:
+                        features.raw_analysis["causative_vowel_shift"] = True
+                        break
         
         # 6. Check person/number suffix (present set, longest first)
         #    Only assign VERB from suffix alone if we already have a verb
@@ -867,6 +1043,32 @@ class MorphologicalAnalyzer:
             elif features.tense == "past":
                 features.aspect = "perfective"
 
+        # 7b. Passive vowel change detection (F#367, Haji Marf)
+        # PASSIVE_VOWEL_CHANGES maps verbs with irregular passive stems
+        # (e.g. بردن→بران with vowel ە→ا). Validate passive morphology.
+        if features.voice == "passive" and features.pos == "VERB":
+            for _inf, (pres_root, passive_stem) in PASSIVE_VOWEL_CHANGES.items():
+                if passive_stem in remaining or remaining.startswith(passive_stem[:3]):
+                    features.raw_analysis["passive_vowel_change"] = True
+                    break
+
+        # 7c. Past stem final sound classification (F#364, Haji Marf)
+        # PAST_STEM_FINAL_SOUNDS: 5 possible final phonemes after past-stem
+        # formation (ت/د/ا/ی/وو). Tag for downstream allomorph prediction.
+        if features.tense == "past" and features.pos == "VERB":
+            for final_sound in PAST_STEM_FINAL_SOUNDS:
+                if remaining.endswith(final_sound) or token.rstrip("متینان").endswith(final_sound):
+                    features.raw_analysis["past_stem_final"] = final_sound
+                    break
+
+        # 7d. Present stem consonant mutation detection (F#370, Haji Marf)
+        # 5 mutation patterns (ش→ژ, س→ز, etc.) for present-stem formation.
+        if features.tense in ("present", "future") and features.pos == "VERB":
+            for _name, rule in PRESENT_STEM_CONSONANT_MUTATIONS.items():
+                if rule["to"] in remaining:
+                    features.raw_analysis["present_stem_mutation"] = _name
+                    break
+
         # Check Wistin (ویستن) exception: it uses Set 1 for the subject in both tenses.
         # Must match the stem itself, not as a substring of another word.
         # Check both the original token and remaining, since features.lemma
@@ -885,6 +1087,20 @@ class MorphologicalAnalyzer:
             for stem in wistin_stems
         ):
             features.raw_analysis["is_wistin_exception"] = True
+
+        # 8. هەبوون negation form detection [F#348, Haji Marf]
+        # HABUN_POSSESSION_NEGATION="نیە" (possessive non-existence)
+        # HABUN_EXISTENCE_NEGATION="نییە" (existential non-existence)
+        if token == HABUN_POSSESSION_NEGATION or token == HABUN_EXISTENCE_NEGATION:
+            features.pos = "VERB"
+            features.tense = "present"
+            features.person = "3"
+            features.number = "sg"
+            features.negated = True
+            if token == HABUN_POSSESSION_NEGATION:
+                features.raw_analysis["habun_negation"] = "possession"
+            else:
+                features.raw_analysis["habun_negation"] = "existence"
     
     def _extract_nominal_features(self, token: str, features: MorphFeatures) -> None:
         """Rule-based noun/adjective feature extraction.
@@ -901,6 +1117,10 @@ class MorphologicalAnalyzer:
         remaining = token
         
         # 1. Strip nominal suffixes (longest first)
+        # INDEFINITE_ARTICLE_FORMS (F#272): 4 phonological allomorphs
+        # (ێک, ەک, یەک, انێک) for indefinite article selection.
+        # IZAFE_MARKERS (F#273): ی (possessive/genitive/attributive)
+        # vs ە (attributive only per F#291).
         for suffix, feat_name, feat_val in NOMINAL_SUFFIXES_ORDERED:
             if remaining.endswith(suffix) and len(remaining) > len(suffix):
                 setattr(features, feat_name, feat_val)
@@ -913,6 +1133,8 @@ class MorphologicalAnalyzer:
         
         # 2. Check for ezafe suffix (linking particle)
         # ی after consonant, یی after vowel — F#165
+        # MORPHEME_E_FUNCTIONS (F#244, Haji Marf): morpheme ئە serves
+        # as izafe allomorph, demonstrative suffix, and vocative particle.
         if not features.pos:
             match = EZAFE_PATTERN.match(remaining)
             if match and len(match.group(1)) > 1:
@@ -920,11 +1142,85 @@ class MorphologicalAnalyzer:
                 remaining = match.group(1)
                 features.pos = features.pos or "NOUN"
         
-        # 3. Set default number if not detected
+        # 3. Noun derivation suffix detection [F#262, Haji Marf]
+        # If a word ends with a known noun-derivation suffix, confirm NOUN.
+        if not features.pos:
+            for _cat, suffixes in NOUN_DERIVATION_SUFFIXES.items():
+                for suf in suffixes:
+                    if remaining.endswith(suf) and len(remaining) > len(suf) + 1:
+                        features.pos = "NOUN"
+                        features.lemma = remaining[:-len(suf)]
+                        features.number = features.number or "sg"
+                        break
+                if features.pos:
+                    break
+
+        # 3b. Noun-deriving prefix detection [F#293, Haji Marf]
+        if not features.pos:
+            for pfx in NOUN_DERIVING_PREFIXES:
+                if remaining.startswith(pfx) and len(remaining) > len(pfx) + 1:
+                    features.pos = "NOUN"
+                    features.number = features.number or "sg"
+                    break
+
+        # 3c. Diminutive noun suffix detection [F#281, Haji Marf]
+        # DIMINUTIVE_NOUN_SUFFIXES: 11 diminutive forms (ڵە, لە, ۆکە, etc.)
+        if not features.pos:
+            for dim_suf in DIMINUTIVE_NOUN_SUFFIXES:
+                if remaining.endswith(dim_suf) and len(remaining) > len(dim_suf) + 1:
+                    features.pos = "NOUN"
+                    features.lemma = remaining[:-len(dim_suf)]
+                    features.number = features.number or "sg"
+                    features.raw_analysis["is_diminutive"] = True
+                    break
+
+        # 3c2. Adjective diminutive suffix tag [F#323, Haji Marf]
+        # ADJECTIVE_DIMINUTIVE_SUFFIXES: 14 forms. Non-blocking annotation
+        # — tags possible diminutive adjectives without overriding POS,
+        # since these suffixes overlap with nominal morphology.
+        if features.pos == "ADJ" or not features.pos:
+            for adj_dim in ADJECTIVE_DIMINUTIVE_SUFFIXES:
+                if len(adj_dim) >= 2 and remaining.endswith(adj_dim) and len(remaining) > len(adj_dim) + 2:
+                    features.raw_analysis["possible_diminutive_adj"] = True
+                    break
+
+        # 3c3. Adverb derivation suffix tag [F#334, Haji Marf]
+        # Non-blocking: suffix patterns (انە, یی) overlap with nominal
+        # morphology, so we tag rather than assign POS.
+        if not features.raw_analysis.get("adverb_derivation"):
+            for _src, affixes in ADVERB_DERIVATION_PATTERNS.items():
+                for afx in affixes:
+                    if afx != "بە" and remaining.endswith(afx) and len(remaining) > len(afx) + 2:
+                        features.raw_analysis["possible_adverb_derivation"] = _src
+                        break
+                if features.raw_analysis.get("possible_adverb_derivation"):
+                    break
+
+        # 3d. Agent noun suffix detection [F#374, Haji Marf]
+        # AGENT_NOUN_SUFFIX_CLASSES: 9 suffixes in 3 classes by transitivity.
+        if not features.pos:
+            for _cls, info in AGENT_NOUN_SUFFIX_CLASSES.items():
+                for ag_suf in info["suffixes"]:
+                    if remaining.endswith(ag_suf) and len(remaining) > len(ag_suf) + 1:
+                        features.pos = "NOUN"
+                        features.lemma = remaining[:-len(ag_suf)]
+                        features.number = features.number or "sg"
+                        features.raw_analysis["is_agent_noun"] = True
+                        features.raw_analysis["agent_noun_class"] = _cls
+                        break
+                if features.pos:
+                    break
+
+        # 3e. Instrument noun prefix detection [F#376, Haji Marf]
+        # INSTRUMENT_NOUN_PREFIX = "پێ" — obligatory prefix for instrument nouns.
+        if not features.pos and remaining.startswith(INSTRUMENT_NOUN_PREFIX) and len(remaining) > 3:
+            features.raw_analysis["possible_instrument_noun"] = True
+
+        # 4. Set default number if not detected
         if features.pos in ("NOUN", "") and not features.number:
             features.number = features.number or "sg"
         
-        # 4. Set lemma if not already set by KLPT
+        # 5. Set lemma if not already set by KLPT
         if not features.lemma:
             features.lemma = remaining
     
@@ -953,7 +1249,16 @@ class MorphologicalAnalyzer:
                 # than clitic unless there's verb evidence nearby.
                 # Mark it but flag for downstream disambiguation.
                 if cl == "ی" and features.pos in ("NOUN", "ADJ", ""):
+                    # F#283 (SUFFIX_YI_FUNCTIONS): ی has 3 distinct functions:
+                    # izafe linker, feminine marker, or attribution particle.
                     features.raw_analysis["yi_ambiguous"] = True
+                    features.raw_analysis["yi_functions"] = list(SUFFIX_YI_FUNCTIONS.keys())
+                # F#122 (YISH_BEFORE_CLITIC_ONLY): ش/یش only appears
+                # immediately before a clitic, never standalone.
+                if YISH_BEFORE_CLITIC_ONLY and cl != "ی":
+                    host = token[:-len(cl)]
+                    if host.endswith("یش") or host.endswith("ش"):
+                        features.raw_analysis["has_yish_preclitic"] = True
                 features.is_clitic = True
                 features.clitic_person = person
                 features.clitic_number = number
@@ -1026,6 +1331,16 @@ class MorphologicalAnalyzer:
                 if nxt.pos in ("NOUN", "PRON", "ADJ", "") and not nxt.case:
                     nxt.case = "obl"
 
+        # Post-processing: cardinal numeral forces singular on following noun.
+        # F#327 (Haji Marf): nouns after cardinal numbers stay singular.
+        if NOUN_SINGULAR_AFTER_CARDINAL:
+            for i, feat in enumerate(features_list):
+                if feat.pos == "NUM" and i + 1 < len(features_list):
+                    nxt = features_list[i + 1]
+                    if nxt.pos in ("NOUN", "") and nxt.number == "pl":
+                        nxt.number = "sg"
+                        nxt.raw_analysis["cardinal_forced_sg"] = True
+
         return features_list
     
     def tokenize(self, text: str) -> list[str]:
@@ -1039,28 +1354,13 @@ class MorphologicalAnalyzer:
                 result = self._tokenize.word_tokenize(text)
                 if result:
                     return result
-            except Exception:
+            except (ValueError, AttributeError, TypeError):
                 pass
         
-        # Rule-based tokenizer: handles Kurdish text without external deps
-        # 1. Normalize zero-width characters (ZWNJ, ZWJ) — keep ZWNJ as it
-        #    has morphological significance in Kurdish (separates morphemes)
-        text = text.replace('\u200d', '')  # remove ZWJ (zero-width joiner)
-        
-        # 1b. Split conjunctive و when attached to next word.
-        # Sorani و ("and") often prefixes the following word without a space
-        # (e.g. وئەو = و + ئەو). Split only when followed by a known
-        # word-initial letter pattern, not when و is part of the stem.
-        text = re.sub(
-            r'(?:(?<=\s)|^)و(?=[ئابتجحخدذرزسشصضطظعغفقكلمنهکگڵیێەپڕژڤڶ])',
-            'و ', text
-        )
-        
-        # 2. Split on whitespace, separating Arabic punctuation from words.
-        # Arabic punctuation (٬060C, ؛061B, ؟061F, ۔06D4) must NOT merge
-        # with adjacent Arabic letters. Use explicit letter ranges.
-        tokens = _TOKENIZE_PATTERN.findall(text)
-        return [t for t in tokens if t.strip()]
+        # Delegate to the shared tokenizer (src/data/tokenize.py) which
+        # applies ZWJ removal, conjunctive و splitting, and regex-based
+        # token extraction.
+        return _sorani_tokenize(text)
     
     def build_feature_vocabulary(self) -> dict[str, int]:
         """Build vocabulary mapping for morphological features."""

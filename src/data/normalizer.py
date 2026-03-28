@@ -33,18 +33,25 @@ CHAR_NORMALIZATIONS = {
     # Heh (U+0647) handled separately in normalize() — context-dependent.
     # Word-initial ه is consonant /h/; non-initial ه is vowel ə → ە (U+06D5).
     
-    # Western digits → Arabic-Indic digits (Sorani Kurdish uses Arabic-Indic)
-    "0": "\u0660", "1": "\u0661", "2": "\u0662", "3": "\u0663",
-    "4": "\u0664", "5": "\u0665", "6": "\u0666", "7": "\u0667",
-    "8": "\u0668", "9": "\u0669",
+    # Western digits → Extended Arabic-Indic digits (Sorani Kurdish uses Extended form U+06F0–U+06F9)
+    "0": "\u06F0", "1": "\u06F1", "2": "\u06F2", "3": "\u06F3",
+    "4": "\u06F4", "5": "\u06F5", "6": "\u06F6", "7": "\u06F7",
+    "8": "\u06F8", "9": "\u06F9",
     
-    # Extended Arabic-Indic digits → Standard Arabic-Indic digits
-    "\u06F0": "\u0660", "\u06F1": "\u0661", "\u06F2": "\u0662", "\u06F3": "\u0663",
-    "\u06F4": "\u0664", "\u06F5": "\u0665", "\u06F6": "\u0666", "\u06F7": "\u0667",
-    "\u06F8": "\u0668", "\u06F9": "\u0669",
+    # Standard Arabic-Indic digits → Extended Arabic-Indic digits
+    "\u0660": "\u06F0", "\u0661": "\u06F1", "\u0662": "\u06F2", "\u0663": "\u06F3",
+    "\u0664": "\u06F4", "\u0665": "\u06F5", "\u0666": "\u06F6", "\u0667": "\u06F7",
+    "\u0668": "\u06F8", "\u0669": "\u06F9",
 }
 
-# Zero-width characters to remove
+# Zero-width characters to remove.
+# PIPE-25 design note: ZWNJ (U+200C) is preserved by default during
+# normalization (preserve_zwnj=True) because it marks morpheme boundaries
+# in compound verbs (e.g. دە‌چم) and is significant for display rendering.
+# Downstream tokenizers (sorani_tokenize) strip ZWNJ for analysis purposes.
+# This two-phase approach is intentional: normalized text retains the
+# morpheme marker for human readability; tokenized text strips it so that
+# token comparison is not affected by invisible characters.
 ZERO_WIDTH_CHARS = [
     "\u200B",  # Zero-width space
     "\u200C",  # Zero-width non-joiner (ZWNJ) — keep selectively
@@ -140,6 +147,97 @@ class SoraniNormalizer:
         
         return text.strip()
     
+    def normalize_with_offsets(self, text: str) -> tuple[str, list[int]]:
+        """Normalize text and return a character offset map.
+
+        Returns:
+            (normalized_text, offset_map) where offset_map[i] gives the
+            original-text character index that produced normalized_text[i].
+            Useful for adjusting annotation spans after normalization.
+        """
+        if not text:
+            return text, []
+
+        # Build per-character mapping through each transform step.
+        # We track which original index each current character came from.
+        offsets = list(range(len(text)))
+
+        # --- NFC normalization ---
+        nfc = unicodedata.normalize("NFC", text)
+        # NFC may change length (combining chars merge). Rebuild offsets
+        # by character-by-character NFC alignment rather than proportional
+        # approximation (PIPE-23 fix).
+        if len(nfc) != len(text):
+            new_offsets: list[int] = []
+            src_idx = 0
+            for nfc_idx in range(len(nfc)):
+                new_offsets.append(offsets[min(src_idx, len(offsets) - 1)])
+                # Advance src_idx past all original characters that
+                # compose into this single NFC character.  We detect the
+                # boundary by NFC-normalizing successive slices.
+                src_idx += 1
+                while src_idx < len(text):
+                    # Check if the substring text[src_idx_start:src_idx] NFC-normalizes
+                    # to exactly the NFC characters we've consumed so far.
+                    probe = unicodedata.normalize("NFC", text[:src_idx])
+                    if len(probe) > nfc_idx + 1:
+                        break
+                    src_idx += 1
+            offsets = new_offsets
+        text = nfc
+
+        # --- Character-level translation ---
+        new_text: list[str] = []
+        new_offsets: list[int] = []
+        for i, ch in enumerate(text):
+            mapped = self._trans_table.get(ord(ch))
+            if mapped is None:
+                new_text.append(ch)
+                new_offsets.append(offsets[i])
+            elif isinstance(mapped, int):
+                new_text.append(chr(mapped))
+                new_offsets.append(offsets[i])
+            elif isinstance(mapped, str):
+                for c in mapped:
+                    new_text.append(c)
+                    new_offsets.append(offsets[i])
+            # mapped == "" (deletion) → skip
+        text = "".join(new_text)
+        offsets = new_offsets
+
+        # --- Context-dependent Heh ---
+        if self.normalize_chars:
+            result_text: list[str] = []
+            result_offsets: list[int] = []
+            pos = 0
+            for m in _NON_INITIAL_HEH.finditer(text):
+                # Copy everything before the match
+                for j in range(pos, m.start()):
+                    result_text.append(text[j])
+                    result_offsets.append(offsets[j])
+                # Replace matched heh
+                result_text.append("\u06D5")
+                result_offsets.append(offsets[m.start()])
+                pos = m.end()
+            for j in range(pos, len(text)):
+                result_text.append(text[j])
+                result_offsets.append(offsets[j])
+            text = "".join(result_text)
+            offsets = result_offsets
+
+        # --- Whitespace normalization ---
+        if self.normalize_whitespace:
+            text, offsets = self._normalize_whitespace_with_offsets(text, offsets)
+
+        # --- Strip ---
+        stripped = text.strip()
+        if len(stripped) < len(text):
+            lead = len(text) - len(text.lstrip())
+            offsets = offsets[lead:lead + len(stripped)]
+        text = stripped
+
+        return text, offsets
+    
     def _normalize_whitespace(self, text: str) -> str:
         """Normalize various whitespace characters."""
         # Replace multiple spaces with single space
@@ -149,6 +247,48 @@ class SoraniNormalizer:
         # Remove multiple blank lines
         text = re.sub(r"\n{3,}", "\n\n", text)
         return text
+    
+    def _normalize_whitespace_with_offsets(
+        self, text: str, offsets: list[int],
+    ) -> tuple[str, list[int]]:
+        """Whitespace normalization preserving an offset map."""
+        result: list[str] = []
+        result_offsets: list[int] = []
+        i = 0
+        while i < len(text):
+            ch = text[i]
+            if ch in (" ", "\t"):
+                # Collapse consecutive spaces/tabs into one space
+                result.append(" ")
+                result_offsets.append(offsets[i])
+                while i < len(text) and text[i] in (" ", "\t"):
+                    i += 1
+            elif ch == "\r":
+                # Normalize \r\n or lone \r to \n
+                result.append("\n")
+                result_offsets.append(offsets[i])
+                i += 1
+                if i < len(text) and text[i] == "\n":
+                    i += 1
+            else:
+                result.append(ch)
+                result_offsets.append(offsets[i])
+                i += 1
+        # Collapse 3+ consecutive newlines to 2
+        final: list[str] = []
+        final_offsets: list[int] = []
+        nl_count = 0
+        for j, c in enumerate(result):
+            if c == "\n":
+                nl_count += 1
+                if nl_count <= 2:
+                    final.append(c)
+                    final_offsets.append(result_offsets[j])
+            else:
+                nl_count = 0
+                final.append(c)
+                final_offsets.append(result_offsets[j])
+        return "".join(final), final_offsets
     
     def normalize_file(self, input_path: str, output_path: str) -> int:
         """Normalize a text file line by line. Returns number of lines processed."""

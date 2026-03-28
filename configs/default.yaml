@@ -16,7 +16,7 @@ data:
   train_ratio: 0.8
   dev_ratio: 0.1
   test_ratio: 0.1
-  max_seq_length: 128
+  max_seq_length: 256
   
   # Normalization
   normalize_arabic_script: true
@@ -43,13 +43,13 @@ data:
     - "quantifier_agreement"
     - "possessive_clitic"
     - "polite_imperative"
+    - "spelling_confusion"
+    - "word_order"
+    - "whitespace_error"
+    - "punctuation_error"
+    - "cross_clause_agreement"
+    - "morpheme_order"
   error_rate: 0.15  # probability of injecting error per eligible position
-
-tokenizer:
-  model_type: "unigram"  # SentencePiece model type
-  vocab_size: 32000
-  character_coverage: 0.9995
-  model_prefix: "sorani_spm"
 
 model:
   # Architecture
@@ -79,15 +79,22 @@ model:
   # Pretrained backbone (alternative to training from scratch)
   pretrained: "google/byt5-small"  # byte-level, no tokenization issues
   # pretrained: "google/mt5-small"  # alternative
+  
+  # Supported ByT5 size variants (selectable via --model flag in training scripts)
+  # Each variant uses the same architecture; only backbone size differs.
+  supported_variants:
+    - "google/byt5-small"    # ~223M params — default, fits 8GB VRAM
+    - "google/byt5-base"     # ~582M params — needs 16GB+ VRAM
+    - "google/mt5-small"     # ~300M params — subword tokenization alternative
 
 training:
-  batch_size: 32
+  batch_size: 16
   learning_rate: 5.0e-5
   weight_decay: 0.01
   warmup_steps: 1000
   max_epochs: 30
   early_stopping_patience: 5
-  gradient_accumulation_steps: 4
+  gradient_accumulation_steps: 8
   fp16: true
   
   # Loss

@@ -59,9 +59,25 @@ class AdversativeConnectorErrorGenerator(BaseErrorGenerator):
         return positions
 
     def generate_error(self, position: dict) -> Optional[str]:
-        return ""
+        """Generate error: either delete or substitute with wrong connector type.
 
-    def inject_errors(self, sentence: str) -> ErrorResult:
+        Pattern 1 (deletion): remove the connector entirely.
+        Pattern 2 (substitution): replace opener with closer or vice versa,
+            violating the paired-connector structure.
+        """
+        ctx = position["context"]
+
+        # 60% deletion, 40% substitution
+        if self.rng.random() < 0.6:
+            return ""
+
+        # Substitution: swap connector category
+        if ctx["type"] == "opener":
+            return self.rng.choice(self.CLOSERS)
+        else:
+            return self.rng.choice(self.OPENERS)
+
+    def inject_errors(self, sentence: str, skip_word_indices=None) -> ErrorResult:
         """Override to handle both-connector sentences.
 
         When a sentence has both an opener AND a closer, the base class

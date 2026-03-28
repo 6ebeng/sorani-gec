@@ -12,9 +12,9 @@ from src.errors.base import ErrorResult
 
 
 def test_pipeline_init():
-    """Pipeline initializes with all 18 generators."""
+    """Pipeline initializes with all 25 generators."""
     pipeline = ErrorPipeline(error_rate=0.15, seed=42)
-    assert len(pipeline.generators) == 19
+    assert len(pipeline.generators) == 25
     print(f"  Pipeline initialized with {len(pipeline.generators)} generators")
 
 
@@ -120,6 +120,48 @@ def test_pipeline_oversampling():
         print(f"  Oversampled: 2 input → {stats['total']} pairs")
 
 
+# ============================================================================
+# TEST-6: Pipeline span validation — ErrorAnnotation position checks
+# ============================================================================
+
+def test_pipeline_span_positions_valid():
+    """ErrorAnnotation spans have valid start_pos/end_pos values."""
+    pipeline = ErrorPipeline(error_rate=0.5, seed=42)
+    sentences = [
+        "من دەچم بۆ قوتابخانە",
+        "ئەوان دەنوسن بۆ مامۆستاکانیان",
+        "تۆ دەزانیت ئەم بابەتە",
+        "ئێمە دەچین بۆ ماڵەوە",
+    ]
+    for sentence in sentences:
+        result = pipeline.process_sentence(sentence)
+        for err in result.errors:
+            assert err.start_pos >= 0, (
+                f"start_pos negative: {err.start_pos} for {err.error_type}"
+            )
+            assert err.end_pos >= err.start_pos, (
+                f"end_pos ({err.end_pos}) < start_pos ({err.start_pos})"
+            )
+            assert err.end_pos <= len(result.original), (
+                f"end_pos ({err.end_pos}) > len(original) ({len(result.original)})"
+            )
+    print("  Pipeline span positions: all valid")
+
+
+def test_pipeline_error_annotation_fields():
+    """ErrorAnnotation has all required fields populated."""
+    pipeline = ErrorPipeline(error_rate=1.0, seed=42)
+    result = pipeline.process_sentence("من دەچم بۆ بازاڕ")
+    for err in result.errors:
+        assert isinstance(err.error_type, str) and len(err.error_type) > 0
+        assert isinstance(err.original_span, str)
+        assert isinstance(err.error_span, str)
+        assert isinstance(err.description, str) and len(err.description) > 0
+        assert isinstance(err.start_pos, int)
+        assert isinstance(err.end_pos, int)
+    print(f"  Checked {len(result.errors)} annotations — all fields valid")
+
+
 if __name__ == "__main__":
     print("=== Pipeline Tests ===")
     test_pipeline_init()
@@ -128,4 +170,6 @@ if __name__ == "__main__":
     test_pipeline_error_result_to_dict()
     test_pipeline_process_corpus()
     test_pipeline_oversampling()
+    test_pipeline_span_positions_valid()
+    test_pipeline_error_annotation_fields()
     print("\nAll pipeline tests passed!")

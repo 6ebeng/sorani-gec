@@ -160,8 +160,11 @@ class ConditionalAgreementErrorGenerator(BaseErrorGenerator):
         Heuristic: scan for verb-like tokens after the conditional marker.
         The protasis typically contains one verb.  As soon as we find
         the end of that verb span, treat subsequent text as apodosis.
-        We search for the first verb (subjunctive or present) in the
+        We search for the FIRST verb (subjunctive or present) in the
         remainder and set the boundary right after it.
+
+        6B.5: Skip verbs that appear inside a relative clause (after کە)
+        to avoid treating the RC verb as the protasis boundary.
         """
         remainder = sentence[cond_end:]
         preverb_alt = "|".join(re.escape(p) for p in COMPOUND_PREVERBS)
@@ -176,8 +179,17 @@ class ConditionalAgreementErrorGenerator(BaseErrorGenerator):
             rf'(?:م|یت|ێت|ێ|ین|ن|ە|ات)'
             rf'(?=\s|$)'
         )
-        match = verb_pattern.search(remainder)
-        if match:
+
+        # Track whether we are inside a relative clause (after کە).
+        # Verbs after کە belong to the RC, not the protasis.
+        rc_marker_pos = remainder.find(" کە ")
+        if rc_marker_pos == -1:
+            rc_marker_pos = len(remainder)  # no RC marker
+
+        for match in verb_pattern.finditer(remainder):
+            # 6B.5: Skip verbs that appear after کە (relative clause)
+            if match.start() > rc_marker_pos:
+                continue
             return cond_end + match.end()
         # Fallback: use the whole sentence
         return len(sentence)

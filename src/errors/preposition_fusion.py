@@ -22,6 +22,7 @@ import re
 from typing import Optional
 
 from .base import BaseErrorGenerator
+from ..morphology.constants import PP_INSEPARABLE
 
 
 # Fused preposition-clitic paradigms [F#33]

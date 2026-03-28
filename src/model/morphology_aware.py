@@ -7,6 +7,7 @@ to improve agreement error correction.
 """
 
 import logging
+import time
 from typing import Optional
 
 import torch
@@ -84,7 +85,21 @@ class AgreementPredictor(nn.Module):
 
 
 class MorphologyAwareGEC(nn.Module):
-    """GEC model with morphological feature integration."""
+    """GEC model with morphological feature integration.
+
+    RTL Script Note (ARCH-8): ByT5 processes raw UTF-8 bytes in their
+    natural storage order (left-to-right at the byte level).  Arabic
+    script characters — including Sorani Kurdish — are encoded as
+    multi-byte UTF-8 sequences whose byte order is determined by
+    Unicode codepoint, not visual rendering direction.  The model's
+    positional embeddings therefore capture byte-sequence position,
+    not visual text direction.  This byte-level abstraction makes
+    explicit RTL positional encoding adaptation unnecessary; the model
+    learns inter-token relationships (including right-to-left reading
+    patterns) from training data. Agreement graph bias further helps
+    the model attend to morphologically related positions regardless
+    of their linear order.
+    """
     
     def __init__(
         self,
@@ -100,7 +115,12 @@ class MorphologyAwareGEC(nn.Module):
         super().__init__()
         self.model_name = model_name
         self.max_length = max_length
+        self._base_agreement_loss_weight = agreement_loss_weight
         self.agreement_loss_weight = agreement_loss_weight
+        # Default: equal weights for every edge type so the per-type loss
+        # path is always active (fix 4.4)
+        if edge_type_loss_weights is None:
+            edge_type_loss_weights = {et: 1.0 for et in EDGE_TYPE_ORDER}
         self.edge_type_loss_weights = edge_type_loss_weights
         
         # Pretrained backbone
@@ -138,6 +158,30 @@ class MorphologyAwareGEC(nn.Module):
         self.edge_type_weights = nn.Parameter(
             torch.ones(self.max_edge_types) / self.max_edge_types
         )
+
+        # Decoder-side agreement projection: provides position-specific
+        # agreement signal for decoder cross-attention, so the decoder
+        # receives agreement-aware encoder representations distinct from
+        # the encoder-side gating.
+        self.decoder_agr_proj = nn.Linear(hidden_dim, hidden_dim)
+
+    def anneal_agreement_loss(self, epoch: int, warmup_epochs: int = 5) -> float:
+        """Linear warmup of the agreement auxiliary loss weight.
+
+        During the first *warmup_epochs* epochs the weight ramps from 0
+        to the base value, preventing the auxiliary objective from
+        dominating before the primary GEC loss stabilises.
+
+        Returns:
+            The updated agreement_loss_weight.
+        """
+        if epoch >= warmup_epochs:
+            self.agreement_loss_weight = self._base_agreement_loss_weight
+        else:
+            self.agreement_loss_weight = (
+                self._base_agreement_loss_weight * (epoch + 1) / warmup_epochs
+            )
+        return self.agreement_loss_weight
     
     def _build_agreement_bias(
         self,
@@ -160,12 +204,12 @@ class MorphologyAwareGEC(nn.Module):
         agreement_mask = agreement_mask.to(self.edge_type_weights.device)
         if agreement_mask.dim() == 4:
             # Typed: apply learnable per-type weights then sum
-            num_types = agreement_mask.size(1)
+            num_types = min(agreement_mask.size(1), len(self.edge_type_weights))
             weights = torch.softmax(
                 self.edge_type_weights[:num_types], dim=0
             )  # [num_types]
             combined = (
-                agreement_mask.float()
+                agreement_mask[:, :num_types].float()
                 * weights.view(1, -1, 1, 1)
             ).sum(dim=1)  # [batch, N, N]
         else:
@@ -273,10 +317,13 @@ class MorphologyAwareGEC(nn.Module):
             # backbone handles padding, but store biased states.
             # ByT5 does not expose a head-level mask parameter, so we
             # bake the bias into the hidden states via a residual gate.
-            # Gate is per-position (vector-level) rather than scalar for
-            # finer-grained modulation.
-            gate = torch.sigmoid(agr_bias.squeeze(1).mean(dim=-1, keepdim=True))  # [batch, seq, 1]
-            hidden_states = hidden_states * (1.0 + gate)
+
+            # Per-position gate: max preserves which positions participate
+            # in agreement edges (4.2), single-gating avoids amplification (4.3)
+            gate = torch.sigmoid(agr_bias.squeeze(1).max(dim=-1, keepdim=True).values)  # [batch, seq, 1]
+            agr_residual = self.decoder_agr_proj(hidden_states)
+            hidden_states = hidden_states + gate * agr_residual
+
             encoder_outputs.last_hidden_state = hidden_states
         
         # Main GEC loss
@@ -322,8 +369,13 @@ class MorphologyAwareGEC(nn.Module):
     
     def correct(self, text: str, morph_features: Optional[torch.Tensor] = None,
                 agreement_mask: Optional[torch.Tensor] = None,
-                num_beams: int = 4) -> str:
+                num_beams: int = 4,
+                length_penalty: float = 1.0,
+                no_repeat_ngram_size: int = 0,
+                max_length: int | None = None) -> str:
         """Correct a single sentence."""
+        t_start = time.perf_counter()
+        gen_max_length = max_length or self.max_length
         inputs = self.tokenizer(
             text,
             return_tensors="pt",
@@ -334,6 +386,15 @@ class MorphologyAwareGEC(nn.Module):
         
         device = next(self.backbone.parameters()).device
         inputs = {k: v.to(device) for k, v in inputs.items()}
+        
+        gen_kwargs: dict = {
+            "max_length": gen_max_length,
+            "num_beams": num_beams,
+            "early_stopping": True,
+            "length_penalty": length_penalty,
+        }
+        if no_repeat_ngram_size > 0:
+            gen_kwargs["no_repeat_ngram_size"] = no_repeat_ngram_size
         
         with torch.no_grad():
             # Run encoder with morphological feature integration
@@ -353,20 +414,69 @@ class MorphologyAwareGEC(nn.Module):
                 agr_bias = self._build_agreement_bias(
                     agreement_mask, hidden_states.size(1)
                 )
-                gate = torch.sigmoid(agr_bias.squeeze(1).mean(dim=-1, keepdim=True))
-                hidden_states = hidden_states * (1.0 + gate)
+                gate = torch.sigmoid(agr_bias.squeeze(1).max(dim=-1, keepdim=True).values)
+                agr_residual = self.decoder_agr_proj(hidden_states)
+                hidden_states = hidden_states + gate * agr_residual
             
             encoder_outputs.last_hidden_state = hidden_states
             
             outputs = self.backbone.generate(
                 encoder_outputs=encoder_outputs,
                 attention_mask=inputs["attention_mask"],
-                max_length=self.max_length,
-                num_beams=num_beams,
-                early_stopping=True,
+                **gen_kwargs,
             )
         
-        return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        corrected = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        elapsed_ms = (time.perf_counter() - t_start) * 1000
+        logger.debug("correct() latency: %.1f ms", elapsed_ms)
+        return corrected
+
+    def classify_errors(
+        self,
+        text: str,
+        morph_features: Optional[torch.Tensor] = None,
+        agreement_mask: Optional[torch.Tensor] = None,
+    ) -> list[dict]:
+        """Run the agreement predictor on input and return per-token error types.
+
+        Returns a list of dicts with 'token_idx', 'predicted_type', and 'score'
+        for tokens predicted to have agreement errors (non-zero class).
+        """
+        inputs = self.tokenizer(
+            text, return_tensors="pt",
+            max_length=self.max_length, truncation=True, padding=True,
+        )
+        device = next(self.backbone.parameters()).device
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            encoder_outputs = self.backbone.encoder(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+            )
+            hidden_states = encoder_outputs.last_hidden_state
+
+            if morph_features is not None:
+                morph_features = morph_features.to(device)
+                hidden_states = self._integrate_morph_features(hidden_states, morph_features)
+
+            logits = self.agreement_predictor(hidden_states)  # [1, seq_len, num_types]
+            preds = logits.argmax(dim=-1)[0]  # [seq_len]
+            scores = torch.softmax(logits[0], dim=-1)  # [seq_len, num_types]
+
+        errors = []
+        for idx in range(preds.size(0)):
+            cls = preds[idx].item()
+            if cls == 0:
+                continue
+            # Map class index back to edge type name
+            type_name = EDGE_TYPE_ORDER[cls - 1] if cls <= len(EDGE_TYPE_ORDER) else f"type_{cls}"
+            errors.append({
+                "token_idx": idx,
+                "predicted_type": type_name,
+                "score": scores[idx, cls].item(),
+            })
+        return errors
 
     def _build_inference_tensors(
         self,
@@ -386,37 +496,53 @@ class MorphologyAwareGEC(nn.Module):
         """
         from src.morphology.builder import build_agreement_graph
 
-        # Morphological features: [1, max_length, num_features]
-        morph_feats = feature_extractor.extract_features(text)
+        # Word-level morphological features (not yet mapped to bytes)
+        morph_feats_word = feature_extractor.extract_features(text)
         num_feat = feature_extractor.get_num_features()
-        while len(morph_feats) < self.max_length:
-            morph_feats.append([0] * num_feat)
-        morph_feats = morph_feats[:self.max_length]
-        morph_tensor = torch.tensor([morph_feats], dtype=torch.long)
 
         # Agreement graph: [1, num_types, max_length, max_length]
         graph = build_agreement_graph(text, analyzer)
         stacked, _ = graph.to_typed_stacked_matrix()
         num_types = len(EDGE_TYPE_ORDER)
 
-        # Word-to-byte mapping for alignment
+        # Word-to-byte mapping using cumulative byte tracking (fix 4.5)
         word_tokens = analyzer.tokenize(text)
         byte_offsets: list[tuple[int, int]] = []
         char_cursor = 0
+        byte_cursor = 0
         for w in word_tokens:
+            # Skip whitespace
             while char_cursor < len(text) and text[char_cursor] in (' ', '\t', '\n'):
+                byte_cursor += len(text[char_cursor].encode("utf-8"))
                 char_cursor += 1
             idx = text.find(w, char_cursor)
             if idx >= 0:
-                byte_start = len(text[:idx].encode("utf-8"))
+                # Advance byte cursor through any gap
+                if idx > char_cursor:
+                    byte_cursor += len(text[char_cursor:idx].encode("utf-8"))
+                byte_start = byte_cursor
                 byte_end = byte_start + len(w.encode("utf-8"))
                 byte_offsets.append((byte_start, byte_end))
                 char_cursor = idx + len(w)
+                byte_cursor = byte_end
             else:
-                byte_start = len(text[:char_cursor].encode("utf-8"))
+                logger.warning(
+                    "Word %r not found at char_cursor=%d; using cumulative estimate",
+                    w[:30], char_cursor,
+                )
+                byte_start = byte_cursor
                 byte_end = byte_start + len(w.encode("utf-8"))
                 byte_offsets.append((byte_start, byte_end))
                 char_cursor += len(w)
+                byte_cursor = byte_end
+
+        # Map word-level morph features to byte positions (fix 4.1)
+        morph_feats = [[0] * num_feat for _ in range(self.max_length)]
+        for w_idx in range(min(len(morph_feats_word), len(byte_offsets))):
+            b_start, b_end = byte_offsets[w_idx]
+            for bi in range(b_start, min(b_end, self.max_length)):
+                morph_feats[bi] = morph_feats_word[w_idx]
+        morph_tensor = torch.tensor([morph_feats], dtype=torch.long)
 
         n_words = len(graph.tokens)
         agr_mask = [[[0] * self.max_length for _ in range(self.max_length)]
@@ -467,6 +593,75 @@ class MorphologyAwareGEC(nn.Module):
             agreement_mask=agr_tensor,
             num_beams=num_beams,
         )
+
+    def correct_with_confidence(
+        self,
+        text: str,
+        analyzer: "MorphologicalAnalyzer",
+        feature_extractor: "FeatureExtractor",
+        num_beams: int = 4,
+    ) -> tuple[str, float]:
+        """Correct a sentence and return a confidence score.
+
+        Returns:
+            (corrected_text, confidence) where confidence is in (0, 1].
+        """
+        morph_tensor, agr_tensor = self._build_inference_tensors(
+            text, analyzer, feature_extractor
+        )
+        inputs = self.tokenizer(
+            text, return_tensors="pt",
+            max_length=self.max_length, truncation=True, padding=True,
+        )
+        device = next(self.backbone.parameters()).device
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            encoder_outputs = self.backbone.encoder(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+            )
+            hidden_states = encoder_outputs.last_hidden_state
+
+            if morph_tensor is not None:
+                morph_tensor = morph_tensor.to(device)
+                hidden_states = self._integrate_morph_features(hidden_states, morph_tensor)
+
+            if agr_tensor is not None:
+                agr_tensor = agr_tensor.to(device)
+                agr_bias = self._build_agreement_bias(agr_tensor, hidden_states.size(1))
+                gate = torch.sigmoid(agr_bias.squeeze(1).max(dim=-1, keepdim=True).values)
+                agr_residual = self.decoder_agr_proj(hidden_states)
+                hidden_states = hidden_states + gate * agr_residual
+
+            encoder_outputs.last_hidden_state = hidden_states
+
+            gen_out = self.backbone.generate(
+                encoder_outputs=encoder_outputs,
+                attention_mask=inputs["attention_mask"],
+                max_length=self.max_length,
+                num_beams=num_beams,
+                early_stopping=True,
+                return_dict_in_generate=True,
+                output_scores=True,
+            )
+
+        corrected = self.tokenizer.decode(gen_out.sequences[0], skip_special_tokens=True)
+
+        if gen_out.scores:
+            import torch.nn.functional as F
+            import math
+            log_probs = []
+            for step, score in enumerate(gen_out.scores):
+                probs = F.log_softmax(score[0], dim=-1)
+                token_id = gen_out.sequences[0, step + 1]
+                log_probs.append(probs[token_id].item())
+            mean_lp = sum(log_probs) / len(log_probs) if log_probs else 0.0
+            confidence = math.exp(mean_lp)
+        else:
+            confidence = 1.0
+
+        return corrected, confidence
 
     def correct_batch(
         self,
@@ -523,8 +718,9 @@ class MorphologyAwareGEC(nn.Module):
             hidden_states = self._integrate_morph_features(hidden_states, morph_batch)
 
             agr_bias = self._build_agreement_bias(agr_batch, hidden_states.size(1))
-            gate = torch.sigmoid(agr_bias.squeeze(1).mean(dim=-1, keepdim=True))
-            hidden_states = hidden_states * (1.0 + gate)
+            gate = torch.sigmoid(agr_bias.squeeze(1).max(dim=-1, keepdim=True).values)
+            agr_residual = self.decoder_agr_proj(hidden_states)
+            hidden_states = hidden_states + gate * agr_residual
             encoder_outputs.last_hidden_state = hidden_states
 
             outputs = self.backbone.generate(
@@ -539,3 +735,65 @@ class MorphologyAwareGEC(nn.Module):
             self.tokenizer.decode(o, skip_special_tokens=True)
             for o in outputs
         ]
+
+    def training_step(
+        self,
+        source_texts: list[str],
+        target_texts: list[str],
+        analyzer: "MorphologicalAnalyzer | None" = None,
+        feature_extractor: "FeatureExtractor | None" = None,
+    ) -> torch.Tensor:
+        """Tokenize a batch, build morphological tensors, and return the loss.
+
+        Convenience method used by ``scripts/08_ablation.py``.  If *analyzer*
+        and *feature_extractor* are not supplied, falls back to attributes set
+        via ``set_training_tools()``.  When neither is available, morphological
+        features are omitted (equivalent to a baseline forward pass).
+        """
+        analyzer = analyzer or getattr(self, "_training_analyzer", None)
+        feature_extractor = feature_extractor or getattr(
+            self, "_training_feature_extractor", None
+        )
+
+        inputs = self.tokenizer(
+            source_texts, return_tensors="pt",
+            max_length=self.max_length, truncation=True, padding="max_length",
+        )
+        labels = self.tokenizer(
+            target_texts, return_tensors="pt",
+            max_length=self.max_length, truncation=True, padding="max_length",
+        )["input_ids"]
+
+        device = next(self.backbone.parameters()).device
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        labels = labels.to(device)
+
+        morph_tensor = None
+        agr_tensor = None
+        if analyzer and feature_extractor:
+            morph_list = []
+            agr_list = []
+            for text in source_texts:
+                m, a = self._build_inference_tensors(text, analyzer, feature_extractor)
+                morph_list.append(m.squeeze(0))
+                agr_list.append(a.squeeze(0))
+            morph_tensor = torch.stack(morph_list).to(device)
+            agr_tensor = torch.stack(agr_list).to(device)
+
+        outputs = self.forward(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            morph_features=morph_tensor,
+            labels=labels,
+            agreement_mask=agr_tensor,
+        )
+        return outputs["loss"]
+
+    def set_training_tools(
+        self,
+        analyzer: "MorphologicalAnalyzer",
+        feature_extractor: "FeatureExtractor",
+    ) -> None:
+        """Store analyzer and feature extractor for use by ``training_step()``."""
+        self._training_analyzer = analyzer
+        self._training_feature_extractor = feature_extractor

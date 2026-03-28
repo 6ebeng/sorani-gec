@@ -131,6 +131,12 @@ Additional findings implemented in this module:
   F#190 — Triple clitic ordering
   F#204 — Clitic omission = ungrammatical (obligatory marking)
 
+Background linguistic findings (documented, not directly error-targeted):
+  F#26  — Phonological Reduction / Clitic Fusion Rules
+  F#52  — Two Clitics Together: Distribution Constraints (ditransitive)
+  F#188 — 3sg Clitic: Full 12-Allomorph Inventory
+  F#197 — تی Portmanteau: 3sg Clitic + Copula = Epenthetic (تی)
+
 Examples:
 - Correct:   "من نامەکەم نووسی" (I wrote the letter-my)
 - Error:     "من نامەکەت نووسی" (I wrote the letter-your) — wrong clitic
@@ -140,6 +146,11 @@ import re
 from typing import Optional
 
 from .base import BaseErrorGenerator
+from ..data.tokenize import sorani_word_tokenize
+from ..morphology.constants import (
+    IMPERATIVE_MOOD_PREFIXES,
+    PREVERB_COMPOUND_PAST_CLITIC_POSITION,
+)
 
 
 # Sorani Kurdish enclitic pronouns
@@ -495,8 +506,17 @@ class CliticErrorGenerator(BaseErrorGenerator):
         """Check if a verb form contains passive morphology.
 
         Passive constructions trigger Set1→Set2 shift (Amin 2016, pp. 39-43).
+        Only flags a word as passive if the remaining stem (after stripping
+        the passive marker) is a known transitive stem; prevents false
+        positives on words that happen to end in 'را', 'درا', etc.
         """
-        return any(verb_form.endswith(m) for m in PASSIVE_MARKERS)
+        # Check longer markers first to avoid partial matching
+        for marker in sorted(PASSIVE_MARKERS, key=len, reverse=True):
+            if verb_form.endswith(marker):
+                stem = verb_form[: -len(marker)]
+                if len(stem) >= 2 and stem in PAST_TRANSITIVE_STEMS:
+                    return True
+        return False
 
     @staticmethod
     def diagnose_transitivity(stem: str) -> str | None:
@@ -528,6 +548,8 @@ class CliticErrorGenerator(BaseErrorGenerator):
             rf'(\w+?)({clitic_pattern})(?=\s|$)'
         )
 
+        words = sorani_word_tokenize(sentence)
+
         for match in pattern.finditer(sentence):
             stem = match.group(1)
             clitic = match.group(2)
@@ -542,6 +564,64 @@ class CliticErrorGenerator(BaseErrorGenerator):
             if full_word in INVARIANT_PRONOUN_FORMS:
                 continue
 
+            # F#42 (Haji Marf): Imperative mood prefixes affect clitic
+            # position. Use IMPERATIVE_MOOD_PREFIXES to detect imperative
+            # verb hosts for correct clitic position classification.
+            is_imperative = any(
+                stem.startswith(pfx) for pfx in IMPERATIVE_MOOD_PREFIXES
+            )
+
+            # F#339 (Haji Marf): In compound past verbs with preverbs,
+            # the clitic positions between the preverb and the stem.
+            # PREVERB_COMPOUND_PAST_CLITIC_POSITION records this rule.
+            host_has_preverb = any(
+                stem.startswith(pv)
+                for pv in PREVERB_COMPOUND_PAST_CLITIC_POSITION
+            )
+
+            # --- Ezafe / possessive ی disambiguation (ERRQ-7 fix) ---
+            # When the matched clitic is ی (3sg), it may actually be the
+            # ezafe linking morpheme connecting a noun to its modifier.
+            # 6B.1: Improved heuristic using morphological analysis.
+            # The old code only checked the next word for verb/punct prefix,
+            # which missed possessive clitics followed by nouns (e.g.
+            # "کتێبیت نیو" where ی is possessive not ezafe).
+            if clitic == "ی":
+                match_end = match.end()
+                next_word = None
+                for wi, w in enumerate(words):
+                    if w == full_word or w.startswith(full_word):
+                        if wi + 1 < len(words):
+                            next_word = words[wi + 1]
+                        break
+                if next_word is not None:
+                    _verb_prefixes = {"دە", "نا", "نە", "بـ", "ب"}
+                    _is_next_verb = any(
+                        next_word.startswith(vp) for vp in _verb_prefixes
+                    )
+                    _is_next_punct = next_word[0] in ".،؛؟!:)" if next_word else False
+                    # 6B.1: Also treat as possessive if the stem ends with
+                    # a definiteness marker (ەکە/یەکە) — definite nouns
+                    # commonly take possessive ی, not ezafe.
+                    _has_definite_marker = any(
+                        stem.endswith(dm) for dm in ("ەکە", "یەکە", "ەکان", "یەکان")
+                    )
+                    # 6B.1: Also treat as possessive if morphological
+                    # analyzer identifies the host as a noun with possessive.
+                    _analyzer_says_possessive = False
+                    if self.analyzer is not None:
+                        try:
+                            host_feats = self.analyzer.analyze_token(full_word)
+                            _analyzer_says_possessive = (
+                                host_feats.pos == "NOUN"
+                                and host_feats.raw_analysis.get("has_possessive", False)
+                            )
+                        except Exception:
+                            pass
+                    if not _is_next_verb and not _is_next_punct:
+                        if not _has_definite_marker and not _analyzer_says_possessive:
+                            continue
+
             positions.append({
                 "start": match.start(),
                 "end": match.end(),
@@ -549,6 +629,8 @@ class CliticErrorGenerator(BaseErrorGenerator):
                 "context": {
                     "stem": stem,
                     "clitic": clitic,
+                    "is_imperative": is_imperative,
+                    "has_preverb": host_has_preverb,
                 },
             })
 
@@ -560,9 +642,28 @@ class CliticErrorGenerator(BaseErrorGenerator):
         Within-number swaps (sg→sg, pl→pl) are weighted more heavily
         than cross-number swaps, reflecting natural error patterns
         per Slevanayi (2001), p. 60.
+
+        For passive verb hosts (Amin 2016, pp. 39-43), the clitic must
+        shift from Set 1 to Set 2. If the host is passive and the current
+        clitic has a reassignment target, use PASSIVE_CLITIC_REASSIGNMENT
+        to generate a more linguistically plausible error.
         """
         ctx = position["context"]
         current_clitic = ctx["clitic"]
+        stem = ctx["stem"]
+
+        # Check if the host verb is passive — passive constructions
+        # trigger Set 1→Set 2 clitic shift (Amin 2016, pp. 39-43).
+        # For passive hosts, use PASSIVE_CLITIC_REASSIGNMENT to swap
+        # the clitic to its Set 2 counterpart instead of blind swapping.
+        if self.is_passive(stem + current_clitic):
+            reassigned = PASSIVE_CLITIC_REASSIGNMENT.get(current_clitic)
+            if reassigned and reassigned != current_clitic:
+                error_word = stem + reassigned
+                if error_word != position["original"]:
+                    return error_word
+            # If reassignment maps to same form (e.g. 1sg م→م),
+            # fall through to weighted swap below.
 
         if current_clitic not in CLITIC_SWAPS_WEIGHTED:
             return None
@@ -570,12 +671,14 @@ class CliticErrorGenerator(BaseErrorGenerator):
         alternatives, weights = CLITIC_SWAPS_WEIGHTED[current_clitic]
         if not alternatives:
             return None
+        if not any(weights):
+            return None
 
         # Use weighted random selection
         # random.choices returns a list, take first element
         new_clitic = self.rng.choices(alternatives, weights=weights, k=1)[0]
 
-        error_word = ctx["stem"] + new_clitic
+        error_word = stem + new_clitic
 
         if error_word == position["original"]:
             return None
