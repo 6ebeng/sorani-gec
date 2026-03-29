@@ -120,6 +120,21 @@ class AgreementChecker:
         ov_violations = self._check_object_verb_ergative(sentence)
         violations.extend(ov_violations)
         total_checks += 1
+
+        # Check 6: Negative concord (double negation required in Sorani)
+        nc_violations = self._check_negative_concord(sentence)
+        violations.extend(nc_violations)
+        total_checks += 1
+
+        # Check 7: Orthographic consistency (common confusion pairs)
+        orth_violations = self._check_orthography(sentence)
+        violations.extend(orth_violations)
+        total_checks += 1
+
+        # Check 8: Conditional agreement (ئەگەر clause tense constraints)
+        cond_violations = self._check_conditional_agreement(sentence)
+        violations.extend(cond_violations)
+        total_checks += 1
         
         passed = total_checks - min(len(violations), total_checks)
         
@@ -497,6 +512,96 @@ class AgreementChecker:
                     )
                 break  # only check nearest object
 
+        return violations
+
+    # ── PIPE-9: Additional checks for uncovered error generators ──
+
+    # Common orthographic confusion pairs (subset of what orthography.py generates)
+    _ORTHO_CONFUSIONS = [
+        ("ح", "ه"),
+        ("خ", "غ"),
+        ("ڵ", "ل"),
+        ("ڕ", "ر"),
+        ("ع", "ئ"),
+    ]
+
+    def _check_orthography(self, sentence: str) -> list[str]:
+        """Flag words containing likely orthographic confusions.
+
+        Uses the lexicon (when available) to check whether a word with a
+        known confusion character is misspelled. This catches cases where
+        the model preserved a misspelling instead of correcting it.
+        """
+        violations = []
+        words = self._analyzer.tokenize(sentence)
+        for word in words:
+            for a, b in self._ORTHO_CONFUSIONS:
+                if a in word:
+                    alt = word.replace(a, b, 1)
+                    if (self._analyzer._lexicon
+                            and hasattr(self._analyzer._lexicon, 'is_correct')
+                            and not self._analyzer._lexicon.is_correct(word)
+                            and self._analyzer._lexicon.is_correct(alt)):
+                        violations.append(
+                            f"Orthographic confusion: '{word}' may be '{alt}' "
+                            f"({a}→{b})"
+                        )
+                        break
+        return violations
+
+    _NEG_MARKERS = {"نە", "نا", "هیچ", "هەرگیز"}
+
+    def _check_negative_concord(self, sentence: str) -> list[str]:
+        """Check negative concord: هیچ/هەرگیز require نە/نا on the verb.
+
+        In Sorani Kurdish, negative polarity items like هیچ (nothing) and
+        هەرگیز (never) require a negated verb in the same clause. A
+        sentence like *هیچ دەزانم is ungrammatical.
+        """
+        violations = []
+        words = self._analyzer.tokenize(sentence)
+        npi_words = {"هیچ", "هەرگیز", "هیچکەس", "هیچکام"}
+        has_npi = any(w in npi_words for w in words)
+        if not has_npi:
+            return violations
+        has_neg_verb = any(
+            w.startswith("نا") or w.startswith("نە") for w in words
+        )
+        if not has_neg_verb:
+            npis = [w for w in words if w in npi_words]
+            violations.append(
+                f"Negative concord: NPI {npis} without negated verb"
+            )
+        return violations
+
+    def _check_conditional_agreement(self, sentence: str) -> list[str]:
+        """Check conditional clause tense constraints.
+
+        ئەگەر (if) clauses in Sorani typically take subjunctive or past
+        tense in the protasis, not indicative present with دە-prefix.
+        A sentence like *ئەگەر دەڕۆم is non-standard; the correct form
+        uses the bare subjunctive (ئەگەر بچم).
+        """
+        violations = []
+        words = self._analyzer.tokenize(sentence)
+        cond_markers = {"ئەگەر", "ئەگەری"}
+        in_cond = False
+        for i, word in enumerate(words):
+            if word in cond_markers:
+                in_cond = True
+                continue
+            if in_cond:
+                # End condition at clause boundaries
+                if word in {"،", ".", "؟", "!"}:
+                    in_cond = False
+                    continue
+                # دە-prefix in conditional protasis is non-standard
+                if word.startswith("دە") and _is_present_verb(word):
+                    violations.append(
+                        f"Conditional agreement: indicative '{word}' in "
+                        f"ئەگەر-clause; expected subjunctive (ب-prefix)"
+                    )
+                    in_cond = False
         return violations
 
 

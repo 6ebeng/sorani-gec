@@ -268,6 +268,14 @@ class NounAdjectiveErrorGenerator(BaseErrorGenerator):
 
             # Only consider positions where the modifier is a known adjective
             is_adjective = adjective in COMMON_ADJECTIVES
+            # Analyzer-enhanced adjective detection: when the hardcoded
+            # list misses a word, fall back to the morphological analyzer.
+            if not is_adjective and self.analyzer is not None:
+                try:
+                    adj_feats = self.analyzer.analyze_token(adjective)
+                    is_adjective = adj_feats.pos == "ADJ"
+                except Exception:
+                    pass
             if not is_adjective and len(adjective) < 3:
                 continue
 

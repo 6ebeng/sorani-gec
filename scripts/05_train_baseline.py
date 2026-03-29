@@ -73,6 +73,12 @@ def main():
                         help="Explicitly set a device (e.g., 'cuda:0', 'cpu').")
     parser.add_argument("--curriculum", action="store_true", default=False,
                         help="Enable curriculum learning (easy→hard by sentence length)")
+    parser.add_argument("--curriculum-morphology", action="store_true", default=False,
+                        help="Use morphology-aware difficulty (edge count + word count) "
+                             "instead of word count only. Requires --curriculum.")
+    parser.add_argument("--augment", type=float, default=0.0,
+                        help="Augmentation ratio: add N*augment augmented pairs "
+                             "to training data (0 = disabled). Uses swap strategy.")
     args = parser.parse_args()
 
     # Load YAML config and use as defaults; CLI args override.
@@ -141,6 +147,26 @@ def main():
         dev_sources, dev_targets = load_pairs(data_dir / "dev.src")
     logger.info("Loaded %d train, %d dev pairs", len(train_sources), len(dev_sources))
 
+    # PIPE-12: Data augmentation
+    if args.augment > 0:
+        from src.data.augmentation import SoraniAugmenter
+        augmenter = SoraniAugmenter(seed=42)
+        n_aug = int(len(train_sources) * args.augment)
+        import random as _aug_rng
+        _aug_rand = _aug_rng.Random(42)
+        aug_src, aug_tgt = [], []
+        for _ in range(n_aug):
+            idx = _aug_rand.randint(0, len(train_sources) - 1)
+            a_src, a_tgt = augmenter.augment_pair(
+                train_sources[idx], train_targets[idx], strategy="swap",
+            )
+            aug_src.append(a_src)
+            aug_tgt.append(a_tgt)
+        train_sources.extend(aug_src)
+        train_targets.extend(aug_tgt)
+        logger.info("Augmented training data: +%d pairs (%d total)",
+                     n_aug, len(train_sources))
+
     class GECDataset(Dataset):
         def __init__(self, sources, targets, tokenizer, max_length=128):
             self.sources = sources
@@ -173,7 +199,17 @@ def main():
     # 6B.8: Use word count instead of character length.
     curriculum_sampler = None
     if args.curriculum:
-        difficulties = [len(s.split()) for s in train_sources]
+        # PIPE-11: morphology-aware difficulty when requested
+        if args.curriculum_morphology:
+            from src.data.curriculum import compute_morphology_difficulty
+            from src.morphology.analyzer import MorphologicalAnalyzer
+            _cur_analyzer = MorphologicalAnalyzer(use_klpt=False)
+            difficulties = compute_morphology_difficulty(
+                train_sources, analyzer=_cur_analyzer, edge_weight=0.5,
+            )
+            logger.info("Curriculum: morphology-aware difficulty scores computed")
+        else:
+            difficulties = [len(s.split()) for s in train_sources]
         curriculum_sampler = CurriculumSampler(
             difficulties, total_epochs=args.epochs,
         )

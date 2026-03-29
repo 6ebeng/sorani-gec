@@ -206,6 +206,7 @@ class ErrorPipeline:
         output_dir: str,
         target_pairs: int = 50000,
         corruption_ratio: float = 0.7,
+        spell_check_clean: bool = False,
     ) -> dict:
         """Process a clean corpus file and generate synthetic parallel data.
         
@@ -214,6 +215,7 @@ class ErrorPipeline:
             output_dir: Directory to save output files.
             target_pairs: Target number of parallel pairs.
             corruption_ratio: Fraction of sentences to corrupt (rest stay clean→clean).
+            spell_check_clean: If True, spell-check clean sentences before error injection.
             
         Returns:
             Statistics dictionary.
@@ -227,21 +229,22 @@ class ErrorPipeline:
         
         logger.info("Loaded %d clean sentences", len(sentences))
         
-        # Preprocessing: spell-check clean sentences if available
-        spell_checker = SoraniSpellChecker()
-        if hasattr(spell_checker, "correct_sentence") and callable(spell_checker.correct_sentence):
-            sentences = [spell_checker.correct_sentence(s) for s in sentences]
-            logger.info("Spell-checked clean corpus via SoraniSpellChecker")
-        else:
-            logger.info("SoraniSpellChecker.correct_sentence() not available — skipping spell check")
-        
+        # Truncate/oversample to target BEFORE expensive spell-check
         if len(sentences) < target_pairs:
-            # Oversample if needed
             multiplier = (target_pairs // len(sentences)) + 1
             sentences = (sentences * multiplier)[:target_pairs]
             logger.info("Oversampled to %d sentences", len(sentences))
         else:
             sentences = sentences[:target_pairs]
+        
+        # Preprocessing: spell-check clean sentences if requested
+        if spell_check_clean:
+            spell_checker = SoraniSpellChecker()
+            if hasattr(spell_checker, "correct_sentence") and callable(spell_checker.correct_sentence):
+                sentences = [spell_checker.correct_sentence(s) for s in sentences]
+                logger.info("Spell-checked %d clean sentences via SoraniSpellChecker", len(sentences))
+            else:
+                logger.info("SoraniSpellChecker.correct_sentence() not available — skipping spell check")
         
         # Process sentences
         results = []

@@ -299,7 +299,7 @@ def test_checker_wiki_corpus():
     for sentence in WIKI_CORPUS:
         result = checker.check_sentence(sentence)
         assert isinstance(result, AgreementResult)
-        assert result.checks_total == 5
+        assert result.checks_total == 8
         assert result.checks_passed <= result.checks_total
         assert 0.0 <= result.accuracy <= 1.0
         results.append(result)
@@ -361,7 +361,7 @@ def test_full_pipeline_clean_sentences():
 
         # Step 4: Check agreement
         result = checker.check_sentence(normalized)
-        assert result.checks_total == 5
+        assert result.checks_total == 8
 
     print("  test_full_pipeline_clean_sentences: PASSED")
 

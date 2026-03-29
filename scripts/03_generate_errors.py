@@ -31,6 +31,9 @@ def main():
     parser.add_argument("--error-rate", type=float, default=0.15)
     parser.add_argument("--corruption-ratio", type=float, default=0.7)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--spell-check", action="store_true", default=False,
+                        help="Post-filter: discard pairs where corrupted side "
+                             "has real misspellings (not intentional errors)")
     args = parser.parse_args()
 
     if not Path(args.input).exists():
@@ -58,6 +61,41 @@ def main():
     
     logger.info("Synthetic corpus generation complete.")
     logger.info("Stats: %s", stats)
+
+    # PIPE-3: Optional spell-check post-filter
+    if args.spell_check:
+        from src.data.spell_checker import SoraniSpellChecker
+        checker = SoraniSpellChecker()
+        if checker.is_available():
+            src_path = Path(args.output) / "train.src"
+            tgt_path = Path(args.output) / "train.tgt"
+            if src_path.exists() and tgt_path.exists():
+                with open(src_path, "r", encoding="utf-8") as f:
+                    src_lines = f.readlines()
+                with open(tgt_path, "r", encoding="utf-8") as f:
+                    tgt_lines = f.readlines()
+                kept_src, kept_tgt = [], []
+                dropped = 0
+                for s, t in zip(src_lines, tgt_lines):
+                    # The target (clean) side should have no misspellings.
+                    # Drop pairs where the clean side has misspelled words.
+                    words = t.strip().split()
+                    bad = sum(1 for w in words if not checker.is_correct(w))
+                    if bad > len(words) * 0.3:  # >30% misspelled → suspect
+                        dropped += 1
+                        continue
+                    kept_src.append(s)
+                    kept_tgt.append(t)
+                with open(src_path, "w", encoding="utf-8") as f:
+                    f.writelines(kept_src)
+                with open(tgt_path, "w", encoding="utf-8") as f:
+                    f.writelines(kept_tgt)
+                logger.info(
+                    "Spell-check filter: kept %d, dropped %d pairs",
+                    len(kept_src), dropped,
+                )
+        else:
+            logger.warning("Spell checker not available — skipping post-filter")
 
     # Fix 2.10: Structured error type distribution
     errors_by_type = stats.get("errors_by_type", {})

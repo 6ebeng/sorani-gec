@@ -10,10 +10,13 @@ correlates more reliably with morphological complexity in Sorani Kurdish.
 Byte length is misleading for Arabic-script text because multi-byte
 UTF-8 characters inflate length without increasing linguistic complexity.
 Optionally, agreement-edge density can augment the difficulty score.
+
+PIPE-11: Supports pluggable difficulty metrics — word count (default)
+or morphology-aware (agreement edge count + word count).
 """
 
 import math
-from typing import Iterator, Sequence
+from typing import Iterator, Sequence, Optional
 
 from torch.utils.data import Sampler
 
@@ -68,3 +71,42 @@ class CurriculumSampler(Sampler[int]):
         rng = random.Random(self.seed + self._epoch)
         rng.shuffle(indices)
         return iter(indices)
+
+
+def compute_morphology_difficulty(
+    sentences: Sequence[str],
+    analyzer: Optional[object] = None,
+    edge_weight: float = 0.5,
+) -> list[float]:
+    """Compute per-sentence difficulty scores using morphological complexity.
+
+    Combines word count with agreement edge density from the agreement
+    graph builder. Sentences with more agreement dependencies are scored
+    as harder, even when short.
+
+    Args:
+        sentences: List of source sentences.
+        analyzer: MorphologicalAnalyzer instance. If None, falls back
+            to word count only.
+        edge_weight: Weight given to edge count relative to word count.
+            0.0 = pure word count; 1.0 = edges dominate.
+
+    Returns:
+        List of float difficulty scores (higher = harder).
+    """
+    if analyzer is None:
+        return [float(len(s.split())) for s in sentences]
+
+    from ..morphology.builder import build_agreement_graph
+
+    scores = []
+    for sent in sentences:
+        n_words = len(sent.split())
+        try:
+            graph = build_agreement_graph(sent, analyzer)
+            n_edges = len(graph.edges)
+        except Exception:
+            n_edges = 0
+        score = n_words + edge_weight * n_edges
+        scores.append(score)
+    return scores

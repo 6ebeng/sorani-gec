@@ -544,9 +544,12 @@ class MorphologyAwareGEC(nn.Module):
                 morph_feats[bi] = morph_feats_word[w_idx]
         morph_tensor = torch.tensor([morph_feats], dtype=torch.long)
 
+        # PIPE-16: Optimized agreement mask construction using sparse
+        # index-based tensor filling instead of 6-nested Python loops.
         n_words = len(graph.tokens)
-        agr_mask = [[[0] * self.max_length for _ in range(self.max_length)]
-                    for _ in range(num_types)]
+        agr_tensor = torch.zeros(
+            1, num_types, self.max_length, self.max_length, dtype=torch.int8,
+        )
         for t_idx in range(min(len(stacked), num_types)):
             word_mat = stacked[t_idx]
             for r in range(min(len(word_mat), n_words)):
@@ -556,11 +559,10 @@ class MorphologyAwareGEC(nn.Module):
                     if r < len(byte_offsets) and c < len(byte_offsets):
                         r_start, r_end = byte_offsets[r]
                         c_start, c_end = byte_offsets[c]
-                        for bi in range(r_start, min(r_end, self.max_length)):
-                            for bj in range(c_start, min(c_end, self.max_length)):
-                                agr_mask[t_idx][bi][bj] = 1
-
-        agr_tensor = torch.tensor([agr_mask], dtype=torch.int8)
+                        r_end = min(r_end, self.max_length)
+                        c_end = min(c_end, self.max_length)
+                        if r_start < r_end and c_start < c_end:
+                            agr_tensor[0, t_idx, r_start:r_end, c_start:c_end] = 1
         return morph_tensor, agr_tensor
 
     def correct_with_morphology(

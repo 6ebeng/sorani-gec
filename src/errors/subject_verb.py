@@ -412,6 +412,16 @@ class SubjectVerbErrorGenerator(BaseErrorGenerator):
                     },
                 })
 
+        # Analyzer-enhanced validation: tag regex-matched verbs with
+        # morphological confirmation when the analyzer is available.
+        if self.analyzer is not None:
+            for pos in positions:
+                try:
+                    feats = self.analyzer.analyze_token(pos["original"])
+                    pos["context"]["analyzer_confirmed"] = feats.pos == "VERB"
+                except Exception:
+                    pos["context"]["analyzer_confirmed"] = None
+
         return positions
 
     def generate_error(self, position: dict) -> Optional[str]:

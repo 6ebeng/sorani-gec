@@ -255,6 +255,30 @@ def main():
     logger.info("Computing agreement accuracy...")
     agreement = evaluate_agreement_accuracy(hypotheses)
     logger.info("Agreement accuracy: %.4f", agreement['accuracy'])
+
+    # PIPE-7: Bootstrap confidence intervals for F₀.₅ and GLEU
+    logger.info("Computing bootstrap confidence intervals (1000 resamples)...")
+    import random as _rng
+    _boot_rng = _rng.Random(42)
+    n = len(sources)
+    n_boot = 1000
+    boot_f05, boot_gleu = [], []
+    for _ in range(n_boot):
+        indices = [_boot_rng.randint(0, n - 1) for _ in range(n)]
+        b_src = [sources[i] for i in indices]
+        b_hyp = [hypotheses[i] for i in indices]
+        b_ref = [references[i] for i in indices]
+        b_m = evaluate_corpus(b_src, b_hyp, b_ref)
+        boot_f05.append(b_m.f05)
+        boot_gleu.append(compute_gleu(b_src, b_hyp, b_ref))
+    boot_f05.sort()
+    boot_gleu.sort()
+    ci_low = int(n_boot * 0.025)
+    ci_high = int(n_boot * 0.975)
+    f05_ci = (boot_f05[ci_low], boot_f05[ci_high])
+    gleu_ci = (boot_gleu[ci_low], boot_gleu[ci_high])
+    logger.info("F₀.₅ 95%% CI: [%.4f, %.4f]", f05_ci[0], f05_ci[1])
+    logger.info("GLEU 95%% CI: [%.4f, %.4f]", gleu_ci[0], gleu_ci[1])
     
     # Save hypotheses for manual inspection
     hyp_file = output_dir / "hypotheses.txt"
@@ -312,6 +336,11 @@ def main():
         },
         "gleu": gleu_score,
         "agreement": agreement,
+        "bootstrap_ci": {
+            "f05_95ci": [f05_ci[0], f05_ci[1]],
+            "gleu_95ci": [gleu_ci[0], gleu_ci[1]],
+            "n_resamples": n_boot,
+        },
         "model_path": args.model_path,
         "test_size": len(sources),
     }

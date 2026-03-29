@@ -240,14 +240,22 @@ def main():
                     for bi in range(byte_start, min(byte_end, src_byte_len, seq_len)):
                         labels[bi] = err_cls
             else:
-                # Fallback: byte-level diff (capped at shorter length)
+                # PIPE-6: difflib-based alignment (replaces naive byte diff)
+                # Uses SequenceMatcher on byte sequences to correctly handle
+                # insertions/deletions that shift positions.
+                import difflib
                 target_text = record.get("target", "")
                 src_bytes = source.encode("utf-8")
                 tgt_bytes = target_text.encode("utf-8")
-                common_len = min(len(src_bytes), len(tgt_bytes), seq_len)
-                for i in range(common_len):
-                    if src_bytes[i] != tgt_bytes[i]:
-                        labels[i] = label_class
+                matcher = difflib.SequenceMatcher(
+                    None, src_bytes, tgt_bytes, autojunk=False,
+                )
+                for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+                    if tag == "equal":
+                        continue
+                    # Mark source-side bytes involved in replace/delete/insert
+                    for bi in range(i1, min(i2, seq_len)):
+                        labels[bi] = label_class
         return labels
 
     # --- Dataset ---

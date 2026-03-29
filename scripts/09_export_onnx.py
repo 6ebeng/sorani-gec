@@ -215,6 +215,55 @@ def export_to_onnx(
         )
         logger.info("Exported baseline encoder ONNX to %s", out_path)
 
+    # PIPE-10: Export decoder as a separate ONNX file for full inference
+    decoder_path = out_path.parent / (out_path.stem + "_decoder.onnx")
+    logger.info("Exporting decoder to %s ...", decoder_path)
+    try:
+        backbone_model = model.backbone if morphaware else model.model
+        decoder = backbone_model.decoder
+
+        # Decoder needs encoder_hidden_states + decoder_input_ids
+        hidden_dim = backbone_model.config.d_model
+        dummy_encoder_hidden = torch.randn(1, max_length, hidden_dim)
+        dummy_decoder_ids = torch.ones(1, 1, dtype=torch.long)
+
+        class _DecoderWrapper(torch.nn.Module):
+            def __init__(self, dec, enc_attn_mask):
+                super().__init__()
+                self.dec = dec
+                self.enc_attn_mask = enc_attn_mask
+
+            def forward(self, decoder_input_ids, encoder_hidden_states):
+                out = self.dec(
+                    input_ids=decoder_input_ids,
+                    encoder_hidden_states=encoder_hidden_states,
+                    encoder_attention_mask=self.enc_attn_mask,
+                )
+                return out.last_hidden_state
+
+        dec_wrapper = _DecoderWrapper(decoder, dummy_inputs["attention_mask"])
+
+        torch.onnx.export(
+            dec_wrapper,
+            (dummy_decoder_ids, dummy_encoder_hidden),
+            str(decoder_path),
+            input_names=["decoder_input_ids", "encoder_hidden_states"],
+            output_names=["decoder_hidden_states"],
+            dynamic_axes={
+                "decoder_input_ids": {0: "batch", 1: "dec_seq"},
+                "encoder_hidden_states": {0: "batch", 1: "enc_seq"},
+                "decoder_hidden_states": {0: "batch", 1: "dec_seq"},
+            },
+            opset_version=opset_version,
+            do_constant_folding=True,
+        )
+        logger.info("Exported decoder ONNX to %s", decoder_path)
+    except Exception as exc:
+        logger.warning(
+            "Decoder ONNX export failed: %s. Encoder export is still valid "
+            "but full encoder-decoder inference requires both files.", exc,
+        )
+
     return out_path
 
 

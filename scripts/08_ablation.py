@@ -316,7 +316,26 @@ def main():
                         help="Custom data sizes for data_size_variation")
     args = parser.parse_args()
 
-    config = load_config(args.config)
+    # PIPE-1: Load YAML config and warn prominently if missing
+    cfg_path = Path(args.config)
+    if cfg_path.exists():
+        config = load_config(args.config)
+        logger.info("Loaded config from %s", cfg_path)
+    else:
+        logger.warning(
+            "Config file not found: %s — ablation will use CLI/default "
+            "hyperparameters which may differ from the YAML config. "
+            "Training results may not match those from 05/06/07 scripts.",
+            cfg_path,
+        )
+        config = {
+            "data": {"splits_dir": "data/splits", "max_seq_length": 128, "seed": 42},
+            "model": {"pretrained": "google/byt5-small"},
+            "training": {
+                "max_epochs": 30, "batch_size": 32, "learning_rate": 5e-5,
+                "early_stopping_patience": 5, "weight_decay": 0.01,
+            },
+        }
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
