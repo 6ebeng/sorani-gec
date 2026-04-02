@@ -335,10 +335,12 @@ class MorphologyAwareGEC(nn.Module):
         
         total_loss = outputs.loss if outputs.loss is not None else torch.tensor(0.0, device=hidden_states.device)
         
-        # Agreement auxiliary loss — with optional per-edge-type weighting
+        # Agreement auxiliary loss — with optional per-edge-type weighting.
+        # Mask out padding tokens so they do not dilute the agreement signal.
         if agreement_labels is not None:
             agr_logits_flat = agreement_logits.view(-1, agreement_logits.size(-1))
             agr_labels_flat = agreement_labels.view(-1)
+            padding_mask = attention_mask.view(-1).float()
 
             if self.edge_type_loss_weights:
                 # Build per-sample weight vector from edge_type_loss_weights.
@@ -346,18 +348,21 @@ class MorphologyAwareGEC(nn.Module):
                 # class 0 (correct) gets weight 1.0.
                 sample_weights = torch.ones_like(agr_labels_flat, dtype=torch.float)
                 for edge_type, w in self.edge_type_loss_weights.items():
-                    # Find the label class for this edge type (1-indexed)
                     try:
                         cls_idx = EDGE_TYPE_ORDER.index(edge_type) + 1
                     except ValueError:
                         logger.warning("Unknown edge type in loss weights: %s", edge_type)
                         continue
                     sample_weights[agr_labels_flat == cls_idx] = w
-                loss_fn_unreduced = nn.CrossEntropyLoss(reduction="none")
-                per_token_loss = loss_fn_unreduced(agr_logits_flat, agr_labels_flat)
-                agreement_loss = (per_token_loss * sample_weights).mean()
+                per_token_loss = nn.functional.cross_entropy(
+                    agr_logits_flat, agr_labels_flat, reduction="none",
+                )
+                agreement_loss = (per_token_loss * sample_weights * padding_mask).sum() / padding_mask.sum().clamp(min=1.0)
             else:
-                agreement_loss = self.agreement_loss_fn(agr_logits_flat, agr_labels_flat)
+                per_token_loss = nn.functional.cross_entropy(
+                    agr_logits_flat, agr_labels_flat, reduction="none",
+                )
+                agreement_loss = (per_token_loss * padding_mask).sum() / padding_mask.sum().clamp(min=1.0)
 
             total_loss = total_loss + self.agreement_loss_weight * agreement_loss
         
@@ -781,6 +786,18 @@ class MorphologyAwareGEC(nn.Module):
                 agr_list.append(a.squeeze(0))
             morph_tensor = torch.stack(morph_list).to(device)
             agr_tensor = torch.stack(agr_list).to(device)
+
+            # Ablation: zero out features not in the active subset.
+            active = getattr(self, "_ablation_active_features", None)
+            if active is not None and morph_tensor is not None:
+                _ALL_FEATURES = [
+                    "person", "number", "tense", "aspect", "case",
+                    "definiteness", "transitivity", "clitic_person",
+                    "clitic_number",
+                ]
+                for f_idx, fname in enumerate(_ALL_FEATURES):
+                    if fname not in active:
+                        morph_tensor[:, :, f_idx] = 0
 
         outputs = self.forward(
             input_ids=inputs["input_ids"],

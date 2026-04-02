@@ -26,6 +26,7 @@ from src.evaluation.f05_scorer import (
 )
 from src.evaluation.agreement_accuracy import evaluate_agreement_accuracy
 from src.evaluation.gleu_scorer import compute_gleu
+from src.evaluation.m2_scorer import evaluate_m2
 
 logging.basicConfig(
     level=logging.INFO,
@@ -251,6 +252,12 @@ def main():
     gleu_score = compute_gleu(sources, hypotheses, references)
     logger.info("GLEU: %.4f", gleu_score)
 
+    # Compute M2 scorer metrics
+    logger.info("Computing M2 metrics...")
+    m2_metrics = evaluate_m2(sources, hypotheses, references)
+    logger.info("M2 — P: %.4f  R: %.4f  F0.5: %.4f",
+                m2_metrics.precision, m2_metrics.recall, m2_metrics.f05)
+
     # Compute agreement accuracy
     logger.info("Computing agreement accuracy...")
     agreement = evaluate_agreement_accuracy(hypotheses)
@@ -262,7 +269,7 @@ def main():
     _boot_rng = _rng.Random(42)
     n = len(sources)
     n_boot = 1000
-    boot_f05, boot_gleu = [], []
+    boot_f05, boot_gleu, boot_m2 = [], [], []
     for _ in range(n_boot):
         indices = [_boot_rng.randint(0, n - 1) for _ in range(n)]
         b_src = [sources[i] for i in indices]
@@ -271,14 +278,19 @@ def main():
         b_m = evaluate_corpus(b_src, b_hyp, b_ref)
         boot_f05.append(b_m.f05)
         boot_gleu.append(compute_gleu(b_src, b_hyp, b_ref))
+        b_m2 = evaluate_m2(b_src, b_hyp, b_ref)
+        boot_m2.append(b_m2.f05)
     boot_f05.sort()
     boot_gleu.sort()
+    boot_m2.sort()
     ci_low = int(n_boot * 0.025)
     ci_high = int(n_boot * 0.975)
     f05_ci = (boot_f05[ci_low], boot_f05[ci_high])
     gleu_ci = (boot_gleu[ci_low], boot_gleu[ci_high])
+    m2_ci = (boot_m2[ci_low], boot_m2[ci_high])
     logger.info("F₀.₅ 95%% CI: [%.4f, %.4f]", f05_ci[0], f05_ci[1])
     logger.info("GLEU 95%% CI: [%.4f, %.4f]", gleu_ci[0], gleu_ci[1])
+    logger.info("M2 F₀.₅ 95%% CI: [%.4f, %.4f]", m2_ci[0], m2_ci[1])
     
     # Save hypotheses for manual inspection
     hyp_file = output_dir / "hypotheses.txt"
@@ -335,10 +347,19 @@ def main():
             },
         },
         "gleu": gleu_score,
+        "m2": {
+            "precision": m2_metrics.precision,
+            "recall": m2_metrics.recall,
+            "f05": m2_metrics.f05,
+            "tp": m2_metrics.tp,
+            "fp": m2_metrics.fp,
+            "fn": m2_metrics.fn,
+        },
         "agreement": agreement,
         "bootstrap_ci": {
             "f05_95ci": [f05_ci[0], f05_ci[1]],
             "gleu_95ci": [gleu_ci[0], gleu_ci[1]],
+            "m2_f05_95ci": [m2_ci[0], m2_ci[1]],
             "n_resamples": n_boot,
         },
         "model_path": args.model_path,

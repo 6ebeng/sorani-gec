@@ -234,6 +234,20 @@ def main():
                     if char_start == char_end:
                         logger.debug("Zero-length error span at %d — skipped", char_start)
                         continue
+                    # Validate word-boundary alignment: spans from error
+                    # generators should start/end at word edges.
+                    if char_start > 0 and source[char_start - 1] not in (' ', '\t', '\n') and source[char_start] not in (' ', '\t', '\n'):
+                        logger.debug(
+                            "Span start=%d not at word boundary (context: '…%s|%s…')",
+                            char_start, source[max(0, char_start-2):char_start],
+                            source[char_start:char_start+2],
+                        )
+                    if char_end < len(source) and source[char_end - 1] not in (' ', '\t', '\n') and source[char_end] not in (' ', '\t', '\n'):
+                        logger.debug(
+                            "Span end=%d not at word boundary (context: '…%s|%s…')",
+                            char_end, source[max(0, char_end-2):char_end],
+                            source[char_end:min(len(source), char_end+2)],
+                        )
                     byte_start = len(source[:char_start].encode("utf-8"))
                     byte_end = len(source[:char_end].encode("utf-8"))
                     src_byte_len = len(src_bytes)
@@ -309,28 +323,36 @@ def main():
             n_words = len(graph.tokens)
 
             # Build word-to-byte mapping for alignment
-            # Use character-level offset tracking instead of str.find() to avoid
-            # issues with repeated words in Arabic script.
+            # Use cumulative byte tracking to avoid O(n²) re-encoding.
             word_tokens = self.analyzer.tokenize(src)
             byte_offsets: list[tuple[int, int]] = []  # (start_byte, end_byte) per word
             char_cursor = 0
+            byte_cursor = 0
             for w in word_tokens:
                 # Skip whitespace between words
                 while char_cursor < len(src) and src[char_cursor] in (' ', '\t', '\n'):
+                    byte_cursor += len(src[char_cursor].encode("utf-8"))
                     char_cursor += 1
                 # Find this word starting at char_cursor
                 idx = src.find(w, char_cursor)
                 if idx >= 0:
-                    byte_start = len(src[:idx].encode("utf-8"))
-                    byte_end = byte_start + len(w.encode("utf-8"))
+                    # Advance byte_cursor past any skipped chars between char_cursor and idx
+                    if idx > char_cursor:
+                        byte_cursor += len(src[char_cursor:idx].encode("utf-8"))
+                    byte_start = byte_cursor
+                    w_bytes = len(w.encode("utf-8"))
+                    byte_end = byte_start + w_bytes
                     byte_offsets.append((byte_start, byte_end))
                     char_cursor = idx + len(w)
+                    byte_cursor = byte_end
                 else:
                     # Fallback: estimate from cursor position
-                    byte_start = len(src[:char_cursor].encode("utf-8"))
-                    byte_end = byte_start + len(w.encode("utf-8"))
+                    byte_start = byte_cursor
+                    w_bytes = len(w.encode("utf-8"))
+                    byte_end = byte_start + w_bytes
                     byte_offsets.append((byte_start, byte_end))
                     char_cursor += len(w)
+                    byte_cursor = byte_end
 
             # Pad typed adjacency to [num_types, max_length, max_length]
             # mapped from word-level to byte-level positions
