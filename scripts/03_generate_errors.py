@@ -34,6 +34,9 @@ def main():
     parser.add_argument("--spell-check", action="store_true", default=False,
                         help="Post-filter: discard pairs where corrupted side "
                              "has real misspellings (not intentional errors)")
+    parser.add_argument("--validate-errors", action="store_true", default=False,
+                        help="CRIT-6: reject error pairs where injected error "
+                             "tokens are valid dictionary words")
     args = parser.parse_args()
 
     if not Path(args.input).exists():
@@ -57,6 +60,7 @@ def main():
         output_dir=args.output,
         target_pairs=args.target,
         corruption_ratio=args.corruption_ratio,
+        validate_errors=args.validate_errors,
     )
     
     logger.info("Synthetic corpus generation complete.")
@@ -74,6 +78,11 @@ def main():
                     src_lines = f.readlines()
                 with open(tgt_path, "r", encoding="utf-8") as f:
                     tgt_lines = f.readlines()
+                if len(src_lines) != len(tgt_lines):
+                    logger.warning(
+                        "src/tgt line count mismatch: %d vs %d",
+                        len(src_lines), len(tgt_lines),
+                    )
                 kept_src, kept_tgt = [], []
                 dropped = 0
                 for s, t in zip(src_lines, tgt_lines):

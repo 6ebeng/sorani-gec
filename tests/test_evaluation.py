@@ -13,8 +13,6 @@ from src.evaluation.f05_scorer import (
     evaluate_corpus_with_sentences,
     evaluate_sentence,
     span_based_edits,
-    GECMetrics,
-    SpanEdit,
 )
 from src.evaluation.agreement_accuracy import AgreementChecker, evaluate_agreement_accuracy
 
@@ -153,7 +151,7 @@ def test_agreement_checker_clitic_consistency():
     """Clitic consistency check runs (no crash) on normal sentence."""
     checker = AgreementChecker()
     result = checker.check_sentence("پارەکەم بردەوە")
-    assert result.checks_total == 8
+    assert result.checks_total == 12
     print(f"  Clitic check: violations={result.violations}")
 
 
@@ -345,8 +343,8 @@ def test_agreement_checker_object_verb_ergative():
     checker = AgreementChecker()
     # Past transitive: object should agree with verb
     result = checker.check_sentence("کتێبەکە بردم")
-    assert result.checks_total == 8, (
-        f"Expected 8 checks (including ergative + new checks), got {result.checks_total}"
+    assert result.checks_total == 12, (
+        f"Expected 12 checks (including ergative + new checks), got {result.checks_total}"
     )
 
 
@@ -389,12 +387,12 @@ def test_compute_f05_balanced():
     print(f"  F₀.₅(P=0.5, R=0.5) = {result:.6f}")
 
 
-def test_agreement_checker_eight_checks_counted():
-    """AgreementChecker must run exactly 8 checks per sentence."""
+def test_agreement_checker_twelve_checks_counted():
+    """AgreementChecker must run exactly 12 checks per sentence."""
     checker = AgreementChecker()
     result = checker.check_sentence("من نانم خوارد")
-    assert result.checks_total == 8
-    print(f"  Eight checks confirmed: {result.checks_total}")
+    assert result.checks_total == 12
+    print(f"  Twelve checks confirmed: {result.checks_total}")
 
 
 # ============================================================================
@@ -449,8 +447,8 @@ if __name__ == "__main__":
     test_evaluate_corpus_with_sentences_mixed()
     test_evaluate_corpus_with_sentences_empty()
 
-    print("\n=== Object-Verb Ergative & Five-Check Tests ===")
+    print("\n=== Object-Verb Ergative & Twelve-Check Tests ===")
     test_agreement_checker_object_verb_ergative()
-    test_agreement_checker_five_checks_counted()
+    test_agreement_checker_twelve_checks_counted()
 
     print("\nAll evaluation tests passed!")

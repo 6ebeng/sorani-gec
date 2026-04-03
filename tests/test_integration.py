@@ -12,7 +12,6 @@ Each sentence is real Sorani text, not synthetic.
 import sys
 import os
 import tempfile
-import json
 
 import pytest
 
@@ -293,13 +292,13 @@ def test_graph_violation_check():
 # ============================================================================
 
 def test_checker_wiki_corpus():
-    """Agreement checker processes all Wikipedia sentences with 5 checks each."""
+    """Agreement checker processes all Wikipedia sentences with 12 checks each."""
     checker = AgreementChecker()
     results = []
     for sentence in WIKI_CORPUS:
         result = checker.check_sentence(sentence)
         assert isinstance(result, AgreementResult)
-        assert result.checks_total == 8
+        assert result.checks_total == 12
         assert result.checks_passed <= result.checks_total
         assert 0.0 <= result.accuracy <= 1.0
         results.append(result)
@@ -361,7 +360,7 @@ def test_full_pipeline_clean_sentences():
 
         # Step 4: Check agreement
         result = checker.check_sentence(normalized)
-        assert result.checks_total == 8
+        assert result.checks_total == 12
 
     print("  test_full_pipeline_clean_sentences: PASSED")
 

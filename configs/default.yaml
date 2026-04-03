@@ -52,7 +52,11 @@ data:
   error_rate: 0.15  # probability of injecting error per eligible position
 
 model:
-  # Architecture
+  # NOTE: The architecture fields below (type, d_model, n_heads, etc.)
+  # are NOT used when 'pretrained' is set. They are vestigial from an
+  # earlier design that supported training from scratch. The actual model
+  # architecture (d_model=1472, n_heads=6, 12+4 layers) comes from the
+  # pretrained ByT5-small checkpoint. Kept for documentation only.
   type: "transformer_seq2seq"  # or "edit_tagger"
   d_model: 512
   n_heads: 8
@@ -83,7 +87,7 @@ model:
   # Supported ByT5 size variants (selectable via --model flag in training scripts)
   # Each variant uses the same architecture; only backbone size differs.
   supported_variants:
-    - "google/byt5-small"    # ~223M params — default, fits 8GB VRAM
+    - "google/byt5-small"    # ~300M params — default, fits 8GB VRAM
     - "google/byt5-base"     # ~582M params — needs 16GB+ VRAM
     - "google/mt5-small"     # ~300M params — subword tokenization alternative
 
@@ -128,6 +132,7 @@ evaluation:
     - "no_morphology"           # baseline without morph features
     - "individual_features"     # one feature at a time
     - "data_size_variation"     # 10K, 20K, 30K, 40K, 50K
+    - "agreement_loss_weight"   # λ = 0.0, 0.1, 0.3, 0.5, 1.0 (PIPE-6)
 
 hardware:
   device: "cuda"

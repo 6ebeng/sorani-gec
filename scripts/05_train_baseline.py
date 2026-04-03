@@ -79,6 +79,8 @@ def main():
     parser.add_argument("--augment", type=float, default=0.0,
                         help="Augmentation ratio: add N*augment augmented pairs "
                              "to training data (0 = disabled). Uses swap strategy.")
+    parser.add_argument("--seed", type=int, default=42,
+                        help="Random seed for reproducibility (PIPE-7)")
     args = parser.parse_args()
 
     # Load YAML config and use as defaults; CLI args override.
@@ -104,6 +106,7 @@ def main():
     else:
         logger.warning("Config file not found: %s — using CLI defaults", cfg_path)
 
+    import random
     import torch
     from torch.utils.data import DataLoader, Dataset
     from torch.amp import GradScaler
@@ -112,6 +115,12 @@ def main():
     from src.model.baseline import BaselineGEC
     from src.evaluation.f05_scorer import evaluate_corpus
     from src.data.curriculum import CurriculumSampler
+
+    # PIPE-7: Seed all RNGs for reproducibility
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
 
     logger.info("Auto-Device: %s", "cuda" if torch.cuda.is_available() else "cpu")
     if args.device:
@@ -150,10 +159,10 @@ def main():
     # PIPE-12: Data augmentation
     if args.augment > 0:
         from src.data.augmentation import SoraniAugmenter
-        augmenter = SoraniAugmenter(seed=42)
+        augmenter = SoraniAugmenter(seed=args.seed)
         n_aug = int(len(train_sources) * args.augment)
         import random as _aug_rng
-        _aug_rand = _aug_rng.Random(42)
+        _aug_rand = _aug_rng.Random(args.seed)
         aug_src, aug_tgt = [], []
         for _ in range(n_aug):
             idx = _aug_rand.randint(0, len(train_sources) - 1)
@@ -236,6 +245,23 @@ def main():
 
     scaler = GradScaler("cuda", enabled=args.fp16 and device.type == "cuda")
 
+    # Defaults — must precede resume block so checkpoint can override
+    best_f05 = 0.0
+    patience_counter = 0
+    global_step = 0  # counts optimizer steps
+    start_epoch = 0
+
+    def compute_val_f05(model_, dev_srcs, dev_tgts):
+        """Generate corrections on dev set and compute F0.5."""
+        model_.eval()
+        hypotheses = []
+        with torch.no_grad():
+            for i in range(0, len(dev_srcs), args.batch_size):
+                batch_src = dev_srcs[i:i + args.batch_size]
+                hypotheses.extend(model_.correct_batch(batch_src, num_beams=4))
+        metrics = evaluate_corpus(dev_srcs, hypotheses, dev_tgts)
+        return metrics.f05, metrics
+
     # Resume from checkpoint if requested (ARCH-4)
     if args.resume_from:
         ckpt = torch.load(args.resume_from, map_location=device, weights_only=False)
@@ -251,8 +277,9 @@ def main():
             logger.info("Re-evaluated resumed checkpoint: F0.5=%.4f", best_f05)
         else:
             best_f05 = ckpt.get("best_f05", 0.0)
-        logger.info("Resumed from %s (epoch %d, step %d, best_f05=%.4f)",
-                     args.resume_from, start_epoch, global_step, best_f05)
+        patience_counter = ckpt.get("patience_counter", 0)
+        logger.info("Resumed from %s (epoch %d, step %d, best_f05=%.4f, patience=%d)",
+                     args.resume_from, start_epoch, global_step, best_f05, patience_counter)
 
     # Training loop
     output_dir = Path(args.output_dir)
@@ -290,6 +317,7 @@ def main():
             "epoch": epoch_,
             "global_step": global_step_,
             "best_f05": best_f05_,
+            "patience_counter": patience_counter,
         }, ckpt_path)
         saved_checkpoints.append((val_f05, ckpt_path))
         saved_checkpoints.sort(key=lambda x: x[0], reverse=True)  # best (highest F0.5) first
@@ -304,25 +332,10 @@ def main():
             import shutil
             shutil.copy2(str(saved_checkpoints[0][1]), str(best_path))
 
-    best_f05 = 0.0
-    patience_counter = 0
-    global_step = 0  # counts optimizer steps
-    start_epoch = 0
-
-    def compute_val_f05(model_, dev_srcs, dev_tgts):
-        """Generate corrections on dev set and compute F0.5."""
-        model_.eval()
-        hypotheses = []
-        with torch.no_grad():
-            for i in range(0, len(dev_srcs), args.batch_size):
-                batch_src = dev_srcs[i:i + args.batch_size]
-                hypotheses.extend(model_.correct_batch(batch_src, num_beams=4))
-        metrics = evaluate_corpus(dev_srcs, hypotheses, dev_tgts)
-        return metrics.f05, metrics
-
     for epoch in range(start_epoch, args.epochs):
         model.train()
         total_loss = 0
+        batch_idx = -1
         optimizer.zero_grad()
         if curriculum_sampler is not None:
             curriculum_sampler.set_epoch(epoch)
@@ -381,7 +394,7 @@ def main():
                             epoch + 1, args.epochs, batch_idx + 1, avg)
 
         # Flush any remaining accumulated gradients
-        if (batch_idx + 1) % args.grad_accum_steps != 0:
+        if batch_idx >= 0 and (batch_idx + 1) % args.grad_accum_steps != 0:
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             scaler.step(optimizer)

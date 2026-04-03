@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
-from src.morphology.graph import EDGE_TYPE_ORDER, AgreementGraph
+from src.morphology.graph import EDGE_TYPE_ORDER
 
 logger = logging.getLogger(__name__)
 

@@ -86,6 +86,16 @@ class OrthographicErrorGenerator(BaseErrorGenerator):
                 options.append(word.replace('ۆ', 'و', 1))
             if 'و' in word and 'وو' not in word and 'ۆ' not in word:
                 options.append(word.replace('و', 'ۆ', 1))
+            # ژ↔ز: voiced postalveolar vs alveolar fricative
+            if 'ژ' in word:
+                options.append(word.replace('ژ', 'ز', 1))
+            if 'ز' in word:
+                options.append(word.replace('ز', 'ژ', 1))
+            # ڤ↔ف: voiced vs voiceless labiodental fricative
+            if 'ڤ' in word:
+                options.append(word.replace('ڤ', 'ف', 1))
+            if 'ف' in word:
+                options.append(word.replace('ف', 'ڤ', 1))
                 
             if options:
                 # Filter to swaps that produce non-words (if lexicon available)

@@ -157,6 +157,15 @@ def main():
     parser.add_argument("--max-length", type=int, default=128)
     parser.add_argument("--spell-check", action="store_true", default=False,
                         help="Apply spell-check post-processing to model output")
+    parser.add_argument("--ensemble", action="store_true", default=False,
+                        help="Ensemble baseline + morphaware via majority vote")
+    parser.add_argument("--ensemble-strategy", default="majority_vote",
+                        choices=["majority_vote", "best_score"],
+                        help="Ensemble combination strategy")
+    parser.add_argument("--baseline-path", default="results/models/baseline/best_model.pt",
+                        help="Path to baseline checkpoint (used with --ensemble)")
+    parser.add_argument("--morphaware-path", default="results/models/morphaware/best_model.pt",
+                        help="Path to morphaware checkpoint (used with --ensemble)")
     args = parser.parse_args()
 
     # PIPE-8: Load YAML config and apply as defaults when CLI was not
@@ -186,10 +195,20 @@ def main():
     logger.info("Loaded %d test sentences", len(sources))
 
     # Load model and generate corrections
-    logger.info("Loading model from %s (morphaware=%s)", args.model_path, args.morphaware)
-    model, analyzer, feature_extractor = load_model(
-        args.model_path, args.morphaware, args.backbone, args.max_length,
-    )
+    if args.ensemble:
+        logger.info("Loading ensemble: baseline=%s, morphaware=%s, strategy=%s",
+                     args.baseline_path, args.morphaware_path, args.ensemble_strategy)
+        baseline, _, _ = load_model(args.baseline_path, False, args.backbone, args.max_length)
+        morphaware, analyzer, feature_extractor = load_model(
+            args.morphaware_path, True, args.backbone, args.max_length,
+        )
+        from src.model.ensemble import EnsembleGEC
+        model = EnsembleGEC([baseline, morphaware], strategy=args.ensemble_strategy)
+    else:
+        logger.info("Loading model from %s (morphaware=%s)", args.model_path, args.morphaware)
+        model, analyzer, feature_extractor = load_model(
+            args.model_path, args.morphaware, args.backbone, args.max_length,
+        )
 
     logger.info("Generating corrections...")
     hypotheses = generate_hypotheses(

@@ -98,13 +98,32 @@ def main():
                         help="Output file (default: stdout)")
     parser.add_argument("--json", action="store_true", default=False,
                         help="Output JSON with source and corrected fields")
+    parser.add_argument("--ensemble", action="store_true", default=False,
+                        help="Ensemble baseline + morphaware via majority vote")
+    parser.add_argument("--ensemble-strategy", default="majority_vote",
+                        choices=["majority_vote", "best_score"],
+                        help="Ensemble combination strategy")
+    parser.add_argument("--baseline-path", default="results/models/baseline/best_model.pt",
+                        help="Path to baseline checkpoint (used with --ensemble)")
+    parser.add_argument("--morphaware-path", default="results/models/morphaware/best_model.pt",
+                        help="Path to morphaware checkpoint (used with --ensemble)")
     args = parser.parse_args()
 
     import torch
 
-    model, analyzer, feature_extractor = load_model(
-        args.model, args.morphaware, args.backbone, args.max_length,
-    )
+    if args.ensemble:
+        logger.info("Loading ensemble: baseline=%s, morphaware=%s, strategy=%s",
+                     args.baseline_path, args.morphaware_path, args.ensemble_strategy)
+        baseline, _, _ = load_model(args.baseline_path, False, args.backbone, args.max_length)
+        morphaware, analyzer, feature_extractor = load_model(
+            args.morphaware_path, True, args.backbone, args.max_length,
+        )
+        from src.model.ensemble import EnsembleGEC
+        model = EnsembleGEC([baseline, morphaware], strategy=args.ensemble_strategy)
+    else:
+        model, analyzer, feature_extractor = load_model(
+            args.model, args.morphaware, args.backbone, args.max_length,
+        )
 
     # Collect input sentences
     sentences: list[str] = []
@@ -123,7 +142,14 @@ def main():
     # Generate corrections
     corrections: list[str] = []
     with torch.no_grad():
-        if args.morphaware and analyzer and feature_extractor:
+        if args.ensemble:
+            for s in sentences:
+                corrections.append(
+                    model.correct(s, num_beams=args.beam_width,
+                                  analyzer=analyzer,
+                                  feature_extractor=feature_extractor)
+                )
+        elif args.morphaware and analyzer and feature_extractor:
             for s in sentences:
                 corrections.append(
                     model.correct_with_morphology(

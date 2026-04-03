@@ -79,6 +79,11 @@ def main():
                         help="Explicitly set a device (e.g., 'cuda:0', 'cpu').")
     parser.add_argument("--curriculum", action="store_true", default=False,
                         help="Enable curriculum learning (easy→hard by sentence length)")
+    parser.add_argument("--augment", type=float, default=0.0,
+                        help="Augmentation ratio: add N*augment augmented pairs "
+                             "to training data (0 = disabled). Uses swap strategy.")
+    parser.add_argument("--seed", type=int, default=42,
+                        help="Random seed for reproducibility (PIPE-7)")
     args = parser.parse_args()
 
     # Load YAML config and use as defaults; CLI args override.
@@ -104,10 +109,17 @@ def main():
         logger.warning("Config file not found: %s — using CLI defaults", cfg_path)
 
     import math
+    import random
     import torch
     from torch.utils.data import DataLoader, Dataset
     from torch.amp import GradScaler
     from torch.utils.tensorboard import SummaryWriter
+
+    # PIPE-7: Seed all RNGs for reproducibility
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
 
     from src.model.morphology_aware import MorphologyAwareGEC
     from src.morphology.analyzer import MorphologicalAnalyzer
@@ -191,6 +203,28 @@ def main():
     if dev_jsonl.exists():
         dev_sources, dev_targets, _ = load_jsonl(dev_jsonl)
     logger.info("Loaded %d train, %d dev pairs", len(train_sources), len(dev_sources))
+
+    # PIPE-8: Data augmentation (mirrors baseline 05_train_baseline.py)
+    if args.augment > 0:
+        from src.data.augmentation import SoraniAugmenter
+        import random as _aug_rng
+        augmenter = SoraniAugmenter(seed=args.seed)
+        n_aug = int(len(train_sources) * args.augment)
+        _aug_rand = _aug_rng.Random(args.seed)
+        aug_src, aug_tgt, aug_rec = [], [], []
+        for _ in range(n_aug):
+            idx = _aug_rand.randint(0, len(train_sources) - 1)
+            a_src, a_tgt = augmenter.augment_pair(
+                train_sources[idx], train_targets[idx], strategy="swap",
+            )
+            aug_src.append(a_src)
+            aug_tgt.append(a_tgt)
+            aug_rec.append(dict(train_records[idx], augmented="swap"))
+        train_sources.extend(aug_src)
+        train_targets.extend(aug_tgt)
+        train_records.extend(aug_rec)
+        logger.info("Augmented training data: +%d pairs (%d total)",
+                     n_aug, len(train_sources))
 
     def make_agreement_labels(source: str, record: dict, tokenizer, max_length: int) -> list[int]:
         """Generate per-byte agreement labels from error metadata.
@@ -475,6 +509,7 @@ def main():
             "epoch": epoch_,
             "global_step": global_step_,
             "best_f05": best_f05_,
+            "patience_counter": patience_counter,
             "feature_vocab_size": feature_vocab_size,
         }, ckpt_path)
         saved_checkpoints.append((val_f05, ckpt_path))
@@ -544,16 +579,23 @@ def main():
             logger.info("Re-evaluated resumed checkpoint: F0.5=%.4f", best_f05)
         else:
             best_f05 = ckpt.get("best_f05", 0.0)
-        logger.info("Resumed from %s (epoch %d, step %d, best_f05=%.4f)",
-                     args.resume_from, start_epoch, global_step, best_f05)
+        patience_counter = ckpt.get("patience_counter", 0)
+        logger.info("Resumed from %s (epoch %d, step %d, best_f05=%.4f, patience=%d)",
+                     args.resume_from, start_epoch, global_step, best_f05, patience_counter)
 
     for epoch in range(start_epoch, args.epochs):
         model.train()
         total_loss = 0
         optimizer.zero_grad()
+
+        # PIPE-14: Anneal agreement loss weight (warmup over first 5 epochs)
+        agr_weight = model.anneal_agreement_loss(epoch, warmup_epochs=5)
+        logger.info("Epoch %d — agreement_loss_weight: %.4f", epoch + 1, agr_weight)
+
         if curriculum_sampler is not None:
             curriculum_sampler.set_epoch(epoch)
 
+        batch_idx = -1
         for batch_idx, batch in enumerate(train_loader):
             batch = {k: v.to(device) for k, v in batch.items()}
 
@@ -601,7 +643,7 @@ def main():
                             optimizer.param_groups[0]["lr"])
 
         # Flush any remaining accumulated gradients
-        if (batch_idx + 1) % args.grad_accum_steps != 0:
+        if batch_idx >= 0 and (batch_idx + 1) % args.grad_accum_steps != 0:
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             scaler.step(optimizer)

@@ -207,6 +207,7 @@ class ErrorPipeline:
         target_pairs: int = 50000,
         corruption_ratio: float = 0.7,
         spell_check_clean: bool = False,
+        validate_errors: bool = False,
     ) -> dict:
         """Process a clean corpus file and generate synthetic parallel data.
         
@@ -216,6 +217,9 @@ class ErrorPipeline:
             target_pairs: Target number of parallel pairs.
             corruption_ratio: Fraction of sentences to corrupt (rest stay clean→clean).
             spell_check_clean: If True, spell-check clean sentences before error injection.
+            validate_errors: If True, reject error pairs where all injected error
+                tokens are valid dictionary words (CRIT-6). Such pairs add noise
+                because the "error" is indistinguishable from correct Sorani.
             
         Returns:
             Statistics dictionary.
@@ -253,7 +257,20 @@ class ErrorPipeline:
             "corrupted": 0,
             "clean_pairs": 0,
             "errors_by_type": {},
+            "validation_rejected": 0,
         }
+
+        # CRIT-6: Spell-check validation filter
+        validator = None
+        if validate_errors:
+            validator = SoraniSpellChecker()
+            if not validator.is_available():
+                logger.warning(
+                    "Spell checker not available — skipping error validation"
+                )
+                validator = None
+            else:
+                logger.info("Error validation enabled via SoraniSpellChecker")
         
         for idx, sentence in enumerate(tqdm(sentences, desc="Generating errors")):
             # Assign source_id from original line index so that sentences
@@ -263,10 +280,34 @@ class ErrorPipeline:
                 result = self.process_sentence(sentence)
                 result.source_id = source_id
                 if result.has_errors:
-                    stats["corrupted"] += 1
-                    for err in result.errors:
-                        stats["errors_by_type"][err.error_type] = \
-                            stats["errors_by_type"].get(err.error_type, 0) + 1
+                    # CRIT-6: Validate that injected errors aren't valid words
+                    if validator is not None:
+                        orig_words = set(result.original.split())
+                        corr_words = set(result.corrupted.split())
+                        new_tokens = corr_words - orig_words
+                        if new_tokens and all(
+                            validator.is_correct(w) for w in new_tokens
+                        ):
+                            # All error tokens are valid Sorani words;
+                            # demote to clean pair to avoid training noise
+                            stats["validation_rejected"] += 1
+                            result = ErrorResult(
+                                original=sentence,
+                                corrupted=sentence,
+                                errors=[],
+                                source_id=source_id,
+                            )
+                            stats["clean_pairs"] += 1
+                        else:
+                            stats["corrupted"] += 1
+                            for err in result.errors:
+                                stats["errors_by_type"][err.error_type] = \
+                                    stats["errors_by_type"].get(err.error_type, 0) + 1
+                    else:
+                        stats["corrupted"] += 1
+                        for err in result.errors:
+                            stats["errors_by_type"][err.error_type] = \
+                                stats["errors_by_type"].get(err.error_type, 0) + 1
                 else:
                     stats["clean_pairs"] += 1
             else:

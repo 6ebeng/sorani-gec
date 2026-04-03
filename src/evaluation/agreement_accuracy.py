@@ -9,20 +9,17 @@ Uses the rule-based morphological analyzer (Amin 2016, Fatah & Qadir 2006)
 and agreement constants from Slevanayi (2001) to detect violations.
 """
 
-import re
 import logging
 from dataclasses import dataclass
 from typing import Optional
 
 from ..morphology.analyzer import (
     MorphologicalAnalyzer,
-    MorphFeatures,
     CLITIC_PERSON_MAP,
 )
 from ..morphology.constants import SUBJECT_PRONOUNS, TRANSITIVE_PAST_STEMS
 from ..morphology.builder import (
     _is_present_verb,
-    _is_past_verb,
     _is_transitive_past,
 )
 
@@ -94,49 +91,94 @@ class AgreementChecker:
     def check_sentence(self, sentence: str) -> AgreementResult:
         """Run all agreement checks on a sentence."""
         violations = []
+        failed_checks = 0
         total_checks = 0
         
         # Check 1: Subject-verb number
         sv_violations = self._check_subject_verb(sentence)
         violations.extend(sv_violations)
+        if sv_violations:
+            failed_checks += 1
         total_checks += 1
         
         # Check 2: Clitic consistency
         cl_violations = self._check_clitic_consistency(sentence)
         violations.extend(cl_violations)
+        if cl_violations:
+            failed_checks += 1
         total_checks += 1
         
         # Check 3: Ezafe presence
         ez_violations = self._check_ezafe(sentence)
         violations.extend(ez_violations)
+        if ez_violations:
+            failed_checks += 1
         total_checks += 1
         
         # Check 4: Tense consistency
         t_violations = self._check_tense_consistency(sentence)
         violations.extend(t_violations)
+        if t_violations:
+            failed_checks += 1
         total_checks += 1
 
         # Check 5: Object-verb agreement (Law 2 — ergative past transitive)
         ov_violations = self._check_object_verb_ergative(sentence)
         violations.extend(ov_violations)
+        if ov_violations:
+            failed_checks += 1
         total_checks += 1
 
         # Check 6: Negative concord (double negation required in Sorani)
         nc_violations = self._check_negative_concord(sentence)
         violations.extend(nc_violations)
+        if nc_violations:
+            failed_checks += 1
         total_checks += 1
 
         # Check 7: Orthographic consistency (common confusion pairs)
         orth_violations = self._check_orthography(sentence)
         violations.extend(orth_violations)
+        if orth_violations:
+            failed_checks += 1
         total_checks += 1
 
         # Check 8: Conditional agreement (ئەگەر clause tense constraints)
         cond_violations = self._check_conditional_agreement(sentence)
         violations.extend(cond_violations)
+        if cond_violations:
+            failed_checks += 1
+        total_checks += 1
+
+        # Check 9: Quantifier–noun agreement (CRIT-4)
+        qn_violations = self._check_quantifier_noun(sentence)
+        violations.extend(qn_violations)
+        if qn_violations:
+            failed_checks += 1
+        total_checks += 1
+
+        # Check 10: Relative clause agreement (CRIT-4)
+        rc_violations = self._check_relative_clause(sentence)
+        violations.extend(rc_violations)
+        if rc_violations:
+            failed_checks += 1
+        total_checks += 1
+
+        # Check 11: Vocative–imperative agreement (CRIT-4)
+        vi_violations = self._check_vocative_imperative(sentence)
+        violations.extend(vi_violations)
+        if vi_violations:
+            failed_checks += 1
+        total_checks += 1
+
+        # Check 12: Adverb–verb tense consistency (CRIT-4)
+        av_violations = self._check_adverb_verb_tense(sentence)
+        violations.extend(av_violations)
+        if av_violations:
+            failed_checks += 1
         total_checks += 1
         
-        passed = total_checks - min(len(violations), total_checks)
+        passed = total_checks - failed_checks
         
         return AgreementResult(
             sentence=sentence,
@@ -602,6 +644,204 @@ class AgreementChecker:
                         f"ئەگەر-clause; expected subjunctive (ب-prefix)"
                     )
                     in_cond = False
+        return violations
+
+    # ── CRIT-4: Four additional agreement checks ──
+
+    # Sorani quantifiers that force plural agreement on the verb
+    # (Slevanayi 2001, pp. 87-88; Maaruf 2010, p. 139)
+    _QUANTIFIERS_PLURAL = {"هەر", "هیچ", "هەموو", "چەند", "هەندێک"}
+
+    def _check_quantifier_noun(self, sentence: str) -> list[str]:
+        """Check quantifier–verb number agreement.
+
+        In Sorani Kurdish, certain quantifiers (هەموو, هەر, هیچ, چەند,
+        هەندێک) govern a plural verb. For example:
+        هەموو منداڵ *دەچێت is wrong; the correct form is
+        هەموو منداڵ دەچن (3pl).
+
+        Source: Slevanayi (2001), pp. 87-88; Maaruf (2010), p. 139.
+        """
+        violations = []
+        words = self._analyzer.tokenize(sentence)
+        clause_bounds = set(self._clause_boundary_indices(words))
+
+        for i, word in enumerate(words):
+            if word not in self._QUANTIFIERS_PLURAL:
+                continue
+            # Scan forward for a verb within the same clause
+            for j in range(i + 1, len(words)):
+                if j in clause_bounds:
+                    break
+                candidate = words[j]
+                is_present = any(candidate.startswith(p) for p in _PRESENT_PREFIXES)
+                is_neg_present = candidate.startswith(_NEGATION_PRESENT_PREFIX)
+                if not (is_present or is_neg_present):
+                    continue
+                verb_pn = self._verb_ending_to_pn(candidate)
+                if verb_pn is None:
+                    break
+                _, verb_number = verb_pn
+                if verb_number == "sg":
+                    violations.append(
+                        f"Quantifier–verb mismatch: '{word}' requires plural "
+                        f"verb, but '{candidate}' is singular"
+                    )
+                break
+        return violations
+
+    # Sorani relative clause markers
+    _REL_MARKERS = {"کە", "ئەوەی"}
+
+    def _check_relative_clause(self, sentence: str) -> list[str]:
+        """Check antecedent–verb agreement in relative clauses.
+
+        When a relative clause (introduced by کە or ئەوەی) modifies an
+        antecedent, the verb inside the relative clause should agree in
+        person and number with the antecedent head noun—not with any
+        intervening NP.
+
+        Heuristic: if the word before کە is a pronoun with known person/
+        number, the first verb after کە should agree with it.
+        """
+        violations = []
+        words = self._analyzer.tokenize(sentence)
+
+        for i, word in enumerate(words):
+            if word not in self._REL_MARKERS:
+                continue
+            # Antecedent is the previous word (head noun of the NP)
+            if i == 0:
+                continue
+            antecedent = words[i - 1]
+            ant_person: str | None = None
+            ant_number: str | None = None
+            if antecedent in _PRONOUN_AGREEMENT:
+                ant_person, ant_number = _PRONOUN_AGREEMENT[antecedent]
+            elif antecedent.endswith("ەکان") or antecedent.endswith("یەکان"):
+                ant_person, ant_number = "3", "pl"
+            elif antecedent.endswith("ەکە") or antecedent.endswith("یەکە"):
+                ant_person, ant_number = "3", "sg"
+            else:
+                continue  # cannot determine antecedent features
+
+            # Scan for the first verb inside the relative clause
+            for j in range(i + 1, len(words)):
+                if words[j] in {"،", ".", "؟", "!"}:
+                    break
+                candidate = words[j]
+                is_present = any(candidate.startswith(p) for p in _PRESENT_PREFIXES)
+                is_neg_present = candidate.startswith(_NEGATION_PRESENT_PREFIX)
+                if not (is_present or is_neg_present):
+                    continue
+                verb_pn = self._verb_ending_to_pn(candidate)
+                if verb_pn is None:
+                    break
+                verb_person, verb_number = verb_pn
+                if ant_number and verb_number != ant_number:
+                    violations.append(
+                        f"Relative clause number mismatch: antecedent '{antecedent}' "
+                        f"({ant_person}{ant_number}) but verb '{candidate}' "
+                        f"({verb_person}{verb_number}) in کە-clause"
+                    )
+                if ant_person and verb_person != ant_person:
+                    violations.append(
+                        f"Relative clause person mismatch: antecedent '{antecedent}' "
+                        f"({ant_person}{ant_number}) but verb '{candidate}' "
+                        f"({verb_person}{verb_number}) in کە-clause"
+                    )
+                break
+        return violations
+
+    # Vocative markers and imperative detection
+    _VOCATIVE_MARKERS = {"ئەی", "یا"}
+
+    def _check_vocative_imperative(self, sentence: str) -> list[str]:
+        """Check vocative marker–imperative verb number agreement.
+
+        A sentence beginning with a vocative marker (ئەی, یا) followed
+        by a singular addressee should have a 2sg imperative; with a
+        plural addressee (or plural noun), 2pl imperative.
+
+        Imperative verbs in Sorani start with ب- (or بی-).
+        """
+        violations = []
+        words = self._analyzer.tokenize(sentence)
+        if not words:
+            return violations
+
+        if words[0] not in self._VOCATIVE_MARKERS:
+            return violations
+
+        # Determine addressee number from the noun after vocative marker
+        addressee_number: str | None = None
+        for k in range(1, min(len(words), 4)):
+            w = words[k]
+            if w.endswith("ەکان") or w.endswith("یەکان"):
+                addressee_number = "pl"
+                break
+            elif w.endswith("ەکە") or w.endswith("یەکە"):
+                addressee_number = "sg"
+                break
+            elif w in _PRONOUN_AGREEMENT:
+                _, addressee_number = _PRONOUN_AGREEMENT[w]
+                break
+
+        if addressee_number is None:
+            return violations
+
+        # Find imperative verb (ب-prefix)
+        for word in words:
+            if word.startswith("ب") and len(word) > 2 and not _is_present_verb(word):
+                # Imperative 2sg typically ends without ن; 2pl ends with ن
+                if addressee_number == "pl" and not word.endswith("ن"):
+                    violations.append(
+                        f"Vocative-imperative mismatch: plural addressee "
+                        f"but imperative '{word}' is singular"
+                    )
+                elif addressee_number == "sg" and word.endswith("ن"):
+                    violations.append(
+                        f"Vocative-imperative mismatch: singular addressee "
+                        f"but imperative '{word}' is plural"
+                    )
+                break
+        return violations
+
+    # Temporal adverbs with tense constraints
+    _PAST_ADVERBS = {"دوێنێ", "پار", "پێشتر", "بەرلە", "پارێ"}
+    _PRESENT_ADVERBS = {"ئێستا", "ئەمڕۆ", "دواتر", "هەمیشە"}
+
+    def _check_adverb_verb_tense(self, sentence: str) -> list[str]:
+        """Check temporal adverb–verb tense consistency.
+
+        Temporal adverbs constrain the tense of the clause verb. A past
+        adverb (دوێنێ = yesterday, پار = last year) with a present-tense
+        verb is inconsistent, and vice versa.
+        """
+        violations = []
+        words = self._analyzer.tokenize(sentence)
+        has_past_adv = any(w in self._PAST_ADVERBS for w in words)
+        has_present_adv = any(w in self._PRESENT_ADVERBS for w in words)
+
+        if not (has_past_adv or has_present_adv):
+            return violations
+
+        clause_tense = self._detect_clause_tense(words)
+        if clause_tense is None:
+            return violations
+
+        if has_past_adv and clause_tense == "present":
+            adverbs = [w for w in words if w in self._PAST_ADVERBS]
+            violations.append(
+                f"Adverb-tense mismatch: past adverb(s) {adverbs} "
+                f"with present-tense verb"
+            )
+        if has_present_adv and clause_tense == "past":
+            adverbs = [w for w in words if w in self._PRESENT_ADVERBS]
+            violations.append(
+                f"Adverb-tense mismatch: present adverb(s) {adverbs} "
+                f"with past-tense verb"
+            )
         return violations
 
 

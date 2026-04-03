@@ -115,7 +115,9 @@ def evaluate_model(model, sources: list[str], references: list[str],
 def train_model(config: dict, use_morphology: bool,
                 feature_subset: list[str] | None = None,
                 data_size: int | None = None,
-                output_dir: Path | None = None) -> object:
+                output_dir: Path | None = None,
+                agreement_loss_weight: float | None = None,
+                seed: int = 42) -> object:
     """Train a model variant and return the trained model.
 
     Parameters:
@@ -124,6 +126,8 @@ def train_model(config: dict, use_morphology: bool,
         feature_subset: If set, only these features are enabled.
         data_size: If set, subsample training data to this count.
         output_dir: Where to save checkpoints.
+        agreement_loss_weight: Override for lambda weight.
+        seed: Random seed for data subsampling reproducibility.
     """
     import torch
     from src.data.splitter import load_pairs
@@ -137,8 +141,14 @@ def train_model(config: dict, use_morphology: bool,
     pairs = load_pairs(train_path)
     if data_size and data_size < len(pairs):
         import random
-        rng = random.Random(cfg.get("data", {}).get("seed", 42))
+        effective_seed = cfg.get("data", {}).get("seed", seed)
+        rng = random.Random(effective_seed)
         pairs = rng.sample(pairs, data_size)
+    elif data_size and data_size >= len(pairs):
+        logger.warning(
+            "data_size=%d >= dataset size=%d; using full dataset",
+            data_size, len(pairs),
+        )
     sources = [p["source"] for p in pairs]
     targets = [p["target"] for p in pairs]
 
@@ -159,6 +169,8 @@ def train_model(config: dict, use_morphology: bool,
             model_name=backbone,
             feature_vocab_size=len(feature_vocab),
             max_length=max_length,
+            **({"agreement_loss_weight": agreement_loss_weight}
+               if agreement_loss_weight is not None else {}),
         )
         model.set_training_tools(analyzer, feature_extractor)
 
@@ -174,36 +186,61 @@ def train_model(config: dict, use_morphology: bool,
 
     model = model.to(device)
 
-    # Training loop — follows scripts/06_train_morphaware.py conventions
+    # Training loop — mirrors 05/06 training conventions
     epochs = cfg["training"].get("max_epochs", 30)
     batch_size = cfg["training"].get("batch_size", 32)
     lr = cfg["training"].get("learning_rate", 5e-5)
     patience = cfg["training"].get("early_stopping_patience", 5)
+    grad_accum = cfg["training"].get("gradient_accumulation_steps", 8)
+    use_fp16 = cfg["training"].get("fp16", True) and device.type == "cuda"
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr,
                                   weight_decay=cfg["training"].get("weight_decay", 0.01))
 
+    import math
+    from torch.amp import GradScaler
+    from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, LinearLR, SequentialLR
+
+    total_steps = math.ceil(len(sources) / batch_size / grad_accum) * epochs
+    warmup_steps = min(1000, total_steps // 10)
+    warmup_sched = LinearLR(optimizer, start_factor=0.1, total_iters=max(1, warmup_steps))
+    cosine_sched = CosineAnnealingWarmRestarts(
+        optimizer, T_0=max(1, (total_steps - warmup_steps) // 3),
+    )
+    scheduler = SequentialLR(optimizer, [warmup_sched, cosine_sched], milestones=[warmup_steps])
+    scaler = GradScaler("cuda", enabled=use_fp16)
+
     best_loss = float("inf")
     stale = 0
 
-    logger.info("Training on %d pairs for up to %d epochs (batch_size=%d)",
-                len(sources), epochs, batch_size)
+    logger.info("Training on %d pairs for up to %d epochs (batch_size=%d, grad_accum=%d, fp16=%s)",
+                len(sources), epochs, batch_size, grad_accum, use_fp16)
 
+    global_step = 0
     for epoch in range(1, epochs + 1):
         model.train()
         epoch_loss = 0.0
         n_batches = 0
+        optimizer.zero_grad()
 
         for i in range(0, len(sources), batch_size):
             batch_src = sources[i:i + batch_size]
             batch_tgt = targets[i:i + batch_size]
 
-            loss = model.training_step(batch_src, batch_tgt)
-            loss.backward()
-            optimizer.step()
-            optimizer.zero_grad()
+            with torch.autocast(device_type=device.type, enabled=use_fp16):
+                loss = model.training_step(batch_src, batch_tgt)
+                loss = loss / grad_accum
 
-            epoch_loss += loss.item()
+            scaler.scale(loss).backward()
+
+            if (n_batches + 1) % grad_accum == 0 or (i + batch_size) >= len(sources):
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
+                scheduler.step()
+                global_step += 1
+
+            epoch_loss += loss.item() * grad_accum
             n_batches += 1
 
         avg_loss = epoch_loss / max(n_batches, 1)
@@ -304,20 +341,67 @@ def run_data_size_variation(config: dict, sources: list[str],
     return all_results
 
 
+DEFAULT_AGR_WEIGHTS = [0.0, 0.1, 0.3, 0.5, 1.0]
+
+
+def run_agreement_loss_weight(config: dict, sources: list[str],
+                              references: list[str], output_dir: Path,
+                              weights: list[float] | None = None) -> list[dict]:
+    """Experiment 4: Varying agreement loss weight (PIPE-6)."""
+    logger.info("=== Ablation: agreement_loss_weight ===")
+    if weights is None:
+        weights = DEFAULT_AGR_WEIGHTS
+    all_results = []
+
+    for w in weights:
+        logger.info("--- Agreement loss weight: %.2f ---", w)
+        exp_dir = output_dir / "agreement_loss_weight" / f"{w:.2f}"
+        model = train_model(config, use_morphology=True,
+                            agreement_loss_weight=w, output_dir=exp_dir)
+        results = evaluate_model(
+            model, sources, references,
+            analyzer=getattr(model, '_training_analyzer', None),
+            feature_extractor=getattr(model, '_training_feature_extractor', None),
+        )
+        results["experiment"] = "agreement_loss_weight"
+        results["agreement_loss_weight"] = w
+
+        with open(exp_dir / "metrics.json", "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2)
+        logger.info("  weight=%.2f — F0.5=%.4f, agreement=%.4f",
+                     w, results["f05"], results["agreement_accuracy"])
+        all_results.append(results)
+
+    return all_results
+
+
 def main():
     parser = argparse.ArgumentParser(description="GEC Ablation Studies")
     parser.add_argument("--config", default="configs/default.yaml")
     parser.add_argument("--experiment", default="all",
                         choices=["all", "no_morphology", "individual_features",
-                                 "data_size_variation"])
+                                 "data_size_variation", "agreement_loss_weight"])
     parser.add_argument("--test-data", default="data/splits/test.jsonl")
     parser.add_argument("--output", default="results/ablation")
     parser.add_argument("--data-sizes", nargs="*", type=int, default=None,
                         help="Custom data sizes for data_size_variation")
+    parser.add_argument("--agr-weights", nargs="*", type=float, default=None,
+                        help="Custom agreement loss weights for ablation (e.g., 0.0 0.1 0.3 0.5 1.0)")
+    parser.add_argument("--seed", type=int, default=42,
+                        help="Random seed for reproducibility")
     args = parser.parse_args()
 
     # PIPE-1: Load YAML config and warn prominently if missing
     cfg_path = Path(args.config)
+
+    # PIPE-7: Seed all RNGs for reproducibility
+    import random
+    import torch
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+
     if cfg_path.exists():
         config = load_config(args.config)
         logger.info("Loaded config from %s", cfg_path)
@@ -339,6 +423,9 @@ def main():
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Propagate CLI seed into config so train_model picks it up
+    config.setdefault("data", {})["seed"] = args.seed
+
     sources, references = load_test_data(args.test_data)
     logger.info("Loaded %d test sentences", len(sources))
 
@@ -356,6 +443,11 @@ def main():
         r = run_data_size_variation(config, sources, references, output_dir,
                                     sizes=args.data_sizes)
         summary["data_size_variation"] = r
+
+    if args.experiment in ("all", "agreement_loss_weight"):
+        r = run_agreement_loss_weight(config, sources, references, output_dir,
+                                       weights=args.agr_weights)
+        summary["agreement_loss_weight"] = r
 
     # Save combined summary
     summary_file = output_dir / "ablation_summary.json"
