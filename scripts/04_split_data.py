@@ -34,6 +34,9 @@ def main():
                         help="Key to stratify by (default: error_type)")
     parser.add_argument("--group-by", default=None,
                         help="Key to group by for article-level splitting (e.g. source_id)")
+    parser.add_argument("--stratify-category", action="store_true", default=False,
+                        help="Stratify splits so each has proportional category coverage "
+                             "(requires 'category' field in input JSONL)")
     args = parser.parse_args()
 
     ratio_sum = args.train_ratio + args.dev_ratio + args.test_ratio
@@ -45,6 +48,10 @@ def main():
         logger.error("Input file not found: %s", args.input)
         raise SystemExit(1)
 
+    stratify = args.stratify
+    if args.stratify_category:
+        stratify = "category"
+
     stats = run_split(
         input_path=Path(args.input),
         output_dir=Path(args.output),
@@ -52,7 +59,7 @@ def main():
         dev_ratio=args.dev_ratio,
         test_ratio=args.test_ratio,
         seed=args.seed,
-        stratify_key=args.stratify,
+        stratify_key=stratify,
         group_key=args.group_by,
     )
 

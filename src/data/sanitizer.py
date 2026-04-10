@@ -46,6 +46,24 @@ _REPEATED_CHAR_RE = re.compile(r'(.)\1{4,}')
 # Hash tag / social media artifacts
 _SOCIAL_RE = re.compile(r'(?:#\w+|@\w+)')
 
+# Arabic diacritics range for combining-class validation (CRIT-1)
+_ARABIC_DIACRITICS = set(range(0x064B, 0x0660))  # U+064B..U+065F
+
+# Common Sorani abbreviations that should not be dropped by the length filter
+SORANI_ABBREVIATIONS = {
+    "د.",   # doctor / professor
+    "ب.",   # section / paragraph
+    "پ.",   # professor
+    "م.",   # mister / engineer
+    "ژ.",   # number
+    "ل.",   # page
+    "هتد.", # etc.
+    "بڕ.",  # paragraph
+}
+
+# Maximum fingerprint cache size for near-duplicate detection
+_MAX_FINGERPRINT_CACHE = 500_000
+
 
 class SoraniSanitizer:
     """Cleans raw text before normalization.
@@ -96,6 +114,30 @@ class SoraniSanitizer:
         """Return True if the text shows signs of encoding corruption."""
         return bool(_MOJIBAKE_RE.search(text))
 
+    def has_malformed_diacritics(self, text: str) -> bool:
+        """Detect malformed Arabic diacritics combining with wrong base characters.
+
+        Returns True if a diacritic (U+064B-U+065F) appears after a non-Arabic
+        base character or if two diacritics of the same combining class stack
+        on one base (invalid in Unicode canonical ordering).
+        """
+        import unicodedata
+        prev_is_arabic_base = False
+        prev_combining_class = 0
+        for ch in text:
+            cp = ord(ch)
+            if cp in _ARABIC_DIACRITICS:
+                cc = unicodedata.combining(ch)
+                if not prev_is_arabic_base:
+                    return True
+                if cc != 0 and cc == prev_combining_class:
+                    return True
+                prev_combining_class = cc
+            else:
+                prev_is_arabic_base = bool(_ARABIC_SCRIPT_RE.match(ch))
+                prev_combining_class = 0
+        return False
+
     def is_predominantly_non_prose(self, text: str) -> bool:
         """Return True if text looks like a table row, formula, or metadata."""
         non_space = re.sub(r'\s', '', text)
@@ -119,9 +161,18 @@ class SoraniSanitizer:
         return result.is_sorani
 
     def passes_length_filter(self, text: str) -> bool:
-        """Check min/max token count."""
+        """Check min/max token count.
+
+        Sentences consisting solely of known Sorani abbreviations bypass
+        the minimum-token filter to avoid losing abbreviation-only lines.
+        """
         tokens = text.split()
-        return self.min_tokens <= len(tokens) <= self.max_tokens
+        if len(tokens) < self.min_tokens:
+            # Allow if all tokens are known abbreviations
+            if all(t in SORANI_ABBREVIATIONS for t in tokens):
+                return True
+            return False
+        return len(tokens) <= self.max_tokens
 
     def passes_script_ratio(self, text: str) -> bool:
         """Check that enough of the text is Arabic script."""
@@ -146,6 +197,7 @@ class SoraniSanitizer:
         """Check text against previously seen sentences using char 3-gram Jaccard.
 
         Returns True if a near-duplicate exists (above threshold).
+        Evicts oldest fingerprints when cache exceeds _MAX_FINGERPRINT_CACHE.
         """
         trigrams = self._char_trigrams(text)
         if not trigrams:
@@ -156,6 +208,9 @@ class SoraniSanitizer:
             jaccard = len(trigrams & seen) / len(trigrams | seen)
             if jaccard >= self.near_dup_threshold:
                 return True
+        # LRU eviction: drop oldest entries when cache is full
+        if len(self._fingerprints) >= _MAX_FINGERPRINT_CACHE:
+            self._fingerprints = self._fingerprints[len(self._fingerprints) // 4:]
         self._fingerprints.append(trigrams)
         return False
 
@@ -181,6 +236,10 @@ class SoraniSanitizer:
 
         if self.detect_mojibake(text):
             self._bump("mojibake")
+            return None
+
+        if self.has_malformed_diacritics(text):
+            self._bump("malformed_diacritics")
             return None
 
         if self.is_predominantly_non_prose(text):

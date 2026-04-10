@@ -177,6 +177,20 @@ class AgreementChecker:
         if av_violations:
             failed_checks += 1
         total_checks += 1
+
+        # Check 13: Compound subject person resolution (Slevanayi 2001, p. 89)
+        cs_violations = self._check_compound_subject(sentence)
+        violations.extend(cs_violations)
+        if cs_violations:
+            failed_checks += 1
+        total_checks += 1
+
+        # Check 14: Bare noun person-only agreement (Slevanayi 2001, p. 60)
+        bn_violations = self._check_bare_noun_agreement(sentence)
+        violations.extend(bn_violations)
+        if bn_violations:
+            failed_checks += 1
+        total_checks += 1
         
         passed = total_checks - failed_checks
         
@@ -844,6 +858,97 @@ class AgreementChecker:
             )
         return violations
 
+    # Person hierarchy for compound subjects: 1st > 2nd > 3rd
+    _PERSON_HIERARCHY = {"1": 3, "2": 2, "3": 1}
+
+    def _check_compound_subject(self, sentence: str) -> list[str]:
+        """Check compound subject person resolution (Slevanayi 2001, p. 89).
+
+        When two subjects are coordinated with و, the verb should agree with
+        the highest person in the hierarchy: 1st > 2nd > 3rd.
+        Example: من و تۆ دەچین (I and you go-1pl), NOT *من و تۆ دەچن (go-3pl).
+        """
+        violations = []
+        words = self._analyzer.tokenize(sentence)
+
+        # Find coordinated pronoun subjects: pronoun + و + pronoun
+        pronouns_found = []
+        for i, word in enumerate(words):
+            if word in _PRONOUN_AGREEMENT:
+                pronouns_found.append((i, word))
+
+        if len(pronouns_found) < 2:
+            return violations
+
+        # Check if pronouns are coordinated with و
+        coordinated_pronouns = []
+        for idx in range(len(pronouns_found) - 1):
+            pos_a = pronouns_found[idx][0]
+            pos_b = pronouns_found[idx + 1][0]
+            # Check for و between the two pronouns
+            if pos_b - pos_a == 2 and pos_a + 1 < len(words) and words[pos_a + 1] == "و":
+                coordinated_pronouns.append(pronouns_found[idx][1])
+                coordinated_pronouns.append(pronouns_found[idx + 1][1])
+
+        if len(coordinated_pronouns) < 2:
+            return violations
+
+        # Determine expected person: highest in hierarchy
+        persons = [_PRONOUN_AGREEMENT[p][0] for p in coordinated_pronouns]
+        expected_person = max(persons, key=lambda p: self._PERSON_HIERARCHY.get(p, 0))
+
+        # Find the verb after the compound subject
+        last_pronoun_pos = max(pos for pos, _ in pronouns_found if _ in coordinated_pronouns)
+        for j in range(last_pronoun_pos + 1, min(last_pronoun_pos + 8, len(words))):
+            word = words[j]
+            for ending, (person, _number) in _PRESENT_ENDINGS.items():
+                if word.endswith(ending) and any(word.startswith(p) for p in _PRESENT_PREFIXES):
+                    if person != expected_person:
+                        violations.append(
+                            "Compound subject person mismatch: "
+                            f"coordinated pronouns {coordinated_pronouns} "
+                            f"expect person={expected_person} but verb "
+                            f"'{word}' has person={person}"
+                        )
+                    return violations
+
+        return violations
+
+    # Common bare nouns (non-pronominal) — treated as 3sg for agreement
+    _BARE_NOUN_INDICATORS = {"پیاو", "ژن", "منداڵ", "مامۆستا", "قوتابی", "کچ", "کوڕ"}
+
+    def _check_bare_noun_agreement(self, sentence: str) -> list[str]:
+        """Check bare noun person-only agreement (Slevanayi 2001, p. 60).
+
+        Bare nouns (without demonstrative/definite marker) agree with the
+        verb in person only (3sg) without number constraint. A 1st or 2nd
+        person verb after a bare noun subject is a violation.
+        """
+        violations = []
+        words = self._analyzer.tokenize(sentence)
+
+        for i, word in enumerate(words):
+            if word not in self._BARE_NOUN_INDICATORS:
+                continue
+            # Look ahead for a verb, skip if a demonstrative precedes
+            if i > 0 and words[i - 1] in ("ئەو", "ئەم", "ئەوان"):
+                continue
+
+            for j in range(i + 1, min(i + 8, len(words))):
+                v = words[j]
+                if v == "و" or v in ("،", ".", "؟", "!"):
+                    break
+                for ending, (person, _number) in _PRESENT_ENDINGS.items():
+                    if v.endswith(ending) and any(v.startswith(p) for p in _PRESENT_PREFIXES):
+                        if person in ("1", "2"):
+                            violations.append(
+                                f"Bare noun '{word}' expects 3rd person verb "
+                                f"but '{v}' has person={person}"
+                            )
+                        return violations
+
+        return violations
+
 
 def evaluate_agreement_accuracy(
     sentences: list[str],
@@ -869,3 +974,86 @@ def evaluate_agreement_accuracy(
         "avg_checks_passed": sum(r.checks_passed for r in results) / total if total > 0 else 0,
         "avg_checks_total": sum(r.checks_total for r in results) / total if total > 0 else 0,
     }
+
+
+# PIPE-4: Per-agreement-law breakdown — labels match check_sentence order
+_CHECK_LABELS: list[tuple[str, str]] = [
+    ("subject_verb", "Law 1"),     # Check 1
+    ("clitic_consistency", ""),     # Check 2
+    ("ezafe", ""),                  # Check 3
+    ("tense_consistency", ""),      # Check 4
+    ("object_verb_ergative", "Law 2"),  # Check 5
+    ("negative_concord", ""),       # Check 6
+    ("orthography", ""),            # Check 7
+    ("conditional", ""),            # Check 8
+    ("quantifier_noun", ""),        # Check 9
+    ("relative_clause", ""),        # Check 10
+    ("vocative_imperative", ""),    # Check 11
+    ("adverb_verb_tense", ""),      # Check 12
+    ("compound_subject", ""),       # Check 13
+    ("bare_noun", ""),              # Check 14
+]
+
+
+def evaluate_agreement_by_check(
+    sentences: list[str],
+    checker: Optional[AgreementChecker] = None,
+) -> dict[str, dict]:
+    """Per-check accuracy breakdown, returning stats for each of the 14 checks.
+
+    Also aggregates Law 1 (subject-verb) and Law 2 (object-verb ergative)
+    separately — the two agreement laws central to this thesis.
+    """
+    if checker is None:
+        checker = AgreementChecker()
+
+    per_check: dict[str, dict] = {}
+    for label, _law in _CHECK_LABELS:
+        per_check[label] = {"correct": 0, "total": 0, "law": _law}
+
+    check_methods = [
+        "_check_subject_verb",
+        "_check_clitic_consistency",
+        "_check_ezafe",
+        "_check_tense_consistency",
+        "_check_object_verb_ergative",
+        "_check_negative_concord",
+        "_check_orthography",
+        "_check_conditional_agreement",
+        "_check_quantifier_noun",
+        "_check_relative_clause",
+        "_check_vocative_imperative",
+        "_check_adverb_verb_tense",
+        "_check_compound_subject",
+        "_check_bare_noun_agreement",
+    ]
+
+    for sent in sentences:
+        for (label, _law), method_name in zip(_CHECK_LABELS, check_methods):
+            method = getattr(checker, method_name)
+            violations = method(sent)
+            per_check[label]["total"] += 1
+            if not violations:
+                per_check[label]["correct"] += 1
+
+    # Compute accuracy per check
+    for label in per_check:
+        t = per_check[label]["total"]
+        c = per_check[label]["correct"]
+        per_check[label]["accuracy"] = c / t if t > 0 else 0.0
+
+    # Aggregate Law 1 / Law 2
+    law_summary = {}
+    for label, info in per_check.items():
+        law = info.get("law", "")
+        if law:
+            if law not in law_summary:
+                law_summary[law] = {"correct": 0, "total": 0}
+            law_summary[law]["correct"] += info["correct"]
+            law_summary[law]["total"] += info["total"]
+    for law in law_summary:
+        t = law_summary[law]["total"]
+        c = law_summary[law]["correct"]
+        law_summary[law]["accuracy"] = c / t if t > 0 else 0.0
+
+    return {"per_check": per_check, "per_law": law_summary}

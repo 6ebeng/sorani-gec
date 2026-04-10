@@ -10,6 +10,11 @@ Two tokenizers are exposed:
 
 Both remove ZWJ (U+200D) before tokenizing.  The regex tokenizer also
 splits conjunctive و that runs into the next word (e.g. "وئەو" → "و ئەو").
+
+Design choice: these tokenizers operate at surface level only.  Clitic
+separation (-م, -ت, -ی), negation prefix splitting (نا-), and verb complex
+decomposition are handled downstream by MorphologicalAnalyzer in
+src/morphology/analyzer.py, not here.
 """
 
 import re

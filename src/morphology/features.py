@@ -22,9 +22,19 @@ logger = logging.getLogger(__name__)
 class FeatureExtractor:
     """Extract morphological feature vectors for model input."""
     
+    _NUM_FEATURES = 9
+
     def __init__(self, analyzer: Optional[MorphologicalAnalyzer] = None):
         self.analyzer = analyzer or MorphologicalAnalyzer()
         self.feature_vocab = self.analyzer.build_feature_vocabulary()
+        # Validate feature vector length matches expected count (PIPE-8)
+        test_feats = self.analyzer.analyze_token("تۆ")
+        if test_feats is not None:
+            vec = test_feats.to_vector_indices(self.feature_vocab)
+            assert len(vec) == self._NUM_FEATURES, (
+                "Feature vector length mismatch: analyzer produces %d features "
+                "but FeatureExtractor expects %d" % (len(vec), self._NUM_FEATURES)
+            )
     
     def extract_features(self, sentence: str) -> list[list[int]]:
         """Extract feature vectors for each token in a sentence.
@@ -46,4 +56,4 @@ class FeatureExtractor:
 
     def get_num_features(self) -> int:
         """Return number of feature types."""
-        return 9
+        return self._NUM_FEATURES

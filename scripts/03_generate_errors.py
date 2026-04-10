@@ -37,6 +37,9 @@ def main():
     parser.add_argument("--validate-errors", action="store_true", default=False,
                         help="CRIT-6: reject error pairs where injected error "
                              "tokens are valid dictionary words")
+    parser.add_argument("--preserve-categories", action="store_true", default=False,
+                        help="Input has tab-separated category\\tsentence format; "
+                             "category field is carried into annotations.jsonl")
     args = parser.parse_args()
 
     if not Path(args.input).exists():
@@ -54,17 +57,63 @@ def main():
         error_rate=args.error_rate,
         seed=args.seed,
     )
+
+    # If categories are preserved, strip the category column, process the
+    # plain sentences, and then re-attach categories to the output JSONL.
+    category_map: dict[int, str] = {}
+    if args.preserve_categories:
+        input_path = Path(args.input)
+        tmp_input = input_path.with_name(input_path.stem + "_stripped.txt")
+        with open(input_path, "r", encoding="utf-8") as fin, \
+             open(tmp_input, "w", encoding="utf-8") as fout:
+            idx = 0
+            for line in fin:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                if "\t" in stripped:
+                    cat, sent = stripped.split("\t", 1)
+                    category_map[idx] = cat
+                    fout.write(sent + "\n")
+                else:
+                    category_map[idx] = "general"
+                    fout.write(stripped + "\n")
+                idx += 1
+        logger.info("Stripped categories from %d lines", len(category_map))
+        args.input = str(tmp_input)
     
-    stats = pipeline.process_corpus(
-        input_file=args.input,
-        output_dir=args.output,
-        target_pairs=args.target,
-        corruption_ratio=args.corruption_ratio,
-        validate_errors=args.validate_errors,
-    )
-    
+    try:
+        stats = pipeline.process_corpus(
+            input_file=args.input,
+            output_dir=args.output,
+            target_pairs=args.target,
+            corruption_ratio=args.corruption_ratio,
+            validate_errors=args.validate_errors,
+        )
+    finally:
+        # PIPE-20: ensure temp file is cleaned up even if process_corpus raises
+        if args.preserve_categories:
+            tmp_path = Path(args.input)
+            if tmp_path.name.endswith("_stripped.txt") and tmp_path.exists():
+                tmp_path.unlink()
+                logger.info("Cleaned up temp file: %s", tmp_path)
+
     logger.info("Synthetic corpus generation complete.")
     logger.info("Stats: %s", stats)
+
+    # Inject category field into annotations.jsonl if categories were preserved
+    if args.preserve_categories and category_map:
+        import json as _json
+        annotations_path = Path(args.output) / "annotations.jsonl"
+        if annotations_path.exists():
+            with open(annotations_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+            with open(annotations_path, "w", encoding="utf-8") as f:
+                for i, line in enumerate(lines):
+                    record = _json.loads(line)
+                    record["category"] = category_map.get(i, "general")
+                    f.write(_json.dumps(record, ensure_ascii=False) + "\n")
+            logger.info("Injected category field into %d annotations", len(lines))
 
     # PIPE-3: Optional spell-check post-filter
     if args.spell_check:

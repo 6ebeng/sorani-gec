@@ -288,8 +288,19 @@ class CorpusCollector:
         logger.info("Extracted %d sentences from dump", len(sentences))
         return sentences
     
-    def collect_from_text_files(self, input_dir: str, source_name: str = "local") -> int:
-        """Collect sentences from local text files (e.g., academic theses)."""
+    def collect_from_text_files(
+        self,
+        input_dir: str,
+        source_name: str = "local",
+        category: Optional[str] = None,
+    ) -> int:
+        """Collect sentences from local text files (e.g., academic theses).
+
+        Args:
+            input_dir: Directory containing .txt files to ingest.
+            source_name: Label for stats tracking and output filename.
+            category: If provided, stored in stats under ``categories``.
+        """
         input_path = Path(input_dir)
         output_file = self.output_dir / f"{source_name}.txt"
         sentences = []
@@ -314,8 +325,128 @@ class CorpusCollector:
         self.stats["sources"][source_name] = len(sentences)
         self.stats["total_sentences"] += len(sentences)
         self.stats["total_chars"] += sum(len(s) for s in sentences)
+        if category:
+            if "categories" not in self.stats:
+                self.stats["categories"] = {}
+            cats = self.stats["categories"]
+            cats[category] = cats.get(category, 0) + len(sentences)
         logger.info("Collected %d sentences from %s", len(sentences), source_name)
         return len(sentences)
+
+    def collect_categorized(
+        self,
+        input_dir: str,
+        catalog_path: Optional[str] = None,
+    ) -> int:
+        """Collect sentences from a directory organized by category subdirectories.
+
+        Expected layout::
+
+            input_dir/
+            ├── linguistics/
+            │   ├── thesis_01.txt
+            │   └── thesis_02.txt
+            ├── history/
+            │   └── history_book.txt
+            └── education/
+                └── pedagogy_thesis.txt
+
+        Alternatively, if *catalog_path* is provided, reads category
+        assignments from a JSON catalog (flat directory with a mapping file).
+
+        Returns total sentences collected across all categories.
+        """
+        from .corpus_catalog import CorpusCatalog
+
+        input_path = Path(input_dir)
+        total = 0
+
+        if catalog_path:
+            catalog = CorpusCatalog(input_path, catalog_path=catalog_path)
+            stats = catalog.load_sentences()
+            for cat, sents in catalog._sentences_by_category.items():
+                if not sents:
+                    continue
+                out_file = self.output_dir / f"{cat}.txt"
+                new_sents = []
+                for s in sents:
+                    normalized = " ".join(s.split())
+                    if normalized not in self._seen_sentences:
+                        self._seen_sentences.add(normalized)
+                        new_sents.append(s)
+                if new_sents:
+                    with open(out_file, "a", encoding="utf-8") as f:
+                        for s in new_sents:
+                            f.write(s + "\n")
+                    self.stats["sources"][cat] = self.stats["sources"].get(cat, 0) + len(new_sents)
+                    if "categories" not in self.stats:
+                        self.stats["categories"] = {}
+                    self.stats["categories"][cat] = self.stats["categories"].get(cat, 0) + len(new_sents)
+                    self.stats["total_sentences"] += len(new_sents)
+                    self.stats["total_chars"] += sum(len(s) for s in new_sents)
+                    total += len(new_sents)
+            logger.info("Collected %d categorized sentences from %s", total, input_dir)
+            return total
+
+        # Subdirectory-based: each subfolder is a category
+        for subdir in sorted(input_path.iterdir()):
+            if not subdir.is_dir():
+                continue
+            cat_name = subdir.name
+            n = self.collect_from_text_files(
+                str(subdir),
+                source_name=cat_name,
+                category=cat_name,
+            )
+            total += n
+
+        logger.info("Collected %d categorized sentences total from %s", total, input_dir)
+        return total
+
+    def collect_from_ktc(self, ktc_dir: str) -> int:
+        """Collect sentences from a cloned KTC (Kurdish Textbooks Corpus) repo.
+
+        Uses ``CorpusCatalog.from_ktc()`` to map KTC directory names to
+        our academic categories, loads all text files, deduplicates, and
+        writes per-category output files.
+
+        Args:
+            ktc_dir: Path to the cloned KTC repository root.
+
+        Returns:
+            Total sentences collected across all KTC categories.
+        """
+        from .corpus_catalog import CorpusCatalog
+
+        catalog = CorpusCatalog.from_ktc(ktc_dir)
+        stats = catalog.load_sentences()
+        total = 0
+
+        for cat, sents in catalog._sentences_by_category.items():
+            if not sents:
+                continue
+            out_file = self.output_dir / f"ktc_{cat}.txt"
+            new_sents = []
+            for s in sents:
+                normalized = " ".join(s.split())
+                if normalized not in self._seen_sentences:
+                    self._seen_sentences.add(normalized)
+                    new_sents.append(s)
+            if new_sents:
+                with open(out_file, "a", encoding="utf-8") as f:
+                    for s in new_sents:
+                        f.write(s + "\n")
+                src_key = f"ktc_{cat}"
+                self.stats["sources"][src_key] = self.stats["sources"].get(src_key, 0) + len(new_sents)
+                if "categories" not in self.stats:
+                    self.stats["categories"] = {}
+                self.stats["categories"][cat] = self.stats["categories"].get(cat, 0) + len(new_sents)
+                self.stats["total_sentences"] += len(new_sents)
+                self.stats["total_chars"] += sum(len(s) for s in new_sents)
+                total += len(new_sents)
+
+        logger.info("Collected %d sentences from KTC (%s)", total, ktc_dir)
+        return total
     
     @staticmethod
     def _is_sorani(text: str) -> bool:

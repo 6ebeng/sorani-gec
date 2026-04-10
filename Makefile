@@ -62,6 +62,8 @@ ablation:
 	$(VENV_PYTHON) scripts/08_ablation.py --config configs/default.yaml
 
 # ARCH-5: Full reproducible pipeline — one command from raw data to final metrics
+# Core 10-step chain. Utility scripts run separately:
+#   01a (lexicon download), 09 (ONNX export), 10 (inference), 11 (hash), 12 (hpsearch)
 reproduce: collect sanitize normalize generate split stats train-baseline train-morphaware evaluate ablation
 
 # ---------- Hyperparameter Search ----------

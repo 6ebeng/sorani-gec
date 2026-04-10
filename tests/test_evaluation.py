@@ -14,7 +14,7 @@ from src.evaluation.f05_scorer import (
     evaluate_sentence,
     span_based_edits,
 )
-from src.evaluation.agreement_accuracy import AgreementChecker, evaluate_agreement_accuracy
+from src.evaluation.agreement_accuracy import AgreementChecker, evaluate_agreement_accuracy, evaluate_agreement_by_check
 
 
 # ============================================================================
@@ -151,7 +151,7 @@ def test_agreement_checker_clitic_consistency():
     """Clitic consistency check runs (no crash) on normal sentence."""
     checker = AgreementChecker()
     result = checker.check_sentence("پارەکەم بردەوە")
-    assert result.checks_total == 12
+    assert result.checks_total == 14
     print(f"  Clitic check: violations={result.violations}")
 
 
@@ -343,8 +343,8 @@ def test_agreement_checker_object_verb_ergative():
     checker = AgreementChecker()
     # Past transitive: object should agree with verb
     result = checker.check_sentence("کتێبەکە بردم")
-    assert result.checks_total == 12, (
-        f"Expected 12 checks (including ergative + new checks), got {result.checks_total}"
+    assert result.checks_total == 14, (
+        f"Expected 14 checks (including ergative + new checks), got {result.checks_total}"
     )
 
 
@@ -387,12 +387,12 @@ def test_compute_f05_balanced():
     print(f"  F₀.₅(P=0.5, R=0.5) = {result:.6f}")
 
 
-def test_agreement_checker_twelve_checks_counted():
-    """AgreementChecker must run exactly 12 checks per sentence."""
+def test_agreement_checker_fourteen_checks_counted():
+    """AgreementChecker must run exactly 14 checks per sentence."""
     checker = AgreementChecker()
     result = checker.check_sentence("من نانم خوارد")
-    assert result.checks_total == 12
-    print(f"  Twelve checks confirmed: {result.checks_total}")
+    assert result.checks_total == 14
+    print(f"  Fourteen checks confirmed: {result.checks_total}")
 
 
 # ============================================================================
@@ -447,8 +447,82 @@ if __name__ == "__main__":
     test_evaluate_corpus_with_sentences_mixed()
     test_evaluate_corpus_with_sentences_empty()
 
-    print("\n=== Object-Verb Ergative & Twelve-Check Tests ===")
+    print("\n=== Object-Verb Ergative & Fourteen-Check Tests ===")
     test_agreement_checker_object_verb_ergative()
-    test_agreement_checker_twelve_checks_counted()
+    test_agreement_checker_fourteen_checks_counted()
+
+    print("\n=== PIPE-4: Per-Law Agreement & CER Tests ===")
+    test_evaluate_agreement_by_check_basic()
+    test_evaluate_agreement_by_check_per_law_keys()
+    test_compute_cer_identical()
+    test_compute_cer_different()
 
     print("\nAll evaluation tests passed!")
+
+
+# ============================================================================
+# PIPE-4: Per-Agreement-Law Breakdown Tests
+# ============================================================================
+
+def test_evaluate_agreement_by_check_basic():
+    """Per-check breakdown runs and returns dict with expected structure."""
+    sentences = ["من دەچم بۆ قوتابخانە", "ئەوان دەچن بۆ بازاڕ"]
+    result = evaluate_agreement_by_check(sentences)
+    assert "per_check" in result
+    assert "per_law" in result
+    assert len(result["per_check"]) == 14  # 14 agreement checks
+    for label, info in result["per_check"].items():
+        assert "accuracy" in info
+        assert "total" in info
+        assert info["total"] == 2  # two sentences
+    print(f"  Per-check breakdown: {len(result['per_check'])} checks")
+
+
+def test_evaluate_agreement_by_check_per_law_keys():
+    """Per-law summary contains Law 1 and Law 2."""
+    sentences = ["من دەچم بۆ قوتابخانە"]
+    result = evaluate_agreement_by_check(sentences)
+    per_law = result["per_law"]
+    assert "Law 1" in per_law, f"Expected 'Law 1' in per_law, got keys: {list(per_law.keys())}"
+    assert "Law 2" in per_law, f"Expected 'Law 2' in per_law, got keys: {list(per_law.keys())}"
+    for law, info in per_law.items():
+        assert 0.0 <= info["accuracy"] <= 1.0
+    print(f"  Per-law: Law 1={per_law['Law 1']['accuracy']:.2f}, Law 2={per_law['Law 2']['accuracy']:.2f}")
+
+
+# ============================================================================
+# PIPE-4: CER Tests
+# ============================================================================
+
+def _compute_cer(hypotheses, references):
+    """Local copy of CER algorithm for testing (mirrors 07_evaluate.compute_cer)."""
+    total_dist, total_len = 0, 0
+    for hyp, ref in zip(hypotheses, references):
+        m, n = len(hyp), len(ref)
+        dp = list(range(n + 1))
+        for i in range(1, m + 1):
+            prev = dp[0]
+            dp[0] = i
+            for j in range(1, n + 1):
+                temp = dp[j]
+                if hyp[i - 1] == ref[j - 1]:
+                    dp[j] = prev
+                else:
+                    dp[j] = 1 + min(prev, dp[j], dp[j - 1])
+                prev = temp
+        total_dist += dp[n]
+        total_len += max(n, 1)
+    return total_dist / total_len if total_len > 0 else 0.0
+
+
+def test_compute_cer_identical():
+    """CER of identical strings should be 0."""
+    assert _compute_cer(["abc"], ["abc"]) == 0.0
+    print("  CER identical: 0.0")
+
+
+def test_compute_cer_different():
+    """CER of completely different strings should be > 0."""
+    cer = _compute_cer(["abc"], ["xyz"])
+    assert cer == 1.0  # all 3 chars wrong out of 3 ref chars
+    print(f"  CER different: {cer}")

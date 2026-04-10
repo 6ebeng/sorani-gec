@@ -63,6 +63,7 @@ def load_model(model_path: str, morphaware: bool, backbone: str, max_length: int
 
     checkpoint = Path(model_path)
     if checkpoint.exists():
+        # Security: weights_only=False — checkpoints are self-generated during training
         state = torch.load(checkpoint, map_location="cpu", weights_only=False)
         if isinstance(state, dict) and "model_state_dict" in state:
             state = state["model_state_dict"]

@@ -75,6 +75,8 @@ def main():
     parser.add_argument("--remove-diacritics", action="store_true")
     parser.add_argument("--skip-quality-gate", action="store_true",
                         help="Skip quality-gate filtering (PIPE-11)")
+    parser.add_argument("--preserve-categories", action="store_true", default=False,
+                        help="Read/write tab-separated category\\tsentence format")
     args = parser.parse_args()
     
     normalizer = SoraniNormalizer(
@@ -86,6 +88,7 @@ def main():
     output_path.mkdir(parents=True, exist_ok=True)
     
     all_sentences = []
+    all_categories: list[str] = []
     dropped_short = 0
     quality_drops: dict[str, int] = {}
     
@@ -93,7 +96,11 @@ def main():
         logger.info("Processing %s...", txt_file.name)
         with open(txt_file, "r", encoding="utf-8-sig", errors="replace") as f:
             for line in f:
-                normalized = normalizer.normalize(line.strip())
+                raw = line.strip()
+                cat = None
+                if args.preserve_categories and "\t" in raw:
+                    cat, raw = raw.split("\t", 1)
+                normalized = normalizer.normalize(raw)
                 if normalized and len(normalized) > 20:
                     # PIPE-11: Quality-gate filtering
                     if not args.skip_quality_gate:
@@ -102,6 +109,7 @@ def main():
                             quality_drops[reason] = quality_drops.get(reason, 0) + 1
                             continue
                     all_sentences.append(normalized)
+                    all_categories.append(cat if cat else "")
                 elif normalized:
                     dropped_short += 1
     
@@ -113,14 +121,31 @@ def main():
         logger.info("Quality gate total drops: %d", sum(quality_drops.values()))
     
     logger.info("Total sentences before dedup: %d", len(all_sentences))
-    all_sentences = deduplicate_sentences(all_sentences)
+    if args.preserve_categories:
+        # Deduplicate while keeping category alignment
+        seen: set[str] = set()
+        deduped_sents: list[str] = []
+        deduped_cats: list[str] = []
+        for s, c in zip(all_sentences, all_categories):
+            if s not in seen:
+                seen.add(s)
+                deduped_sents.append(s)
+                deduped_cats.append(c)
+        all_sentences = deduped_sents
+        all_categories = deduped_cats
+    else:
+        all_sentences = deduplicate_sentences(all_sentences)
     logger.info("Total sentences after dedup: %d", len(all_sentences))
     
     # Save cleaned corpus
     output_file = output_path / "clean_corpus.txt"
     with open(output_file, "w", encoding="utf-8") as f:
-        for sentence in all_sentences:
-            f.write(sentence + "\n")
+        if args.preserve_categories:
+            for sent, cat in zip(all_sentences, all_categories):
+                f.write("%s\t%s\n" % (cat, sent))
+        else:
+            for sentence in all_sentences:
+                f.write(sentence + "\n")
     
     logger.info("Clean corpus saved to %s", output_file)
 

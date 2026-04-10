@@ -6,6 +6,7 @@ from .sorani_detector import SoraniDetector
 from .spell_checker import SoraniSpellChecker
 from .splitter import load_pairs, split_pairs
 from .tokenize import sorani_tokenize, sorani_word_tokenize, sorani_join
+from .corpus_catalog import CorpusCatalog, CATEGORIES, KTC_CATEGORY_MAP
 
 __all__ = [
     "SoraniNormalizer",
@@ -17,4 +18,7 @@ __all__ = [
     "sorani_tokenize",
     "sorani_word_tokenize",
     "sorani_join",
+    "CorpusCatalog",
+    "CATEGORIES",
+    "KTC_CATEGORY_MAP",
 ]

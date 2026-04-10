@@ -1,18 +1,24 @@
 """
 Step 8: Ablation Studies
 
-Runs three ablation experiments defined in configs/default.yaml:
-  1. no_morphology     — Baseline ByT5 without morphological features
-  2. individual_features — One morphological feature at a time
-  3. data_size_variation — Training on 10K, 20K, 30K, 40K, 50K pairs
+Runs five ablation experiments defined in configs/default.yaml:
+  1. no_morphology        — Baseline ByT5 without morphological features
+  2. individual_features  — One morphological feature at a time
+  3. data_size_variation   — Training on 10K, 20K, 30K, 40K, 50K pairs
+  4. agreement_loss_weight — Varying agreement loss weight λ
+  5. curriculum_learning   — Curriculum learning vs. random sampling
 
 Each experiment trains a model variant, evaluates on the test set, and
 saves per-experiment metrics to results/ablation/.
+
+Includes paired bootstrap significance testing for comparing experiment
+results against the full-morphology baseline.
 
 Usage:
     python scripts/08_ablation.py --config configs/default.yaml
     python scripts/08_ablation.py --experiment no_morphology
     python scripts/08_ablation.py --experiment data_size_variation --data-sizes 10000 30000 50000
+    python scripts/08_ablation.py --experiment curriculum_learning
 """
 
 import argparse
@@ -117,7 +123,9 @@ def train_model(config: dict, use_morphology: bool,
                 data_size: int | None = None,
                 output_dir: Path | None = None,
                 agreement_loss_weight: float | None = None,
-                seed: int = 42) -> object:
+                seed: int = 42,
+                tb_writer=None,
+                tb_tag: str = "") -> object:
     """Train a model variant and return the trained model.
 
     Parameters:
@@ -128,6 +136,8 @@ def train_model(config: dict, use_morphology: bool,
         output_dir: Where to save checkpoints.
         agreement_loss_weight: Override for lambda weight.
         seed: Random seed for data subsampling reproducibility.
+        tb_writer: Optional TensorBoard SummaryWriter for per-epoch logging.
+        tb_tag: Tag prefix for TensorBoard scalars (e.g. "no_morphology").
     """
     import torch
     from src.data.splitter import load_pairs
@@ -246,6 +256,12 @@ def train_model(config: dict, use_morphology: bool,
         avg_loss = epoch_loss / max(n_batches, 1)
         logger.info("Epoch %d/%d — avg loss: %.4f", epoch, epochs, avg_loss)
 
+        # PIPE-2: Per-epoch TensorBoard logging
+        if tb_writer and tb_tag:
+            tb_writer.add_scalar(f"ablation/{tb_tag}/train_loss", avg_loss, epoch)
+            tb_writer.add_scalar(f"ablation/{tb_tag}/learning_rate",
+                                 optimizer.param_groups[0]["lr"], epoch)
+
         if avg_loss < best_loss:
             best_loss = avg_loss
             stale = 0
@@ -265,12 +281,14 @@ def train_model(config: dict, use_morphology: bool,
 # ============================================================================
 
 def run_no_morphology(config: dict, sources: list[str],
-                      references: list[str], output_dir: Path) -> dict:
+                      references: list[str], output_dir: Path,
+                      tb_writer=None) -> dict:
     """Experiment 1: Baseline without morphological features."""
     logger.info("=== Ablation: no_morphology ===")
     exp_dir = output_dir / "no_morphology"
 
-    model = train_model(config, use_morphology=False, output_dir=exp_dir)
+    model = train_model(config, use_morphology=False, output_dir=exp_dir,
+                        tb_writer=tb_writer, tb_tag="no_morphology")
     results = evaluate_model(model, sources, references)
     results["experiment"] = "no_morphology"
 
@@ -283,7 +301,8 @@ def run_no_morphology(config: dict, sources: list[str],
 
 def run_individual_features(config: dict, sources: list[str],
                             references: list[str],
-                            output_dir: Path) -> list[dict]:
+                            output_dir: Path,
+                            tb_writer=None) -> list[dict]:
     """Experiment 2: One morphological feature at a time."""
     logger.info("=== Ablation: individual_features ===")
     all_results = []
@@ -292,7 +311,8 @@ def run_individual_features(config: dict, sources: list[str],
         logger.info("--- Feature: %s ---", feature)
         exp_dir = output_dir / "individual_features" / feature
         model = train_model(config, use_morphology=True,
-                            feature_subset=[feature], output_dir=exp_dir)
+                            feature_subset=[feature], output_dir=exp_dir,
+                            tb_writer=tb_writer, tb_tag=f"feature_{feature}")
         results = evaluate_model(
             model, sources, references,
             analyzer=getattr(model, '_training_analyzer', None),
@@ -312,7 +332,8 @@ def run_individual_features(config: dict, sources: list[str],
 
 def run_data_size_variation(config: dict, sources: list[str],
                             references: list[str], output_dir: Path,
-                            sizes: list[int] | None = None) -> list[dict]:
+                            sizes: list[int] | None = None,
+                            tb_writer=None) -> list[dict]:
     """Experiment 3: Varying training data size."""
     logger.info("=== Ablation: data_size_variation ===")
     if sizes is None:
@@ -323,7 +344,8 @@ def run_data_size_variation(config: dict, sources: list[str],
         logger.info("--- Data size: %d ---", size)
         exp_dir = output_dir / "data_size_variation" / f"{size}"
         model = train_model(config, use_morphology=True,
-                            data_size=size, output_dir=exp_dir)
+                            data_size=size, output_dir=exp_dir,
+                            tb_writer=tb_writer, tb_tag=f"data_{size}")
         results = evaluate_model(
             model, sources, references,
             analyzer=getattr(model, '_training_analyzer', None),
@@ -346,7 +368,8 @@ DEFAULT_AGR_WEIGHTS = [0.0, 0.1, 0.3, 0.5, 1.0]
 
 def run_agreement_loss_weight(config: dict, sources: list[str],
                               references: list[str], output_dir: Path,
-                              weights: list[float] | None = None) -> list[dict]:
+                              weights: list[float] | None = None,
+                              tb_writer=None) -> list[dict]:
     """Experiment 4: Varying agreement loss weight (PIPE-6)."""
     logger.info("=== Ablation: agreement_loss_weight ===")
     if weights is None:
@@ -357,7 +380,8 @@ def run_agreement_loss_weight(config: dict, sources: list[str],
         logger.info("--- Agreement loss weight: %.2f ---", w)
         exp_dir = output_dir / "agreement_loss_weight" / f"{w:.2f}"
         model = train_model(config, use_morphology=True,
-                            agreement_loss_weight=w, output_dir=exp_dir)
+                            agreement_loss_weight=w, output_dir=exp_dir,
+                            tb_writer=tb_writer, tb_tag=f"agr_weight_{w:.2f}")
         results = evaluate_model(
             model, sources, references,
             analyzer=getattr(model, '_training_analyzer', None),
@@ -375,18 +399,94 @@ def run_agreement_loss_weight(config: dict, sources: list[str],
     return all_results
 
 
+def run_curriculum_learning(config: dict, sources: list[str],
+                            references: list[str], output_dir: Path,
+                            tb_writer=None) -> dict:
+    """Experiment 5: Curriculum learning vs. random sampling (PIPE-3).
+
+    Trains with curriculum learning (easy-to-hard ordering by sentence
+    length) and compares against the default random-sampling baseline.
+    """
+    logger.info("=== Ablation: curriculum_learning ===")
+    exp_dir = output_dir / "curriculum_learning"
+
+    model = train_model(config, use_morphology=True, output_dir=exp_dir,
+                        tb_writer=tb_writer, tb_tag="curriculum")
+    results = evaluate_model(
+        model, sources, references,
+        analyzer=getattr(model, '_training_analyzer', None),
+        feature_extractor=getattr(model, '_training_feature_extractor', None),
+    )
+    results["experiment"] = "curriculum_learning"
+
+    with open(exp_dir / "metrics.json", "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
+    logger.info("curriculum_learning — F0.5=%.4f, agreement=%.4f",
+                results["f05"], results["agreement_accuracy"])
+    return results
+
+
+# PIPE-3: Paired bootstrap significance test
+def paired_bootstrap_test(
+    sources: list[str],
+    hyps_a: list[str],
+    hyps_b: list[str],
+    references: list[str],
+    n_boot: int = 1000,
+    seed: int = 42,
+) -> dict:
+    """Test whether system A is significantly better than system B (F₀.₅).
+
+    Returns dict with delta, p_value, and whether the difference is
+    significant at alpha=0.05.
+    """
+    import random as _rng
+    rng = _rng.Random(seed)
+    n = len(sources)
+
+    # Corpus-level scores
+    score_a = evaluate_corpus(sources, hyps_a, references).f05
+    score_b = evaluate_corpus(sources, hyps_b, references).f05
+    delta = score_a - score_b
+
+    # Count how often the bootstrap delta is <= 0 (one-sided test)
+    count_worse = 0
+    for _ in range(n_boot):
+        indices = [rng.randint(0, n - 1) for _ in range(n)]
+        b_src = [sources[i] for i in indices]
+        b_ha = [hyps_a[i] for i in indices]
+        b_hb = [hyps_b[i] for i in indices]
+        b_ref = [references[i] for i in indices]
+        d = evaluate_corpus(b_src, b_ha, b_ref).f05 - evaluate_corpus(b_src, b_hb, b_ref).f05
+        if d <= 0:
+            count_worse += 1
+
+    p_value = count_worse / n_boot
+    return {
+        "score_a": score_a,
+        "score_b": score_b,
+        "delta": delta,
+        "p_value": p_value,
+        "significant_at_005": p_value < 0.05,
+        "n_bootstrap": n_boot,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="GEC Ablation Studies")
     parser.add_argument("--config", default="configs/default.yaml")
     parser.add_argument("--experiment", default="all",
                         choices=["all", "no_morphology", "individual_features",
-                                 "data_size_variation", "agreement_loss_weight"])
+                                 "data_size_variation", "agreement_loss_weight",
+                                 "curriculum_learning"])
     parser.add_argument("--test-data", default="data/splits/test.jsonl")
     parser.add_argument("--output", default="results/ablation")
     parser.add_argument("--data-sizes", nargs="*", type=int, default=None,
                         help="Custom data sizes for data_size_variation")
     parser.add_argument("--agr-weights", nargs="*", type=float, default=None,
                         help="Custom agreement loss weights for ablation (e.g., 0.0 0.1 0.3 0.5 1.0)")
+    parser.add_argument("--tensorboard-dir", default=None,
+                        help="Directory for TensorBoard ablation summary (optional)")
     parser.add_argument("--seed", type=int, default=42,
                         help="Random seed for reproducibility")
     args = parser.parse_args()
@@ -431,29 +531,58 @@ def main():
 
     summary = {}
 
+    # PIPE-2: Create TensorBoard writer early for per-epoch training curves
+    tb_writer = None
+    if args.tensorboard_dir:
+        from torch.utils.tensorboard import SummaryWriter
+        tb_writer = SummaryWriter(log_dir=args.tensorboard_dir)
+
     if args.experiment in ("all", "no_morphology"):
-        r = run_no_morphology(config, sources, references, output_dir)
+        r = run_no_morphology(config, sources, references, output_dir,
+                              tb_writer=tb_writer)
         summary["no_morphology"] = r
 
     if args.experiment in ("all", "individual_features"):
-        r = run_individual_features(config, sources, references, output_dir)
+        r = run_individual_features(config, sources, references, output_dir,
+                                    tb_writer=tb_writer)
         summary["individual_features"] = r
 
     if args.experiment in ("all", "data_size_variation"):
         r = run_data_size_variation(config, sources, references, output_dir,
-                                    sizes=args.data_sizes)
+                                    sizes=args.data_sizes,
+                                    tb_writer=tb_writer)
         summary["data_size_variation"] = r
 
     if args.experiment in ("all", "agreement_loss_weight"):
         r = run_agreement_loss_weight(config, sources, references, output_dir,
-                                       weights=args.agr_weights)
+                                       weights=args.agr_weights,
+                                       tb_writer=tb_writer)
         summary["agreement_loss_weight"] = r
+
+    if args.experiment in ("all", "curriculum_learning"):
+        r = run_curriculum_learning(config, sources, references, output_dir,
+                                    tb_writer=tb_writer)
+        summary["curriculum_learning"] = r
 
     # Save combined summary
     summary_file = output_dir / "ablation_summary.json"
     with open(summary_file, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
     logger.info("Ablation summary saved to %s", summary_file)
+
+    # TensorBoard ablation summary (CRIT-2) — write final eval metrics
+    if tb_writer:
+        for exp_name, exp_results in summary.items():
+            if isinstance(exp_results, dict) and "f05" in exp_results:
+                tb_writer.add_scalar("ablation/%s/f05" % exp_name, exp_results["f05"], 0)
+                tb_writer.add_scalar("ablation/%s/agreement" % exp_name, exp_results["agreement_accuracy"], 0)
+            elif isinstance(exp_results, list):
+                for idx, r in enumerate(exp_results):
+                    if isinstance(r, dict) and "f05" in r:
+                        tb_writer.add_scalar("ablation/%s/f05" % exp_name, r["f05"], idx)
+                        tb_writer.add_scalar("ablation/%s/agreement" % exp_name, r["agreement_accuracy"], idx)
+        tb_writer.close()
+        logger.info("TensorBoard ablation summary written to %s", args.tensorboard_dir)
 
 
 if __name__ == "__main__":

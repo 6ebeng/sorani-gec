@@ -30,6 +30,7 @@ data/raw/
 data/clean/
 data/synthetic/
 data/splits/
+data/ktc/
 
 # Training results / checkpoints
 results/

@@ -1,8 +1,11 @@
 import hashlib
+import logging
 import os
 import urllib.request
 import urllib.error
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # SHA-256 of the known-good ckb-Arab.dic file.  Update this value
 # when intentionally upgrading to a new lexicon version.
@@ -25,7 +28,7 @@ def download_lexicon():
     
     dic_path = dest_dir / "ckb-Arab.dic"
     
-    print(f"Downloading Sina Ahmadi's Kurdish lexicon data to {dic_path}...")
+    logger.info("Downloading Sina Ahmadi's Kurdish lexicon data to %s...", dic_path)
     req = urllib.request.Request(base_url, headers={'User-Agent': 'Mozilla/5.0'})
     try:
         with urllib.request.urlopen(req, timeout=30) as response:
@@ -33,29 +36,32 @@ def download_lexicon():
             with open(dic_path, "wb") as f:
                 f.write(content)
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
-        print(f"Error downloading lexicon: {e}")
+        logger.error("Error downloading lexicon: %s", e)
         raise SystemExit(1) from e
             
-    print(f"Downloaded {len(content)} bytes.")
+    logger.info("Downloaded %d bytes.", len(content))
 
     # PIPE-13: Verify checksum for reproducibility
     actual_hash = _sha256(dic_path)
-    print(f"SHA-256: {actual_hash}")
+    logger.info("SHA-256: %s", actual_hash)
     if _EXPECTED_SHA256 is not None and actual_hash != _EXPECTED_SHA256:
-        print(
-            f"WARNING: Checksum mismatch!\n"
-            f"  Expected: {_EXPECTED_SHA256}\n"
-            f"  Got:      {actual_hash}\n"
-            f"The upstream lexicon may have changed. Verify manually."
+        logger.warning(
+            "Checksum mismatch! Expected: %s  Got: %s  "
+            "The upstream lexicon may have changed. Verify manually.",
+            _EXPECTED_SHA256, actual_hash,
         )
     elif _EXPECTED_SHA256 is None:
-        print(
-            "No expected checksum configured. To lock this version, set\n"
-            f"  _EXPECTED_SHA256 = \"{actual_hash}\"\n"
-            "in this script."
+        logger.info(
+            "No expected checksum configured. To lock this version, set "
+            "_EXPECTED_SHA256 = \"%s\" in this script.", actual_hash,
         )
 
-    print("Lexicon download complete.")
+    logger.info("Lexicon download complete.")
+
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    )
     download_lexicon()

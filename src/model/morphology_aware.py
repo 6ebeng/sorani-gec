@@ -364,10 +364,13 @@ class MorphologyAwareGEC(nn.Module):
                 )
                 agreement_loss = (per_token_loss * padding_mask).sum() / padding_mask.sum().clamp(min=1.0)
 
-            total_loss = total_loss + self.agreement_loss_weight * agreement_loss
+            weighted_agr_loss = self.agreement_loss_weight * agreement_loss
+            total_loss = total_loss + weighted_agr_loss
         
         return {
             "loss": total_loss,
+            "seq2seq_loss": outputs.loss if outputs.loss is not None else total_loss,
+            "agreement_loss": agreement_loss if agreement_labels is not None else torch.tensor(0.0, device=total_loss.device),
             "logits": outputs.logits,
             "agreement_logits": agreement_logits,
         }

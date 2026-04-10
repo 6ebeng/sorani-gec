@@ -23,6 +23,9 @@
 
 FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
 
+ARG GIT_COMMIT=unknown
+LABEL org.opencontainers.image.revision=$GIT_COMMIT
+
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PYTHONIOENCODING=utf-8 \
@@ -45,12 +48,19 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project source (build context = Implementation/)
 COPY sorani-gec/pyproject.toml .
 COPY sorani-gec/src/ src/
+
+# Install sorani-gec as a package so `from src.*` imports work natively
+RUN pip install --no-cache-dir -e .
+
 COPY sorani-gec/scripts/ scripts/
 COPY sorani-gec/configs/ configs/
-COPY sorani-gec/data/ data/
-COPY sorani-gec/results/ results/
 
-# ARCH-2 fix: Copy web module from sibling directory
+# Data and results are mounted as volumes at runtime (see docker-compose.yml).
+# Create empty directories so scripts don't fail on missing paths.
+RUN mkdir -p data/raw data/clean data/synthetic data/splits data/hunspell data/lexicon \
+    results/models results/metrics results/figures
+
+# Copy web module from sibling directory
 COPY web/ web/
 
 # Default: show help

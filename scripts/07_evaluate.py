@@ -14,6 +14,7 @@ import json
 import logging
 import os
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -24,7 +25,7 @@ from src.evaluation.f05_scorer import (
     evaluate_corpus_span,
     evaluate_corpus_with_sentences,
 )
-from src.evaluation.agreement_accuracy import evaluate_agreement_accuracy
+from src.evaluation.agreement_accuracy import evaluate_agreement_accuracy, evaluate_agreement_by_check
 from src.evaluation.gleu_scorer import compute_gleu
 from src.evaluation.m2_scorer import evaluate_m2
 
@@ -99,6 +100,7 @@ def load_model(model_path: str, morphaware: bool, backbone: str, max_length: int
 
     checkpoint = Path(model_path)
     if checkpoint.exists():
+        # Security: weights_only=False — checkpoints are self-generated during training
         state = torch.load(checkpoint, map_location="cpu", weights_only=False)
         if isinstance(state, dict) and "model_state_dict" in state:
             state = state["model_state_dict"]
@@ -142,6 +144,34 @@ def generate_hypotheses(model, sources: list[str], batch_size: int = 16,
     return hypotheses
 
 
+def compute_cer(hypotheses: list[str], references: list[str]) -> float:
+    """Character Error Rate: edit_distance(hyp, ref) / len(ref) averaged over corpus."""
+    total_dist = 0
+    total_len = 0
+    for hyp, ref in zip(hypotheses, references):
+        # Levenshtein distance at character level
+        m, n = len(hyp), len(ref)
+        dp = list(range(n + 1))
+        for i in range(1, m + 1):
+            prev = dp[0]
+            dp[0] = i
+            for j in range(1, n + 1):
+                temp = dp[j]
+                if hyp[i - 1] == ref[j - 1]:
+                    dp[j] = prev
+                else:
+                    dp[j] = 1 + min(prev, dp[j], dp[j - 1])
+                prev = temp
+        total_dist += dp[n]
+        total_len += max(n, 1)
+    return total_dist / total_len if total_len > 0 else 0.0
+
+
+def count_parameters(model) -> int:
+    """Total trainable parameters in the model."""
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Evaluate GEC model")
     parser.add_argument("--config", default="configs/default.yaml",
@@ -166,6 +196,8 @@ def main():
                         help="Path to baseline checkpoint (used with --ensemble)")
     parser.add_argument("--morphaware-path", default="results/models/morphaware/best_model.pt",
                         help="Path to morphaware checkpoint (used with --ensemble)")
+    parser.add_argument("--tensorboard-dir", default=None,
+                        help="Directory for TensorBoard evaluation summary (optional)")
     args = parser.parse_args()
 
     # PIPE-8: Load YAML config and apply as defaults when CLI was not
@@ -210,11 +242,22 @@ def main():
             args.model_path, args.morphaware, args.backbone, args.max_length,
         )
 
+    # PIPE-4: Model parameter count
+    param_count = count_parameters(model)
+    logger.info("Model parameters: %s (%.2fM)", f"{param_count:,}", param_count / 1e6)
+
+    # PIPE-4: Latency tracking
     logger.info("Generating corrections...")
+    t_start = time.perf_counter()
     hypotheses = generate_hypotheses(
         model, sources, args.batch_size, args.num_beams,
         analyzer=analyzer, feature_extractor=feature_extractor,
     )
+    t_elapsed = time.perf_counter() - t_start
+    avg_latency_ms = (t_elapsed / len(sources)) * 1000 if sources else 0.0
+    throughput = len(sources) / t_elapsed if t_elapsed > 0 else 0.0
+    logger.info("Inference: %.2fs total, %.1f ms/sentence, %.1f sentences/s",
+                t_elapsed, avg_latency_ms, throughput)
 
     # Optional spell-check post-processing
     if args.spell_check:
@@ -281,6 +324,17 @@ def main():
     logger.info("Computing agreement accuracy...")
     agreement = evaluate_agreement_accuracy(hypotheses)
     logger.info("Agreement accuracy: %.4f", agreement['accuracy'])
+
+    # PIPE-4: Per-agreement-law breakdown (Law 1 = subject-verb, Law 2 = object-verb ergative)
+    logger.info("Computing per-agreement-law metrics...")
+    agr_by_check = evaluate_agreement_by_check(hypotheses)
+    for law, info in agr_by_check["per_law"].items():
+        logger.info("  %s accuracy: %.4f (%d/%d)", law, info["accuracy"], info["correct"], info["total"])
+
+    # PIPE-4: Character Error Rate
+    logger.info("Computing CER...")
+    cer = compute_cer(hypotheses, references)
+    logger.info("CER: %.4f", cer)
 
     # PIPE-7: Bootstrap confidence intervals for F₀.₅ and GLEU
     logger.info("Computing bootstrap confidence intervals (1000 resamples)...")
@@ -375,6 +429,17 @@ def main():
             "fn": m2_metrics.fn,
         },
         "agreement": agreement,
+        "agreement_by_check": agr_by_check,
+        "cer": cer,
+        "latency": {
+            "total_seconds": t_elapsed,
+            "avg_ms_per_sentence": avg_latency_ms,
+            "throughput_sentences_per_s": throughput,
+        },
+        "model_info": {
+            "param_count": param_count,
+            "param_count_m": round(param_count / 1e6, 2),
+        },
         "bootstrap_ci": {
             "f05_95ci": [f05_ci[0], f05_ci[1]],
             "gleu_95ci": [gleu_ci[0], gleu_ci[1]],
@@ -390,6 +455,26 @@ def main():
         json.dump(results, f, indent=2)
     
     logger.info("Results saved to %s", results_file)
+
+    # TensorBoard summary (CRIT-2)
+    if args.tensorboard_dir:
+        from torch.utils.tensorboard import SummaryWriter
+        tb = SummaryWriter(log_dir=args.tensorboard_dir)
+        tb.add_scalar("eval/f05", metrics.f05, 0)
+        tb.add_scalar("eval/precision", metrics.precision, 0)
+        tb.add_scalar("eval/recall", metrics.recall, 0)
+        tb.add_scalar("eval/gleu", gleu_score, 0)
+        tb.add_scalar("eval/m2_f05", m2_metrics.f05, 0)
+        tb.add_scalar("eval/agreement_accuracy", agreement["accuracy"], 0)
+        tb.add_scalar("eval/cer", cer, 0)
+        tb.add_scalar("eval/latency_ms", avg_latency_ms, 0)
+        tb.add_scalar("eval/throughput", throughput, 0)
+        for law, info in agr_by_check["per_law"].items():
+            tb.add_scalar("eval/agreement_%s" % law.replace(" ", "_"), info["accuracy"], 0)
+        for etype, scores in per_type_results.items():
+            tb.add_scalar("eval/f05_by_type/%s" % etype, scores["f05"], 0)
+        tb.close()
+        logger.info("TensorBoard summary written to %s", args.tensorboard_dir)
 
 
 if __name__ == "__main__":

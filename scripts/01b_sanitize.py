@@ -43,6 +43,9 @@ def main():
                         help="Jaccard threshold for near-duplicate detection")
     parser.add_argument("--min-tokens", type=int, default=3)
     parser.add_argument("--max-tokens", type=int, default=200)
+    parser.add_argument("--preserve-categories", action="store_true", default=False,
+                        help="If set, read tab-separated category\\tsentence lines "
+                             "and preserve the category column through sanitization")
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -71,26 +74,55 @@ def main():
         raise SystemExit(1)
 
     all_sanitized: list[str] = []
+    # When preserving categories, store (category, sentence) pairs
+    all_categorized: list[tuple[str, str]] = []
 
     for txt_file in txt_files:
         logger.info("Reading %s...", txt_file.name)
         with open(txt_file, "r", encoding="utf-8-sig", errors="replace") as f:
-            lines = [line.strip() for line in f if line.strip()]
-        total_in += len(lines)
-        cleaned = sanitizer.sanitize_corpus(lines)
-        total_out += len(cleaned)
-        all_sanitized.extend(cleaned)
+            raw_lines = [line.strip() for line in f if line.strip()]
+        total_in += len(raw_lines)
+
+        if args.preserve_categories:
+            # Split category\tsentence; lines without tab go to "general"
+            categories: list[str] = []
+            sentences: list[str] = []
+            for raw in raw_lines:
+                if "\t" in raw:
+                    cat, sent = raw.split("\t", 1)
+                    categories.append(cat)
+                    sentences.append(sent)
+                else:
+                    categories.append("general")
+                    sentences.append(raw)
+            cleaned = sanitizer.sanitize_corpus(sentences)
+            cleaned_set = set(cleaned)
+            for cat, sent in zip(categories, sentences):
+                if sent in cleaned_set:
+                    all_categorized.append((cat, sent))
+                    cleaned_set.discard(sent)
+            total_out += len(all_categorized) - (total_out if total_out else 0)
+        else:
+            cleaned = sanitizer.sanitize_corpus(raw_lines)
+            total_out += len(cleaned)
+            all_sanitized.extend(cleaned)
+
         logger.info(
-            "  %s: %d -> %d lines (dropped %d)",
-            txt_file.name, len(lines), len(cleaned),
-            len(lines) - len(cleaned),
+            "  %s: %d -> %d lines",
+            txt_file.name, len(raw_lines),
+            len(all_categorized) if args.preserve_categories else len(cleaned),
         )
 
     # Write combined output
     out_file = output_path / "sanitized_corpus.txt"
     with open(out_file, "w", encoding="utf-8") as f:
-        for line in all_sanitized:
-            f.write(line + "\n")
+        if args.preserve_categories:
+            for cat, sent in all_categorized:
+                f.write("%s\t%s\n" % (cat, sent))
+            total_out = len(all_categorized)
+        else:
+            for line in all_sanitized:
+                f.write(line + "\n")
 
     logger.info("=== Sanitization Summary ===")
     logger.info("Total input lines:  %d", total_in)

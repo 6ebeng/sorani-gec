@@ -123,6 +123,7 @@ def export_to_onnx(
         from src.model.baseline import BaselineGEC
         model = BaselineGEC(model_name=backbone, max_length=max_length)
 
+    # Security: weights_only=False — checkpoints are self-generated during training
     state = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     if isinstance(state, dict) and "model_state_dict" in state:
         state = state["model_state_dict"]
@@ -228,26 +229,25 @@ def export_to_onnx(
         dummy_decoder_ids = torch.ones(1, 1, dtype=torch.long)
 
         class _DecoderWrapper(torch.nn.Module):
-            def __init__(self, dec, enc_attn_mask):
+            def __init__(self, dec):
                 super().__init__()
                 self.dec = dec
-                self.enc_attn_mask = enc_attn_mask
 
-            def forward(self, decoder_input_ids, encoder_hidden_states):
+            def forward(self, decoder_input_ids, encoder_hidden_states, encoder_attention_mask):
                 out = self.dec(
                     input_ids=decoder_input_ids,
                     encoder_hidden_states=encoder_hidden_states,
-                    encoder_attention_mask=self.enc_attn_mask,
+                    encoder_attention_mask=encoder_attention_mask,
                 )
                 return out.last_hidden_state
 
-        dec_wrapper = _DecoderWrapper(decoder, dummy_inputs["attention_mask"])
+        dec_wrapper = _DecoderWrapper(decoder)
 
         torch.onnx.export(
             dec_wrapper,
-            (dummy_decoder_ids, dummy_encoder_hidden),
+            (dummy_decoder_ids, dummy_encoder_hidden, dummy_inputs["attention_mask"]),
             str(decoder_path),
-            input_names=["decoder_input_ids", "encoder_hidden_states"],
+            input_names=["decoder_input_ids", "encoder_hidden_states", "encoder_attention_mask"],
             output_names=["decoder_hidden_states"],
             dynamic_axes={
                 "decoder_input_ids": {0: "batch", 1: "dec_seq"},
