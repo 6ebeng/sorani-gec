@@ -87,6 +87,87 @@ _NON_INITIAL_HEH = re.compile(
     r'\u06D5-\u06EF\u06FA-\u06FF\u0750-\u077F])\u0647'
 )
 
+# ============================================================================
+# Parenthetical & Punctuation Normalization
+# (standalone functions, applied after character normalization)
+# ============================================================================
+
+# Standalone parenthetical: (content) followed by space, punctuation, or EOS.
+# NOT matched when ) is immediately followed by an Arabic-script letter,
+# because that signals a clitic/suffix fused to the parenthetical:
+#   (بەنو هاشم)ە   (قەرە یوسفی)تورکمانی   (شێوەکە)یە
+_STANDALONE_PAREN_RE = re.compile(
+    r'\([^)]+\)(?=[\s.،؟!\u06D4:;]|$)'
+)
+
+
+def strip_standalone_parentheticals(text: str) -> str:
+    """Remove parenthetical content that is not morphologically bound.
+
+    Strips (content) when the closing paren is followed by whitespace,
+    punctuation, or end-of-string.  Keeps (content)clitic where the
+    closing paren is immediately followed by an Arabic-script letter.
+    """
+    # Iterate because consecutive parens like (A)(B). leave (A) standalone
+    # once (B) is removed in a single pass.
+    prev = None
+    while text != prev:
+        prev = text
+        text = _STANDALONE_PAREN_RE.sub('', text)
+    # Collapse double spaces left by removal
+    text = re.sub(r' {2,}', ' ', text).strip()
+    return text
+
+
+# Remove space(s) before punctuation: . ، ؟ ! ۔ : ;
+_SPACE_BEFORE_PUNCT = re.compile(r'\s+([.،؟!۔:;])')
+# Ensure space after Arabic comma when directly followed by Arabic letter
+_COMMA_NO_SPACE = re.compile(r'،(?=[\u0600-\u06FF])')
+# Ensure space after colon when directly followed by Arabic letter
+_COLON_NO_SPACE = re.compile(r':(?=[\u0600-\u06FF])')
+# Ensure space after ellipsis when directly followed by Arabic letter
+_ELLIPSIS_NO_SPACE = re.compile(r'…(?=[\u0600-\u06FF])')
+
+
+def normalize_punctuation(text: str) -> str:
+    """Normalize punctuation spacing for Sorani Kurdish text.
+
+    Fixes common OCR and digitisation artefacts:
+    - Latin comma (,) → Arabic comma (،)
+    - Removes spurious space before . ، ؟ ! ۔ : ;
+    - Ensures space after ، and : when followed by Arabic letter
+    - Normalises double period (..) → single and triple (...) → ellipsis
+    - Ensures space after ellipsis (…) when followed by Arabic letter
+    """
+    # Latin comma → Arabic comma
+    text = text.replace(',', '،')
+
+    # Remove space(s) before punctuation marks
+    text = _SPACE_BEFORE_PUNCT.sub(r'\1', text)
+
+    # Collapse repeated commas (،، → ،) created by space removal
+    text = re.sub(r'،{2,}', '،', text)
+
+    # Ensure space after comma if followed by Arabic letter
+    text = _COMMA_NO_SPACE.sub('، ', text)
+
+    # Ensure space after colon if followed by Arabic letter
+    text = _COLON_NO_SPACE.sub(': ', text)
+
+    # Triple dots → Unicode ellipsis character (MUST come before double-dot fix)
+    text = text.replace('...', '…')
+
+    # Collapse any remaining run of 2+ consecutive periods to a single period
+    text = re.sub(r'\.{2,}', '.', text)
+
+    # Remove period immediately after ؟ or ! (redundant terminal mark)
+    text = re.sub(r'([؟!])\.', r'\1', text)
+
+    # Ensure space after ellipsis if followed by Arabic letter
+    text = _ELLIPSIS_NO_SPACE.sub('… ', text)
+
+    return text
+
 
 class SoraniNormalizer:
     """Normalize Sorani Kurdish text for consistent processing."""

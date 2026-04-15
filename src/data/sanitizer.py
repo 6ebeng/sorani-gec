@@ -66,7 +66,7 @@ _SOCIAL_RE = re.compile(r'(?:#\w+|@\w+)')
 
 # Leading list / numbering markers:  "۲-", "4.", "ج)", "ـ ", "ئ~-", "a)", "- ", "پ۵/"
 _LEADING_MARKER_RE = re.compile(
-    r'^\s*'
+    r'^[\u200C\u200D]?\s*'
     r'(?:'
     r'[\u06F0-\u06F90-9]+\s*[-\).:]+\s*'                # "۲-", "4.", "3)"
     r'|[\u0620-\u06D5][\u0640\u200C]?\s*[-\).:]+\s*'   # "ج)", "ئ~-", "أ\u200c-"
@@ -87,8 +87,9 @@ _FORMULA_CHARS_RE = re.compile(r'[←→≠≈]|\s[+=]\s')
 # Terminal punctuation that marks a complete sentence
 _TERMINAL_PUNCT_RE = re.compile(r'[.؟!۔\)]\s*$')
 
-# Latin word: 2+ consecutive Latin letters (formula variables, untranslated terms)
-_LATIN_WORD_RE = re.compile(r'[a-zA-Z]{2,}')
+# Latin character: any Latin letter signals non-Kurdish content
+# (formula variables, untranslated terms, notation like "b", "d.c", "7A")
+_LATIN_CHAR_RE = re.compile(r'[a-zA-Z]')
 
 
 def _count_tokens_zwnj(text: str) -> int:

@@ -19,10 +19,13 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.data.normalizer import SoraniNormalizer, deduplicate_sentences
+from src.data.normalizer import (
+    SoraniNormalizer, deduplicate_sentences,
+    normalize_punctuation, strip_standalone_parentheticals,
+)
 from src.data.sanitizer import (
     SoraniSanitizer, _LEADING_MARKER_RE, _SUPERSCRIPT_RE,
-    _LATIN_WORD_RE, _count_tokens_zwnj,
+    _LATIN_CHAR_RE, _count_tokens_zwnj,
 )
 
 logging.basicConfig(
@@ -80,6 +83,28 @@ _SLASH_DELIMITER_RE = re.compile(r'/[^/\s]{2,}[^/]*/')
 # Nested reference parentheses: (text(text))
 _NESTED_REF_RE = re.compile(r'\([^)]*\([^)]*\)\s*\)')
 
+# Single Latin letter (any Latin char in sentence: "b", "d.c", "7A" etc.)
+# Sorani Kurdish uses Arabic script exclusively; Latin chars signal
+# technical notation, formulas, or untranslated content.
+_SINGLE_LATIN_RE = re.compile(r'[a-zA-Z]')
+
+# Long parenthetical content (30+ chars inside parens) — citations,
+# glossary definitions, technical asides
+_LONG_PAREN_RE = re.compile(r'\([^)]{30,}\)')
+
+# Multiple consecutive parenthesized groups: (text) (text)
+# Signals dictionary entries, glossary lines, citation chains
+_MULTI_PAREN_RE = re.compile(r'\([^)]{2,}\)\s*\([^)]{2,}\)')
+
+# Footnote numbers immediately after closing paren: )۱۶۶
+_FOOTNOTE_PAREN_RE = re.compile(r'\)[\u06F0-\u06F90-9]{2,}')
+
+# Degree / special math symbols not used in Sorani prose
+_SPECIAL_SYMBOL_RE = re.compile(r'[°◦∞∑∏∫√±×÷]')
+
+# Clitic notation with hyphen: -ت  -م  -ی mid-word annotation
+_CLITIC_HYPHEN_RE = re.compile(r'(?:^|\s)-[\u0600-\u06FF]')
+
 
 def passes_quality_gate(sentence: str) -> tuple[bool, str]:
     """Check whether a sentence passes quality filters.
@@ -109,9 +134,9 @@ def passes_quality_gate(sentence: str) -> tuple[bool, str]:
     if _FORMULA_RE.search(sentence):
         return False, "formula_notation"
 
-    # Latin words (2+ consecutive Latin letters): formula variables,
-    # untranslated terms, OCR of English content
-    if _LATIN_WORD_RE.search(sentence):
+    # Any Latin character: Sorani uses Arabic script exclusively.
+    # Single Latin chars signal formulas, notation, untranslated content.
+    if _SINGLE_LATIN_RE.search(sentence):
         return False, "latin_content"
 
     # Residual numbered list markers (belt-and-suspenders after stripping)
@@ -137,6 +162,26 @@ def passes_quality_gate(sentence: str) -> tuple[bool, str]:
     # Nested reference parentheses: (text(text))
     if _NESTED_REF_RE.search(sentence):
         return False, "nested_reference"
+
+    # Long parenthetical blocks (30+ chars): citations, definitions
+    if _LONG_PAREN_RE.search(sentence):
+        return False, "long_parenthetical"
+
+    # Multiple consecutive parenthesized groups: dictionary/glossary
+    if _MULTI_PAREN_RE.search(sentence):
+        return False, "multi_parens"
+
+    # Footnote numbers after closing paren: )۱۶۶
+    if _FOOTNOTE_PAREN_RE.search(sentence):
+        return False, "footnote_reference"
+
+    # Special math/science symbols
+    if _SPECIAL_SYMBOL_RE.search(sentence):
+        return False, "special_symbol"
+
+    # Clitic hyphen notation: -ت  -م etc.
+    if _CLITIC_HYPHEN_RE.search(sentence):
+        return False, "clitic_notation"
 
     # Check Arabic-script ratio (excluding whitespace and punctuation)
     non_space = re.sub(r'\s', '', sentence)
@@ -184,8 +229,8 @@ def main():
     quality_drops: dict[str, int] = {}
     
     for txt_file in sorted(input_path.glob("*.txt")):
-        if txt_file.name.startswith("."):
-            logger.info("Skipping hidden file: %s", txt_file.name)
+        if txt_file.name.startswith(".") or txt_file.name.startswith("_"):
+            logger.info("Skipping auxiliary file: %s", txt_file.name)
             continue
         logger.info("Processing %s...", txt_file.name)
         with open(txt_file, "r", encoding="utf-8-sig", errors="replace") as f:
@@ -202,6 +247,8 @@ def main():
                         continue
                     raw = cleaned
                 normalized = normalizer.normalize(raw)
+                normalized = normalize_punctuation(normalized)
+                normalized = strip_standalone_parentheticals(normalized)
                 if normalized and len(normalized) > 20:
                     # Re-split long sentences at clause boundaries
                     parts = SoraniSanitizer.split_long_sentence(
@@ -213,6 +260,14 @@ def main():
                         # Strip list markers/superscripts that appear mid-line
                         part = _LEADING_MARKER_RE.sub('', part)
                         part = _SUPERSCRIPT_RE.sub('', part).strip()
+                        # Re-normalize double periods possibly created by
+                        # superscript removal (e.g. ".²." → "..")
+                        if '..' in part:
+                            part = part.replace('...', '\u2026')
+                            part = re.sub(r'\.{2,}', '.', part)
+                        # Re-strip standalone parens that may appear after
+                        # split_long_sentence breaks a clitic-attached paren
+                        part = strip_standalone_parentheticals(part)
                         if len(part) <= 20:
                             dropped_short += 1
                             continue
