@@ -1,0 +1,14 @@
+{
+  "target_sentences": 50000,
+  "actual_sentences": 50000,
+  "documents": 7,
+  "per_category": {
+    "linguistics": 30515,
+    "history": 2489,
+    "law": 386,
+    "social_sciences": 4793,
+    "sciences": 5833,
+    "economics": 1371,
+    "islamic_studies": 4613
+  }
+}

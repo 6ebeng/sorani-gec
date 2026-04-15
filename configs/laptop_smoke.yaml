@@ -1,0 +1,79 @@
+# Laptop smoke-test configuration
+# ================================
+# Tiny settings to verify the full pipeline works on CPU in ~5 minutes.
+
+project:
+  name: "sorani-gec-smoke"
+  description: "Smoke test — pipeline verification"
+
+data:
+  raw_dir: "data/raw"
+  clean_dir: "data/clean"
+  synthetic_dir: "data/synthetic"
+  splits_dir: "data/smoke_splits"
+  target_pairs: 100
+  train_ratio: 0.8
+  dev_ratio: 0.1
+  test_ratio: 0.1
+  max_seq_length: 32
+
+  normalize_arabic_script: true
+  remove_diacritics: false
+
+  error_types:
+    - "subject_verb_number"
+    - "noun_adjective_ezafe"
+    - "clitic_form"
+    - "tense_agreement"
+    - "orthography"
+    - "spelling_confusion"
+  error_rate: 0.15
+
+model:
+  pretrained: "google/byt5-small"
+  use_morphology: true
+  morph_features:
+    - "person"
+    - "number"
+    - "tense"
+    - "aspect"
+    - "case"
+    - "definiteness"
+    - "transitivity"
+    - "clitic_person"
+    - "clitic_number"
+  morph_embed_dim: 64
+
+training:
+  batch_size: 2
+  learning_rate: 5.0e-5
+  weight_decay: 0.01
+  warmup_steps: 2
+  max_epochs: 1
+  early_stopping_patience: 3
+  gradient_accumulation_steps: 1
+  fp16: false
+
+  agreement_loss_weight: 0.3
+  agreement_warmup_epochs: 1
+  gradient_clip_norm: 1.0
+  cosine_restarts: 1
+  curriculum_edge_weight: 0.5
+
+  optimizer: "adamw"
+  scheduler: "cosine_with_restarts"
+
+  save_dir: "results/smoke_test"
+  save_top_k: 1
+
+  log_every_n_steps: 5
+  eval_every_n_steps: 0
+
+evaluation:
+  metrics:
+    - "f05"
+    - "precision"
+    - "recall"
+    - "agreement_accuracy"
+  beam_width: 2
+  bootstrap_resamples: 100

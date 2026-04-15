@@ -43,8 +43,62 @@ _MOJIBAKE_RE = re.compile(r'[Ã¯Â»Â¿Ã‚Ã©Ã«Ã¨Ã¼Ã¶Ã¤ï»¿]{3,
 # Repeated characters (3+ identical, excluding Arabic script connector chars)
 _REPEATED_CHAR_RE = re.compile(r'(.)\1{4,}')
 
+# OCR page markers injected by book extraction (e.g. "--- Page ۲۳ ---")
+_PAGE_MARKER_RE = re.compile(r'---\s*Page\s+[\u06F0-\u06F9\d]+\s*---')
+
+# Gemini OCR hallucination prefixes (e.g. "Wait, Item ۳:", "Let's look at")
+_GEMINI_ARTIFACT_RE = re.compile(
+    r'(?:^|\s)(?:Wait|Item|Let\'s|Check|OK|Actually|Sure|Note)'
+    r'(?:[,:\s]|$)',
+    re.IGNORECASE,
+)
+
+# LaTeX inline math expressions (e.g. "$N^{=e}$")
+_LATEX_MATH_RE = re.compile(r'\$[^$]+\$')
+
+# Sorani clause-boundary punctuation for re-splitting long sentences.
+# Splits after: period/full-stop, Sorani comma (،), semicolon (؛),
+# Western comma, colon followed by whitespace.
+_CLAUSE_SPLIT_RE = re.compile(r'(?<=[.،؛;:!?؟۔])\s+')
+
 # Hash tag / social media artifacts
 _SOCIAL_RE = re.compile(r'(?:#\w+|@\w+)')
+
+# Leading list / numbering markers:  "۲-", "4.", "ج)", "ـ ", "ئ~-", "a)", "- ", "پ۵/"
+_LEADING_MARKER_RE = re.compile(
+    r'^\s*'
+    r'(?:'
+    r'[\u06F0-\u06F90-9]+\s*[-\).:]+\s*'                # "۲-", "4.", "3)"
+    r'|[\u0620-\u06D5][\u0640\u200C]?\s*[-\).:]+\s*'   # "ج)", "ئ~-", "أ\u200c-"
+    r'|[a-zA-Z]\s*[-\).:]+\s*'                             # "a)", "b."
+    r'|\u0640+\s*'                                          # leading tatweel "ـ"
+    r'|[-\u2013\u2014]\s+'                                  # standalone dash/en-dash "- "
+    r'|\u067e[\u06F0-\u06F90-9]+\s*[/:]\s*'              # textbook markers "پ۵/", "پ۶:"
+    r')'
+)
+
+# Unicode superscript digits used as footnote markers: ¹²³⁴⁵⁶⁷⁸⁹⁰
+_SUPERSCRIPT_RE = re.compile(r'[\u00B2\u00B3\u00B9\u2070-\u2079]')
+
+# Formula / metalinguistic notation characters
+# Arrows are unambiguous; + and = only match when space-separated (notation)
+_FORMULA_CHARS_RE = re.compile(r'[←→≠≈]|\s[+=]\s')
+
+# Terminal punctuation that marks a complete sentence
+_TERMINAL_PUNCT_RE = re.compile(r'[.؟!۔\)]\s*$')
+
+# Latin word: 2+ consecutive Latin letters (formula variables, untranslated terms)
+_LATIN_WORD_RE = re.compile(r'[a-zA-Z]{2,}')
+
+
+def _count_tokens_zwnj(text: str) -> int:
+    """Count whitespace tokens treating ZWNJ as a word boundary.
+
+    Standard .split() counts ZWNJ-joined words (e.g. \u062f\u06d5\u0628\u06ce\u062a\u200c\u0648) as one
+    token.  This helper replaces ZWNJ with space first, giving a more
+    accurate morphological word count for length filtering.
+    """
+    return len(text.replace('\u200c', ' ').split())
 
 # Arabic diacritics range for combining-class validation (CRIT-1)
 _ARABIC_DIACRITICS = set(range(0x064B, 0x0660))  # U+064B..U+065F
@@ -100,12 +154,21 @@ class SoraniSanitizer:
     # ------------------------------------------------------------------
 
     def strip_artifacts(self, text: str) -> str:
-        """Remove URLs, emails, citation brackets, templates, social tags."""
+        """Remove URLs, emails, citation brackets, templates, social tags,
+        OCR page markers, LaTeX math, and Gemini hallucination prefixes."""
         text = _URL_RE.sub('', text)
         text = _EMAIL_RE.sub('', text)
         text = _CITATION_RE.sub('', text)
         text = _TEMPLATE_RE.sub('', text)
         text = _SOCIAL_RE.sub('', text)
+        # OCR page markers: "--- Page ۲۳ ---" → ""
+        text = _PAGE_MARKER_RE.sub('', text)
+        # LaTeX inline math: "$N^{=e}$" → ""
+        text = _LATEX_MATH_RE.sub('', text)
+        # Strip leading list markers / numbered bullets
+        text = _LEADING_MARKER_RE.sub('', text)
+        # Strip superscript footnote markers (², ³, etc.)
+        text = _SUPERSCRIPT_RE.sub('', text)
         # Collapse leftover whitespace
         text = re.sub(r'\s{2,}', ' ', text).strip()
         return text
@@ -161,18 +224,22 @@ class SoraniSanitizer:
         return result.is_sorani
 
     def passes_length_filter(self, text: str) -> bool:
-        """Check min/max token count.
+        """Check min/max token count (ZWNJ-aware).
+
+        Uses ``_count_tokens_zwnj`` so that ZWNJ-joined words like
+        دەبێت‌و count as two tokens rather than one, giving a more
+        accurate length estimate.
 
         Sentences consisting solely of known Sorani abbreviations bypass
         the minimum-token filter to avoid losing abbreviation-only lines.
         """
-        tokens = text.split()
-        if len(tokens) < self.min_tokens:
-            # Allow if all tokens are known abbreviations
+        n_tokens = _count_tokens_zwnj(text)
+        if n_tokens < self.min_tokens:
+            tokens = text.replace('\u200c', ' ').split()
             if all(t in SORANI_ABBREVIATIONS for t in tokens):
                 return True
             return False
-        return len(tokens) <= self.max_tokens
+        return n_tokens <= self.max_tokens
 
     def passes_script_ratio(self, text: str) -> bool:
         """Check that enough of the text is Arabic script."""
@@ -192,6 +259,33 @@ class SoraniSanitizer:
     def has_excessive_repetition(self, text: str) -> bool:
         """Detect lines with excessive character repetition (spam/noise)."""
         return bool(_REPEATED_CHAR_RE.search(text))
+
+    def has_gemini_artifacts(self, text: str) -> bool:
+        """Detect Gemini OCR hallucination fragments (e.g. 'Wait, Item 3:')."""
+        return bool(_GEMINI_ARTIFACT_RE.search(text))
+
+    def has_formula_notation(self, text: str) -> bool:
+        """Detect formula / metalinguistic notation (←, →, +, =, /).
+
+        Returns True when the sentence contains arrows, plus signs, equals
+        signs, or slash characters that indicate notation rather than prose.
+        """
+        return bool(_FORMULA_CHARS_RE.search(text))
+
+    def is_fragment(self, text: str) -> bool:
+        """Detect sentence fragments that lack terminal punctuation.
+
+        Sentences ending without . ؟ ! ۔ ) are almost always OCR page-
+        break artifacts or heading/label lines rather than real prose.
+        Also catches lines ending with ':' or '...' (introductory fragments).
+        """
+        stripped = text.rstrip()
+        if not stripped:
+            return True
+        # Lines ending with colon or ellipsis are incomplete
+        if stripped.endswith(':') or stripped.endswith('...') or stripped.endswith('…'):
+            return True
+        return not bool(_TERMINAL_PUNCT_RE.search(stripped))
 
     def is_near_duplicate(self, text: str) -> bool:
         """Check text against previously seen sentences using char 3-gram Jaccard.
@@ -222,6 +316,41 @@ class SoraniSanitizer:
             return frozenset()
         return frozenset(text[i:i + 3] for i in range(len(text) - 2))
 
+    @staticmethod
+    def split_long_sentence(text: str, max_tokens: int = 50) -> list[str]:
+        """Re-split a sentence that exceeds *max_tokens* at clause boundaries.
+
+        Uses ZWNJ-aware token counting so that words joined with ZWNJ
+        (e.g. دەبێت‌و) are counted as separate tokens.
+
+        Splits greedily at Kurdish punctuation (،  ؛  .  :  ;) keeping each
+        fragment under *max_tokens* when possible.  Fragments that are still
+        too long after splitting are kept as-is (the downstream length filter
+        will drop them).  Returns a one-element list when no split is needed.
+        """
+        if _count_tokens_zwnj(text) <= max_tokens:
+            return [text]
+
+        fragments = _CLAUSE_SPLIT_RE.split(text)
+        if len(fragments) <= 1:
+            return [text]
+
+        # Greedily merge consecutive fragments up to max_tokens
+        result: list[str] = []
+        current = fragments[0]
+        for frag in fragments[1:]:
+            merged = current + ' ' + frag
+            if _count_tokens_zwnj(merged) <= max_tokens:
+                current = merged
+            else:
+                if current.strip():
+                    result.append(current.strip())
+                current = frag
+        if current.strip():
+            result.append(current.strip())
+
+        return result if result else [text]
+
     # ------------------------------------------------------------------
     # Main entry point
     # ------------------------------------------------------------------
@@ -250,6 +379,10 @@ class SoraniSanitizer:
             self._bump("excessive_repetition")
             return None
 
+        if self.has_gemini_artifacts(text):
+            self._bump("gemini_artifact")
+            return None
+
         if not self.passes_script_ratio(text):
             self._bump("low_script_ratio")
             return None
@@ -266,7 +399,7 @@ class SoraniSanitizer:
             self._bump("not_sorani")
             return None
 
-        if self.is_near_duplicate(text):
+        if self.near_dup_threshold < 1.0 and self.is_near_duplicate(text):
             self._bump("near_duplicate")
             return None
 

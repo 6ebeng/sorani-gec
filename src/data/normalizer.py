@@ -30,6 +30,10 @@ CHAR_NORMALIZATIONS = {
     "\u064A": "\u06CC",  # Arabic Yeh → Kurdish Yeh (ی)
     "\u0649": "\u06CC",  # Alef Maksura → Kurdish Yeh
     
+    # Tatweel (kashida) — cosmetic stretcher with no linguistic meaning.
+    # Must be stripped before downstream token counting and pattern matching.
+    "\u0640": "",  # Tatweel (ـ) → removed
+    
     # Heh (U+0647) handled separately in normalize() — context-dependent.
     # Word-initial ه is consonant /h/; non-initial ه is vowel ə → ە (U+06D5).
     
