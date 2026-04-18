@@ -314,7 +314,6 @@ def _train_morphaware_trial(
     model.to(device)
     model.train()
 
-    tokenizer = model.tokenizer
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=hparams["lr"],
@@ -343,22 +342,9 @@ def _train_morphaware_trial(
             batch_src = [train_src[i] for i in batch_idx]
             batch_tgt = [train_tgt[i] for i in batch_idx]
 
-            enc = tokenizer(
-                batch_src, return_tensors="pt", padding=True,
-                truncation=True, max_length=max_length,
-            ).to(device)
-            dec = tokenizer(
-                batch_tgt, return_tensors="pt", padding=True,
-                truncation=True, max_length=max_length,
-            ).to(device)
-
             with torch.amp.autocast("cuda", enabled=use_fp16):
-                outputs = model.model(
-                    input_ids=enc.input_ids,
-                    attention_mask=enc.attention_mask,
-                    labels=dec.input_ids,
-                )
-                loss = outputs.loss / grad_accum
+                loss = model.training_step(batch_src, batch_tgt)
+                loss = loss / grad_accum
 
             scaler.scale(loss).backward()
             epoch_loss += loss.item() * grad_accum

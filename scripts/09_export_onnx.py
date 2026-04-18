@@ -123,8 +123,7 @@ def export_to_onnx(
         from src.model.baseline import BaselineGEC
         model = BaselineGEC(model_name=backbone, max_length=max_length)
 
-    # Security: weights_only=False — checkpoints are self-generated during training
-    state = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    state = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     if isinstance(state, dict) and "model_state_dict" in state:
         state = state["model_state_dict"]
     model.load_state_dict(state)
