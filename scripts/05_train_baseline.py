@@ -82,6 +82,7 @@ def main():
     parser.add_argument("--seed", type=int, default=42,
                         help="Random seed for reproducibility (PIPE-7)")
     args = parser.parse_args()
+    cfg = {}
 
     # Load YAML config and use as defaults; CLI args override.
     cfg_path = Path(args.config)
