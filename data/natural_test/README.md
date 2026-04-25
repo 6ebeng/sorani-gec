@@ -33,9 +33,9 @@ errors for final test-set evaluation.
 Target domains (mix to avoid register bias):
 
 1. **Learner corpora** — essays / short written texts from L2 Sorani learners
-     (ideally via UKH linguistics coursemates, with verbal consent logged).
+   (ideally via UKH linguistics coursemates, with verbal consent logged).
 2. **Social media** — Twitter/X, Facebook public pages. Keep source URLs;
-     drop anything private.
+   drop anything private.
 3. **Forum posts** — Kurdish-language forums (bwar.krd, kurdipedia comments).
 4. **Machine-translated Kurdish** that native speakers reject as ungrammatical.
 
@@ -67,4 +67,4 @@ This emits ERRANT-compatible M² using the character-span aligner in
 - Collection script scaffold: `scripts/collect_natural_errors.py`.
 - M² build script scaffold: `scripts/build_m2_from_jsonl.py`.
 - Consent log: pending (awaiting IRB-equivalent clearance from UKH
-    Department of CSE).
+  Department of CSE).
