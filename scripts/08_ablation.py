@@ -280,12 +280,36 @@ def train_model(config: dict, use_morphology: bool,
 # Ablation Experiments
 # ============================================================================
 
+def _load_skipped(exp_dir: Path, experiment: str, **extra) -> dict | None:
+    """If a completed metrics.json exists, load & return it to skip re-training."""
+    metrics_file = exp_dir / "metrics.json"
+    if metrics_file.exists():
+        try:
+            with open(metrics_file, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+            logger.info("[resume] Skipping %s %s — cached F0.5=%.4f",
+                        experiment, extra, cached.get("f05", -1))
+            cached.setdefault("experiment", experiment)
+            for k, v in extra.items():
+                cached.setdefault(k, v)
+            return cached
+        except Exception as e:
+            logger.warning("[resume] Could not parse %s: %s — will re-run",
+                           metrics_file, e)
+    return None
+
+
 def run_no_morphology(config: dict, sources: list[str],
                       references: list[str], output_dir: Path,
                       tb_writer=None) -> dict:
     """Experiment 1: Baseline without morphological features."""
     logger.info("=== Ablation: no_morphology ===")
     exp_dir = output_dir / "no_morphology"
+    exp_dir.mkdir(parents=True, exist_ok=True)
+
+    cached = _load_skipped(exp_dir, "no_morphology")
+    if cached is not None:
+        return cached
 
     model = train_model(config, use_morphology=False, output_dir=exp_dir,
                         tb_writer=tb_writer, tb_tag="no_morphology")
@@ -302,14 +326,21 @@ def run_no_morphology(config: dict, sources: list[str],
 def run_individual_features(config: dict, sources: list[str],
                             references: list[str],
                             output_dir: Path,
-                            tb_writer=None) -> list[dict]:
+                            tb_writer=None,
+                            features: list[str] | None = None) -> list[dict]:
     """Experiment 2: One morphological feature at a time."""
     logger.info("=== Ablation: individual_features ===")
     all_results = []
+    feature_list = features if features else MORPH_FEATURES
 
-    for feature in MORPH_FEATURES:
+    for feature in feature_list:
         logger.info("--- Feature: %s ---", feature)
         exp_dir = output_dir / "individual_features" / feature
+        exp_dir.mkdir(parents=True, exist_ok=True)
+        cached = _load_skipped(exp_dir, "individual_features", feature=feature)
+        if cached is not None:
+            all_results.append(cached)
+            continue
         model = train_model(config, use_morphology=True,
                             feature_subset=[feature], output_dir=exp_dir,
                             tb_writer=tb_writer, tb_tag=f"feature_{feature}")
@@ -343,6 +374,11 @@ def run_data_size_variation(config: dict, sources: list[str],
     for size in sizes:
         logger.info("--- Data size: %d ---", size)
         exp_dir = output_dir / "data_size_variation" / f"{size}"
+        exp_dir.mkdir(parents=True, exist_ok=True)
+        cached = _load_skipped(exp_dir, "data_size_variation", data_size=size)
+        if cached is not None:
+            all_results.append(cached)
+            continue
         model = train_model(config, use_morphology=True,
                             data_size=size, output_dir=exp_dir,
                             tb_writer=tb_writer, tb_tag=f"data_{size}")
@@ -379,6 +415,12 @@ def run_agreement_loss_weight(config: dict, sources: list[str],
     for w in weights:
         logger.info("--- Agreement loss weight: %.2f ---", w)
         exp_dir = output_dir / "agreement_loss_weight" / f"{w:.2f}"
+        exp_dir.mkdir(parents=True, exist_ok=True)
+        cached = _load_skipped(exp_dir, "agreement_loss_weight",
+                               agreement_loss_weight=w)
+        if cached is not None:
+            all_results.append(cached)
+            continue
         model = train_model(config, use_morphology=True,
                             agreement_loss_weight=w, output_dir=exp_dir,
                             tb_writer=tb_writer, tb_tag=f"agr_weight_{w:.2f}")
@@ -409,6 +451,11 @@ def run_curriculum_learning(config: dict, sources: list[str],
     """
     logger.info("=== Ablation: curriculum_learning ===")
     exp_dir = output_dir / "curriculum_learning"
+    exp_dir.mkdir(parents=True, exist_ok=True)
+
+    cached = _load_skipped(exp_dir, "curriculum_learning")
+    if cached is not None:
+        return cached
 
     model = train_model(config, use_morphology=True, output_dir=exp_dir,
                         tb_writer=tb_writer, tb_tag="curriculum")
@@ -485,6 +532,8 @@ def main():
                         help="Custom data sizes for data_size_variation")
     parser.add_argument("--agr-weights", nargs="*", type=float, default=None,
                         help="Custom agreement loss weights for ablation (e.g., 0.0 0.1 0.3 0.5 1.0)")
+    parser.add_argument("--features", nargs="*", type=str, default=None,
+                        help="Subset of morphological features for individual_features experiment")
     parser.add_argument("--tensorboard-dir", default=None,
                         help="Directory for TensorBoard ablation summary (optional)")
     parser.add_argument("--seed", type=int, default=42,
@@ -544,7 +593,8 @@ def main():
 
     if args.experiment in ("all", "individual_features"):
         r = run_individual_features(config, sources, references, output_dir,
-                                    tb_writer=tb_writer)
+                                    tb_writer=tb_writer,
+                                    features=args.features)
         summary["individual_features"] = r
 
     if args.experiment in ("all", "data_size_variation"):
