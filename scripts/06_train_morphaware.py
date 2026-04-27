@@ -87,6 +87,13 @@ def main():
     parser.add_argument("--selection-metric", type=str, default="val_f05",
                         choices=["val_f05", "val_loss"],
                         help="Metric for best-checkpoint and early-stopping (FM1).")
+    parser.add_argument("--val-f05-subsample", type=int, default=0,
+                        help="If >0, subsample the dev set to N sentences for the slow F0.5 "
+                             "computation (informational only when --selection-metric=val_loss). "
+                             "0 = use full dev set.")
+    parser.add_argument("--num-workers", type=int, default=-1,
+                        help="DataLoader worker processes for CPU-bound morphology feature "
+                             "extraction. -1 = use config value (default 0).")
     args = parser.parse_args()
     cfg = {}
 
@@ -444,6 +451,9 @@ def main():
     # characters are multi-byte in UTF-8 and inflate char-length without
     # corresponding increases in linguistic complexity.
     _nw = cfg.get("hardware", {}).get("num_workers", 0) if cfg else 0
+    if args.num_workers >= 0:
+        _nw = args.num_workers
+    logger.info("DataLoader num_workers: %d", _nw)
     curriculum_sampler = None
     if args.curriculum:
         difficulties = [len(s.split()) for s in train_sources]
@@ -553,21 +563,40 @@ def main():
         return val_loss_ / max(len(dev_loader), 1)
 
     def compute_val_f05():
-        """Generate corrections on dev set using morphology and compute F0.5."""
+        """Generate corrections on dev set using morphology and compute F0.5.
+
+        When `--val-f05-subsample N` is set (N>0) we evaluate F0.5 on a deterministic
+        N-sentence subsample of the dev set. F0.5 here is informational when
+        selection-metric=val_loss, so a fixed slice is fine.
+        """
         model.eval()
+        if args.val_f05_subsample and args.val_f05_subsample > 0:
+            n = min(args.val_f05_subsample, len(dev_sources))
+            srcs_eval = dev_sources[:n]
+            tgts_eval = dev_targets[:n]
+        else:
+            srcs_eval = dev_sources
+            tgts_eval = dev_targets
+        # Silence per-token morphology spam during eval to avoid I/O bottleneck.
+        _builder_log = logging.getLogger("src.morphology.builder")
+        _prev_level = _builder_log.level
+        _builder_log.setLevel(logging.ERROR)
         hypotheses = []
-        with torch.no_grad():
-            _beam_w = cfg.get("evaluation", {}).get("beam_width", 4) if cfg else 4
-            for src in dev_sources:
-                try:
-                    hyp = model.correct_with_morphology(
-                        src, analyzer, feature_extractor, num_beams=_beam_w
-                    )
-                except Exception:
-                    logger.warning("correct_with_morphology() failed for: %.50s", src)
-                    hyp = src  # fallback: return source unchanged
-                hypotheses.append(hyp)
-        metrics = evaluate_corpus(dev_sources, hypotheses, dev_targets)
+        try:
+            with torch.no_grad():
+                _beam_w = cfg.get("evaluation", {}).get("beam_width", 4) if cfg else 4
+                for src in srcs_eval:
+                    try:
+                        hyp = model.correct_with_morphology(
+                            src, analyzer, feature_extractor, num_beams=_beam_w
+                        )
+                    except Exception:
+                        logger.warning("correct_with_morphology() failed for: %.50s", src)
+                        hyp = src  # fallback: return source unchanged
+                    hypotheses.append(hyp)
+        finally:
+            _builder_log.setLevel(_prev_level)
+        metrics = evaluate_corpus(srcs_eval, hypotheses, tgts_eval)
         return metrics.f05, metrics
 
     best_score = 0.0 if sel_metric == "val_f05" else -float("inf")
