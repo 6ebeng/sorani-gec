@@ -84,6 +84,9 @@ def main():
                              "to training data (0 = disabled). Uses swap strategy.")
     parser.add_argument("--seed", type=int, default=42,
                         help="Random seed for reproducibility (PIPE-7)")
+    parser.add_argument("--selection-metric", type=str, default="val_f05",
+                        choices=["val_f05", "val_loss"],
+                        help="Metric for best-checkpoint and early-stopping (FM1).")
     args = parser.parse_args()
     cfg = {}
 
@@ -497,14 +500,17 @@ def main():
     atexit.register(csv_log_file.close)
     atexit.register(tb_writer.close)
 
-    # Checkpoint manager — keeps top-K checkpoints ranked by val F0.5 (higher=better)
+    # Checkpoint manager — keeps top-K checkpoints ranked by selection metric (higher=better)
     top_k = args.save_top_k
     saved_checkpoints: list[tuple[float, Path]] = []
+    sel_metric = args.selection_metric
+    logger.info("Checkpoint selection metric: %s", sel_metric)
 
     def save_checkpoint(model_, optimizer_, scheduler_, scaler_, epoch_: int,
                         global_step_: int, best_f05_: float, val_f05: float,
-                        tag: str) -> None:
-        ckpt_path = output_dir / f"checkpoint_{tag}_f05{val_f05:.4f}.pt"
+                        val_loss_: float, tag: str) -> None:
+        score = val_f05 if sel_metric == "val_f05" else -val_loss_
+        ckpt_path = output_dir / f"checkpoint_{tag}_f05{val_f05:.4f}_loss{val_loss_:.4f}.pt"
         torch.save({
             "model_state_dict": model_.state_dict(),
             "optimizer_state_dict": optimizer_.state_dict(),
@@ -516,8 +522,8 @@ def main():
             "patience_counter": patience_counter,
             "feature_vocab_size": feature_vocab_size,
         }, ckpt_path)
-        saved_checkpoints.append((val_f05, ckpt_path))
-        saved_checkpoints.sort(key=lambda x: x[0], reverse=True)  # best (highest F0.5) first
+        saved_checkpoints.append((score, ckpt_path))
+        saved_checkpoints.sort(key=lambda x: x[0], reverse=True)
         while len(saved_checkpoints) > top_k:
             _, evicted = saved_checkpoints.pop()
             if evicted.exists():
@@ -564,7 +570,8 @@ def main():
         metrics = evaluate_corpus(dev_sources, hypotheses, dev_targets)
         return metrics.f05, metrics
 
-    best_f05 = 0.0
+    best_score = 0.0 if sel_metric == "val_f05" else -float("inf")
+    best_f05 = 0.0  # legacy slot for resume-compat
     patience_counter = 0
     global_step = 0
     start_epoch = 0
@@ -578,12 +585,14 @@ def main():
         scaler.load_state_dict(ckpt["scaler_state_dict"])
         start_epoch = ckpt["epoch"] + 1
         global_step = ckpt["global_step"]
-        # Re-evaluate to get current best_f05 from actual model state
+        # Re-evaluate to get current best score from actual model state
         if dev_loader and dev_sources:
             best_f05, _ = compute_val_f05()
             logger.info("Re-evaluated resumed checkpoint: F0.5=%.4f", best_f05)
+            best_score = best_f05 if sel_metric == "val_f05" else -float("inf")
         else:
             best_f05 = ckpt.get("best_f05", 0.0)
+            best_score = best_f05 if sel_metric == "val_f05" else -float("inf")
         patience_counter = ckpt.get("patience_counter", 0)
         logger.info("Resumed from %s (epoch %d, step %d, best_f05=%.4f, patience=%d)",
                      args.resume_from, start_epoch, global_step, best_f05, patience_counter)
@@ -688,11 +697,12 @@ def main():
             csv_log_file.flush()
 
             save_checkpoint(model, optimizer, scheduler, scaler, epoch,
-                            global_step, best_f05, val_f05, f"epoch{epoch + 1}")
-            if val_f05 > best_f05:
-                best_f05 = val_f05
+                            global_step, best_score, val_f05, avg_val_loss, f"epoch{epoch + 1}")
+            current = val_f05 if sel_metric == "val_f05" else -avg_val_loss
+            if current > best_score:
+                best_score = current
                 patience_counter = 0
-                logger.info("Saved best model (F0.5=%.4f)", best_f05)
+                logger.info("Saved best model (%s score=%.4f)", sel_metric, best_score)
             else:
                 patience_counter += 1
                 logger.info("No improvement (%d/%d patience)", patience_counter, args.patience)
@@ -708,7 +718,7 @@ def main():
     torch.save(model.state_dict(), output_dir / "final_model.pt")
     csv_log_file.close()
     tb_writer.close()
-    logger.info("Training complete. Best F0.5: %.4f", best_f05)
+    logger.info("Training complete. Best %s score: %.4f", sel_metric, best_score)
     logger.info("Training log saved to %s", csv_log_path)
 
 
