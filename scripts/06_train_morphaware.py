@@ -553,20 +553,35 @@ def main():
         return val_loss_ / max(len(dev_loader), 1)
 
     def compute_val_f05():
-        """Generate corrections on dev set using morphology and compute F0.5."""
+        """Generate corrections on dev set using morphology and compute F0.5.
+
+        Uses ``correct_batch`` to beam-search multiple sentences in parallel on the
+        GPU (the per-sentence loop kept the GPU idle while CPU built morph tensors
+        and beam-decoded one sentence at a time).
+        """
         model.eval()
         hypotheses = []
+        _beam_w = cfg.get("evaluation", {}).get("beam_width", 4) if cfg else 4
+        eval_bs = max(1, args.batch_size)
         with torch.no_grad():
-            _beam_w = cfg.get("evaluation", {}).get("beam_width", 4) if cfg else 4
-            for src in dev_sources:
+            for i in range(0, len(dev_sources), eval_bs):
+                batch_srcs = dev_sources[i:i + eval_bs]
                 try:
-                    hyp = model.correct_with_morphology(
-                        src, analyzer, feature_extractor, num_beams=_beam_w
+                    batch_hyps = model.correct_batch(
+                        batch_srcs, analyzer, feature_extractor, num_beams=_beam_w
                     )
                 except Exception:
-                    logger.warning("correct_with_morphology() failed for: %.50s", src)
-                    hyp = src  # fallback: return source unchanged
-                hypotheses.append(hyp)
+                    logger.warning("correct_batch() failed on dev[%d:%d], falling back to per-sentence",
+                                   i, i + eval_bs)
+                    batch_hyps = []
+                    for src in batch_srcs:
+                        try:
+                            batch_hyps.append(model.correct_with_morphology(
+                                src, analyzer, feature_extractor, num_beams=_beam_w
+                            ))
+                        except Exception:
+                            batch_hyps.append(src)
+                hypotheses.extend(batch_hyps)
         metrics = evaluate_corpus(dev_sources, hypotheses, dev_targets)
         return metrics.f05, metrics
 

@@ -698,13 +698,13 @@ def build_agreement_graph(
                     break
             if _inferred is not None:
                 features[vi].person, features[vi].number = _inferred
-                logger.info(
+                logger.debug(
                     "PIPE-17: Inferred person=%s number=%s for verb '%s' "
                     "at %d via suffix fallback",
                     _inferred[0], _inferred[1], tok, vi,
                 )
             else:
-                logger.warning(
+                logger.debug(
                     "Verb '%s' at %d has no person assigned by analyzer "
                     "and suffix fallback failed",
                     tok, vi,
