@@ -20,7 +20,7 @@ data:
   
   # Normalization
   normalize_arabic_script: true
-  remove_diacritics: false
+  remove_diacritics: true
   
   # Error generation
   error_types:

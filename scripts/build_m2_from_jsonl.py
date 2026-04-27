@@ -53,13 +53,21 @@ def main() -> int:
                 skipped += 1
                 continue
 
-            src = rec.get("source_text", "").strip()
-            tgt = rec.get("target_text", "").strip()
+            src = (rec.get("source_text") or rec.get("source") or rec.get("corrupted") or "").strip()
+            tgt = (rec.get("target_text") or rec.get("target") or rec.get("original") or "").strip()
             if not src or not tgt:
                 skipped += 1
                 continue
+            # Skip trivial copy-pairs (FM4): no edit to align.
+            if src == tgt:
+                skipped += 1
+                continue
 
-            etypes = rec.get("error_types") or []
+            etypes = rec.get("error_types") or [
+                e.get("type", args.default_type)
+                for e in (rec.get("errors") or [])
+                if isinstance(e, dict)
+            ] or []
             type_str = etypes[0] if etypes else args.default_type
 
             src_words = sorani_word_tokenize(src)

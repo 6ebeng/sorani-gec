@@ -29,7 +29,15 @@ CHAR_NORMALIZATIONS = {
     # Yeh variants → Kurdish Yeh
     "\u064A": "\u06CC",  # Arabic Yeh → Kurdish Yeh (ی)
     "\u0649": "\u06CC",  # Alef Maksura → Kurdish Yeh
-    
+
+    # Teh Marbuta (ة) is an Arabic-only letter; in Sorani it does not occur
+    # natively. The April 2026 split audit found it in 102 records, all
+    # from Arabic citation strings or Arabic loans. Folding to ە matches
+    # the silent / pause pronunciation. The alternative ت (TEH) is
+    # appropriate when the loan keeps a hard /t/, but ە is the safer
+    # default for downstream byte models.
+    "\u0629": "\u06D5",  # Teh Marbuta → Kurdish Heh (ە)
+
     # Tatweel (kashida) — cosmetic stretcher with no linguistic meaning.
     # Must be stripped before downstream token counting and pattern matching.
     "\u0640": "",  # Tatweel (ـ) → removed

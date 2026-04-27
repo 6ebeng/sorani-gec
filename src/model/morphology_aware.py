@@ -138,11 +138,25 @@ class MorphologyAwareGEC(nn.Module):
             embed_dim=morph_embed_dim,
         )
         
-        # Projection to add morph features to hidden states
+        # Projection to add morph features to hidden states.
+        # Residual injection: project morph_emb to hidden_dim and add as
+        # a gated residual instead of overwriting hidden_states. The
+        # residual gate is initialised at 0 (zero-init last linear bias
+        # and weights small) so the model starts equivalent to the
+        # pretrained ByT5 backbone and learns to introduce morph signal
+        # gradually. The legacy concat-and-project path is kept under
+        # `morph_projection` for checkpoint compatibility but is no
+        # longer used by `_integrate_morph_features` (see ARCH-9 fix).
         self.morph_projection = nn.Linear(
             hidden_dim + morph_embed_dim, hidden_dim
         )
         self.morph_layer_norm = nn.LayerNorm(hidden_dim)
+        self.morph_residual_proj = nn.Linear(morph_embed_dim, hidden_dim)
+        # Zero-init so morph contribution starts at exactly zero.
+        nn.init.zeros_(self.morph_residual_proj.weight)
+        nn.init.zeros_(self.morph_residual_proj.bias)
+        # Learnable scalar gate, initialised at 0 -> identity start.
+        self.morph_gate = nn.Parameter(torch.zeros(1))
         
         # Auxiliary agreement predictor
         self.agreement_predictor = AgreementPredictor(
@@ -235,8 +249,19 @@ class MorphologyAwareGEC(nn.Module):
     ) -> torch.Tensor:
         """Integrate morphological embeddings into encoder hidden states.
 
-        Pads or truncates morph embeddings to match hidden_states length,
-        concatenates, projects, and applies LayerNorm.
+        Residual injection (ARCH-9 fix). The previous implementation
+        concatenated `[hidden_states; morph_emb]` and projected the
+        result, which let a randomly-initialised `morph_projection`
+        overwrite every encoder position on training step 1 and
+        destroy the pretrained signal. This version computes a
+        zero-initialised residual:
+
+            h' = LN( h + tanh(morph_gate) * W_r(morph_emb) )
+
+        At init, `morph_gate=0` and `W_r=0` so `h' = LN(h)`, leaving
+        the backbone effectively untouched. The gradient still flows
+        through morph_emb, so the model can learn to introduce
+        morphological signal in proportion to how useful it is.
 
         Args:
             hidden_states: [batch, seq_len, hidden_dim]
@@ -249,18 +274,16 @@ class MorphologyAwareGEC(nn.Module):
         target_len = hidden_states.size(1)
         if morph_emb.size(1) != target_len:
             if morph_emb.size(1) < target_len:
-                # Repeat-interpolate word-level embeddings to fill byte
-                # positions instead of zero-padding, which would dilute
-                # morphological signal for longer tokens.
                 morph_emb = torch.nn.functional.interpolate(
-                    morph_emb.transpose(1, 2),  # [B, dim, word_len]
+                    morph_emb.transpose(1, 2),
                     size=target_len,
                     mode="nearest",
-                ).transpose(1, 2)  # [B, target_len, dim]
+                ).transpose(1, 2)
             else:
                 morph_emb = morph_emb[:, :target_len, :]
-        combined = torch.cat([hidden_states, morph_emb], dim=-1)
-        return self.morph_layer_norm(self.morph_projection(combined))
+        residual = self.morph_residual_proj(morph_emb)
+        gate = torch.tanh(self.morph_gate)
+        return self.morph_layer_norm(hidden_states + gate * residual)
 
     def forward(
         self,

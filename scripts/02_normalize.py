@@ -71,6 +71,15 @@ _RESIDUAL_MARKER_RE = re.compile(
 _ARABIC_TASHKEEL_RE = re.compile(r'[\u064B-\u0652]')
 _MIN_TASHKEEL_COUNT = 3  # threshold: 3+ diacritics → Arabic text
 
+# Distinctive Sorani-Kurdish letters that do not exist in standard Arabic.
+# A genuine Sorani sentence will contain at least one of these. The April
+# 2026 split audit found ~9 pure-Arabic citation lines that survived earlier
+# filters because they used only the shared Arabic-script subset.
+_SORANI_DISTINCT_RE = re.compile(
+    r'[\u0695\u06B5\u06CE\u06C6\u06D5\u06A4\u0698\u06AF\u067E\u0686\u06A9]'
+    # ڕ ڵ ێ ۆ ە ڤ ژ گ پ چ ک
+)
+
 # Double parentheses used as quotation / citation notation: (( ... ))
 _DOUBLE_PAREN_RE = re.compile(r'\(\(|\)\)')
 
@@ -106,8 +115,14 @@ _SPECIAL_SYMBOL_RE = re.compile(r'[°◦∞∑∏∫√±×÷]')
 _CLITIC_HYPHEN_RE = re.compile(r'(?:^|\s)-[\u0600-\u06FF]')
 
 
-def passes_quality_gate(sentence: str) -> tuple[bool, str]:
+def passes_quality_gate(sentence: str, strict_sorani: bool = False) -> tuple[bool, str]:
     """Check whether a sentence passes quality filters.
+
+    Args:
+        sentence: candidate sentence (post-normalization).
+        strict_sorani: if True, require at least one Sorani-distinctive
+            letter; rejects pure-Arabic citation lines that share the
+            Arabic-script subset.
 
     Returns:
         (passes, reason) — reason is empty string if passes is True.
@@ -150,6 +165,14 @@ def passes_quality_gate(sentence: str) -> tuple[bool, str]:
     # Arabic tashkeel: signals Classical Arabic / Quranic text
     if len(_ARABIC_TASHKEEL_RE.findall(sentence)) >= _MIN_TASHKEEL_COUNT:
         return False, "arabic_tashkeel"
+
+    # Sorani-distinctive letter check: a genuine Sorani sentence always
+    # contains at least one letter from the Kurdish-specific subset. Pure
+    # Arabic citation lines (e.g. "نخبة من الباحثين، حضارة العراق") do not.
+    # Skipped when the script is run with --skip-sorani-purity for backward
+    # compatibility with older corpus snapshots.
+    if strict_sorani and not _SORANI_DISTINCT_RE.search(sentence):
+        return False, "non_sorani_script"
 
     # Double parentheses notation: (( ... ))
     if _DOUBLE_PAREN_RE.search(sentence):
@@ -203,7 +226,14 @@ def main():
     parser = argparse.ArgumentParser(description="Normalize Sorani Kurdish text")
     parser.add_argument("--input", default="data/raw")
     parser.add_argument("--output", default="data/clean")
-    parser.add_argument("--remove-diacritics", action="store_true")
+    parser.add_argument("--remove-diacritics", dest="remove_diacritics",
+                        action=argparse.BooleanOptionalAction, default=True,
+                        help="Strip Arabic harakat (FATHA/KASRA/SHADDA/SUKUN/…) from text. "
+                             "Default on — Sorani Kurdish does not use vocalisation marks; "
+                             "any harakat in the input are Arabic-citation noise.")
+    parser.add_argument("--strict-sorani", action="store_true",
+                        help="Reject sentences that contain no Sorani-distinctive letters "
+                             "(ڕ ڵ ێ ۆ ە ڤ ژ گ پ چ ک). Drops pure-Arabic citation lines.")
     parser.add_argument("--skip-quality-gate", action="store_true",
                         help="Skip quality-gate filtering (PIPE-11)")
     parser.add_argument("--skip-sanitizer", action="store_true",
@@ -273,7 +303,7 @@ def main():
                             continue
                         # PIPE-11: Quality-gate filtering
                         if not args.skip_quality_gate:
-                            passes, reason = passes_quality_gate(part)
+                            passes, reason = passes_quality_gate(part, strict_sorani=args.strict_sorani)
                             if not passes:
                                 quality_drops[reason] = quality_drops.get(reason, 0) + 1
                                 continue

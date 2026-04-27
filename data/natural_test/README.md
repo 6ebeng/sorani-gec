@@ -63,8 +63,24 @@ This emits ERRANT-compatible M² using the character-span aligner in
 
 ## Status
 
-- 0 / 500 sentences collected.
+- 0 / 500 sentences collected (organic).
+- **Review CSV seeded** at `sentences_for_review.csv` — 287 rows drawn from
+  the active edited subset of `data/splits/test.jsonl`. These are
+  synthetic-derived placeholders showing the schema with real Kurdish
+  text; treat each row as a candidate to keep, edit into a real organic
+  example, or mark `keep=n` to drop. Open in Excel (UTF-8 BOM written so
+  Kurdish renders) or in VS Code.
+- Round-trip:
+  ```pwsh
+  python scripts/export_natural_csv.py        # regenerate review CSV
+  python scripts/csv_to_natural_jsonl.py      # CSV -> sentences.jsonl
+  python scripts/build_m2_from_jsonl.py `
+      --input  data/natural_test/sentences.jsonl `
+      --output data/natural_test/annotations.m2
+  ```
 - Collection script scaffold: `scripts/collect_natural_errors.py`.
-- M² build script scaffold: `scripts/build_m2_from_jsonl.py`.
+- M² build script: `scripts/build_m2_from_jsonl.py` (accepts the JSONL above
+  _and_ the `source/target/errors` schema used in `data/splits/`; trivial
+  copy-pairs are skipped).
 - Consent log: pending (awaiting IRB-equivalent clearance from UKH
   Department of CSE).
