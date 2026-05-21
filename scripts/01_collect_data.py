@@ -23,8 +23,10 @@ logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(description="Collect Sorani Kurdish text data")
-    parser.add_argument("--source", choices=["wikipedia", "local", "categorized", "ktc", "all"],
-                        default="all")
+    parser.add_argument("--source", choices=["local", "categorized", "ktc", "all"],
+                        default="all",
+                        help="Data source. Wikipedia is permanently excluded; use "
+                             "scripts/ingest_dissertations.py for dissertation data.")
     parser.add_argument("--output", default="data/raw")
     parser.add_argument("--local-dir", default=None, help="Path to local text files")
     parser.add_argument("--max-articles", type=int, default=5000)
@@ -40,11 +42,8 @@ def main():
     
     collector = CorpusCollector(output_dir=args.output)
     
-    if args.source in ("wikipedia", "all"):
-        logger.info("Collecting from Sorani Kurdish Wikipedia...")
-        n = collector.collect_wikipedia()
-        logger.info("Wikipedia: %d sentences collected", n)
-    
+    # Wikipedia excluded permanently — training corpus uses KTC + dissertations only.
+
     if args.source in ("local", "all") and args.local_dir:
         logger.info("Collecting from local files: %s", args.local_dir)
         n = collector.collect_from_text_files(args.local_dir, source_name="academic")

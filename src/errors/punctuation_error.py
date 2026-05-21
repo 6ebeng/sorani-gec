@@ -16,15 +16,14 @@ from typing import Optional
 from .base import BaseErrorGenerator
 
 
-# Punctuation swap pairs (original → possible replacements)
+# Punctuation swap pairs (original → possible replacements).
+# Training data is pre-segmented so each record is a single clause: no
+# Arabic comma or semicolon appears in the corpus, so only sentence-final
+# marks remain in scope. Latin-script swaps are out of scope (normaliser
+# canonicalises Latin punctuation to Arabic-script upstream).
 _PUNCT_SWAPS: dict[str, list[str]] = {
-    "،": [",", ""],       # Arabic comma → Latin comma or deletion
-    ",": ["،", ""],       # Latin comma → Arabic comma or deletion
-    "؛": [";", "،"],      # Arabic semicolon → Latin semicolon or comma
-    ";": ["؛", ","],
-    "؟": ["?", ""],       # Arabic question mark → Latin or deletion
-    "?": ["؟", ""],
-    ".": ["،", ""],       # Period → comma or deletion
+    "؟": ["", "."],       # Arabic question mark → deletion or period
+    ".": ["", "؟"],       # Period → deletion or Arabic question mark
 }
 
 
