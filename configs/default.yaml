@@ -85,7 +85,7 @@ training:
   max_epochs: 30
   early_stopping_patience: 5
   gradient_accumulation_steps: 8
-  fp16: true
+  fp16: false  # ByT5 byte-level embeddings produce NaN loss with FP16 on CUDA 12.x (R21 fix)
   
   # Loss
   agreement_loss_weight: 0.3  # auxiliary agreement prediction loss
