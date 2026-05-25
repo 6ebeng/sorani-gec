@@ -88,6 +88,9 @@ def run_aya_inference(
         dtype = None  # let BnB handle it
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer.padding_side = "left"  # required for correct generation with decoder-only models
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         quantization_config=quant_config,
@@ -104,13 +107,24 @@ def run_aya_inference(
         batch = sources[i : i + batch_size]
         prompts = [build_prompt(s) for s in batch]
 
-        # Format for Aya chat template if available
-        chats = [[{"role": "user", "content": p}] for p in prompts]
+        # Format using chat template if available (includes system message)
+        chats = [
+            [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": p}]
+            for p in prompts
+        ]
         if hasattr(tokenizer, "apply_chat_template"):
-            inputs_text = [
-                tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
-                for chat in chats
-            ]
+            try:
+                inputs_text = [
+                    tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
+                    for chat in chats
+                ]
+            except Exception:
+                # Some models don't support system role — fall back to user-only
+                chats_no_sys = [[{"role": "user", "content": SYSTEM_PROMPT + "\n\n" + p}] for p in prompts]
+                inputs_text = [
+                    tokenizer.apply_chat_template(c, tokenize=False, add_generation_prompt=True)
+                    for c in chats_no_sys
+                ]
         else:
             inputs_text = [SYSTEM_PROMPT + "\n\n" + p for p in prompts]
 
