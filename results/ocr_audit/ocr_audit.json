@@ -1,0 +1,39 @@
+{
+  "methodology": "Normalization-proxy audit: raw OCR tokens compared against SoraniNormalizer(normalize_chars=True, remove_zero_width=True, preserve_zwnj=True) output.  Measures encoding-level deviations that propagate to the training corpus.  Lower bound on true OCR CER.",
+  "seed": 42,
+  "n_per_university": 300,
+  "per_university": {
+    "koya": {
+      "n_files": 18,
+      "n_words_sampled": 300,
+      "n_words_changed_by_norm": 106,
+      "word_change_rate": 0.3533,
+      "mean_word_cer": 0.0926,
+      "corpus_cer": 0.0933,
+      "corpus_wer": 0.3605
+    },
+    "salahadin": {
+      "n_files": 26,
+      "n_words_sampled": 300,
+      "n_words_changed_by_norm": 96,
+      "word_change_rate": 0.32,
+      "mean_word_cer": 0.1254,
+      "corpus_cer": 0.1005,
+      "corpus_wer": 0.3453
+    },
+    "sulaimanyah": {
+      "n_files": 21,
+      "n_words_sampled": 300,
+      "n_words_changed_by_norm": 90,
+      "word_change_rate": 0.3,
+      "mean_word_cer": 0.1035,
+      "corpus_cer": 0.0832,
+      "corpus_wer": 0.3309
+    }
+  },
+  "aggregate": {
+    "n_universities": 3,
+    "mean_corpus_cer": 0.0923,
+    "mean_corpus_wer": 0.3456
+  }
+}
