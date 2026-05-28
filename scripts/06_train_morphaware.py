@@ -84,7 +84,7 @@ def main():
                              "to training data (0 = disabled). Uses swap strategy.")
     parser.add_argument("--seed", type=int, default=42,
                         help="Random seed for reproducibility (PIPE-7)")
-    parser.add_argument("--selection-metric", type=str, default="val_f05",
+    parser.add_argument("--selection-metric", type=str, default="val_loss",
                         choices=["val_f05", "val_loss"],
                         help="Metric for best-checkpoint and early-stopping (FM1).")
     parser.add_argument("--val-f05-subsample", type=int, default=0,

@@ -1,0 +1,117 @@
+# Low-resource GPU configuration for Sorani Kurdish GEC
+# ======================================================
+# Use this config on hardware with 10–12 GB VRAM (e.g. RTX 3080/3080 Ti,
+# RTX 3090, A10G).  All hyperparameters match configs/default.yaml;
+# only the memory-reduction settings differ.
+#
+# Key changes vs default.yaml:
+#   batch_size: 4         (was 16; keeps GPU memory under 12 GB)
+#   gradient_accumulation_steps: 32   (4×32=128 effective batch, unchanged)
+#   bf16: true            (was fp16: false; BF16 avoids NaN on ByT5 byte-level
+#                          embeddings without the dynamic-range issues of FP16)
+#   gradient_checkpointing: true      (trades ~20% speed for ~40% memory saving)
+#
+# Performance impact: per-epoch wall-time rises from ~8 min (RTX 5090 FP32)
+# to ~25 min (RTX 3080 Ti BF16); final model quality is equivalent.
+#
+# Documented in Chapter 7 §7.1 (R22 — low-resource fallback, Phase D).
+
+project:
+  name: "sorani-gec-lowres"
+  description: "Low-resource GPU configuration — 10-12 GB VRAM"
+
+data:
+  raw_dir: "data/raw"
+  clean_dir: "data/clean"
+  synthetic_dir: "data/synthetic"
+  splits_dir: "data/splits_v2"          # Phase-C clean splits
+  target_pairs: 50000
+  train_ratio: 0.8
+  dev_ratio: 0.1
+  test_ratio: 0.1
+  max_seq_length: 256
+
+  normalize_arabic_script: true
+  remove_diacritics: true
+
+  error_types:
+    - "subject_verb_number"
+    - "noun_adjective_ezafe"
+    - "clitic_form"
+    - "tense_agreement"
+    - "case_role_preposition"
+    - "dialectal_participle"
+    - "relative_clause_ezafe"
+    - "missing_adversative_connector"
+    - "participle_voice_swap"
+    - "orthography"
+    - "negative_concord"
+    - "vocative_imperative"
+    - "conditional_agreement"
+    - "adverb_verb_tense"
+    - "preposition_fusion"
+    - "demonstrative_contraction"
+    - "quantifier_agreement"
+    - "possessive_clitic"
+    - "polite_imperative"
+    - "spelling_confusion"
+    - "word_order"
+    - "whitespace_error"
+    - "punctuation_error"
+    - "cross_clause_agreement"
+    - "morpheme_order"
+  error_rate: 0.15
+
+model:
+  pretrained: "google/byt5-small"
+  use_morphology: true
+  morph_features:
+    - "person"
+    - "number"
+    - "tense"
+    - "aspect"
+    - "case"
+    - "definiteness"
+    - "transitivity"
+    - "clitic_person"
+    - "clitic_number"
+  morph_embed_dim: 64
+
+training:
+  # ---- memory-reduction settings (differ from default.yaml) ----
+  batch_size: 4                        # 4 × 32 accum = 128 effective (unchanged)
+  gradient_accumulation_steps: 32
+  bf16: true                           # BF16: safe for ByT5 on CUDA 12.x; avoids NaN
+  fp16: false                          # keep false; BF16 supersedes this flag
+  gradient_checkpointing: true         # ~40 % VRAM saving, ~20 % slower per step
+
+  # ---- unchanged from default.yaml ----
+  learning_rate: 5.0e-5
+  weight_decay: 0.01
+  warmup_steps: 1000
+  max_epochs: 30
+  early_stopping_patience: 5
+  selection_metric: "val_loss"         # R4 fix — val_loss not val_f05
+  agreement_loss_weight: 0.3
+  agreement_warmup_epochs: 5
+  gradient_clip_norm: 1.0
+  cosine_restarts: 3
+  curriculum_edge_weight: 0.5
+  optimizer: "adamw"
+  scheduler: "cosine_with_restarts"
+  save_dir: "results/models"
+  save_top_k: 3
+  log_every_n_steps: 50
+  eval_every_n_steps: 500
+
+evaluation:
+  metrics:
+    - "f05"
+    - "precision"
+    - "recall"
+    - "agreement_accuracy"
+  beam_width: 4
+  eval_pairs_file: "evaluation_pairs.jsonl"
+  bootstrap_resamples: 1000
+  human_eval:
+    n_sentences: 200

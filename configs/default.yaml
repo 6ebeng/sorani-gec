@@ -78,14 +78,21 @@ model:
   morph_embed_dim: 64
 
 training:
-  batch_size: 16
-  learning_rate: 5.0e-5
+  batch_size: 16              # effective batch = batch_size * gradient_accumulation_steps = 128
+  learning_rate: 5.0e-5       # follows ByT5 fine-tuning recipe (Xue et al. 2022)
   weight_decay: 0.01
-  warmup_steps: 1000
+  warmup_steps: 1000          # ≈5 epochs at 8k pairs, batch 16, grad-accum 8
   max_epochs: 30
-  early_stopping_patience: 5
+  early_stopping_patience: 5  # NOTE: patience never triggers when selection_metric=val_f05
+                               # because F0.5 peaks at epoch 1 and early stopping fires at epoch 6.
+                               # Use selection_metric=val_loss (the default) so patience is active.
   gradient_accumulation_steps: 8
   fp16: false  # ByT5 byte-level embeddings produce NaN loss with FP16 on CUDA 12.x (R21 fix)
+
+  # Checkpoint selection (R4) — default switched from val_f05 to val_loss (Phase D fix).
+  # val_f05 trapped both Phase A runs at epoch-1 near-pretrained checkpoints because F0.5
+  # peaks at epoch 1 and decays; val_loss continues to fall monotonically.
+  selection_metric: "val_loss"  # choices: val_f05 | val_loss
   
   # Loss
   agreement_loss_weight: 0.3  # auxiliary agreement prediction loss
