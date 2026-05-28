@@ -283,7 +283,11 @@ class MorphologyAwareGEC(nn.Module):
                 morph_emb = morph_emb[:, :target_len, :]
         residual = self.morph_residual_proj(morph_emb)
         gate = torch.tanh(self.morph_gate)
-        return self.morph_layer_norm(hidden_states + gate * residual)
+        # No LayerNorm on the sum: ByT5 encoder hidden_states have std~0.05,
+        # so wrapping (h + gate*residual) in LayerNorm rescales to std~1 and
+        # destroys the pre-trained decoder-encoder activation match. Residual
+        # is zero-init, so identity start is preserved without the LN.
+        return hidden_states + gate * residual
 
     def forward(
         self,

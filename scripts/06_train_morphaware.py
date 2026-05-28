@@ -428,10 +428,13 @@ def main():
             agr_labels = make_agreement_labels(src, rec, self.tokenizer,
                                                self.max_length)
 
+            labels = tgt_enc["input_ids"].squeeze(0).clone()
+            labels[labels == self.tokenizer.pad_token_id] = -100
+
             return {
                 "input_ids": src_enc["input_ids"].squeeze(0),
                 "attention_mask": src_enc["attention_mask"].squeeze(0),
-                "labels": tgt_enc["input_ids"].squeeze(0),
+                "labels": labels,
                 "morph_features": torch.tensor(morph_feats,
                                                dtype=torch.long),
                 "agreement_labels": torch.tensor(agr_labels[:self.max_length],

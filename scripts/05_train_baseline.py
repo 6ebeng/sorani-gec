@@ -199,10 +199,12 @@ def main():
                 self.targets[idx], max_length=self.max_length,
                 truncation=True, padding="max_length", return_tensors="pt",
             )
+            labels = tgt_enc["input_ids"].squeeze(0).clone()
+            labels[labels == self.tokenizer.pad_token_id] = -100
             return {
                 "input_ids": src_enc["input_ids"].squeeze(0),
                 "attention_mask": src_enc["attention_mask"].squeeze(0),
-                "labels": tgt_enc["input_ids"].squeeze(0),
+                "labels": labels,
             }
 
     train_dataset = GECDataset(train_sources, train_targets, model.tokenizer, args.max_length)
