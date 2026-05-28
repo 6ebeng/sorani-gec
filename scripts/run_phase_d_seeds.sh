@@ -90,7 +90,6 @@ for SEED in $SEEDS; do
       --patience "$PATIENCE" \
       --max-length "$MAX_LEN" \
       --selection-metric val_loss \
-      --no-fp16 \
       2>&1 | tee "$LOG"
 
     echo "    [DONE] baseline seed=$SEED at $(date -u '+%H:%M:%S UTC')"
@@ -117,7 +116,6 @@ for SEED in $SEEDS; do
       --patience "$PATIENCE" \
       --max-length "$MAX_LEN" \
       --selection-metric val_loss \
-      --no-fp16 \
       2>&1 | tee "$LOG"
 
     echo "    [DONE] morphaware seed=$SEED at $(date -u '+%H:%M:%S UTC')"
