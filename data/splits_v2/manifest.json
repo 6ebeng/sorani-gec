@@ -1,0 +1,64 @@
+{
+  "phase": "C",
+  "description": "splits_v2: single-edit-only filter (R29) applied; cross-split Jaccard-0.90 dedup applied (R34); trivial (source==target) pairs retained as copy-through signal.",
+  "splits": {
+    "train": {
+      "n_total": 5253,
+      "n_trivial": 2433,
+      "n_edited": 2820,
+      "sha256": "7f8ee646ae725ae55fa264203aa56e6f4acc1f477bc99480b8b8a0d054ab5ebe"
+    },
+    "dev": {
+      "n_total": 465,
+      "n_trivial": 215,
+      "n_edited": 250,
+      "sha256": "cb19a85d8d7beaea549c6cd450032f089ed25ff6845ff42ea3894056f8c28e22"
+    },
+    "test": {
+      "n_total": 647,
+      "n_trivial": 250,
+      "n_edited": 397,
+      "sha256": "97fa91cf6bda098d920650b5b12bf6b7290c2d076d7abe9e56966730617a3d93"
+    }
+  },
+  "per_type_test": {
+    "noun_adjective_agreement": 43,
+    "orthography": 37,
+    "spelling_confusion": 36,
+    "subject_verb_number": 25,
+    "clitic_form": 24,
+    "possessive_clitic": 23,
+    "whitespace": 22,
+    "punctuation": 20,
+    "tense_agreement": 20,
+    "case_role_preposition": 20,
+    "word_order": 20,
+    "demonstrative_contraction": 20,
+    "quantifier_agreement": 20,
+    "dialectal_participle": 20,
+    "morpheme_order": 20,
+    "cross_clause_agreement": 20,
+    "participle_voice_swap": 7
+  },
+  "under_20_error_types": {
+    "participle_voice_swap": 7
+  },
+  "_manifest_sha256": "205b5a6327c5c5425f8fee24722c9261647475110fa1b302045d4aedf5b05941",
+  "augmentation_r10": {
+    "added_pairs": 158,
+    "per_type_added": {
+      "tense_agreement": 13,
+      "case_role_preposition": 15,
+      "word_order": 17,
+      "demonstrative_contraction": 18,
+      "morpheme_order": 18,
+      "quantifier_agreement": 19,
+      "dialectal_participle": 19,
+      "participle_voice_swap": 6,
+      "punctuation": 13,
+      "cross_clause_agreement": 20
+    },
+    "source_pool": "data/splits/test.jsonl (original field, split-boundary safe)",
+    "seed": 99
+  }
+}
