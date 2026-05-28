@@ -20,6 +20,7 @@ python3 -c "import torch; print('PyTorch', torch.__version__, '|', torch.cuda.de
 # 2. Install project dependencies (pyhunspell not importable on Py 3.12 / not used at runtime)
 echo "--- Installing project deps ---"
 grep -v pyhunspell requirements.txt | pip3 install --quiet -r /dev/stdin
+pip3 install --quiet sentencepiece sacremoses  # needed by back-translation script
 
 # 3. Install project in editable mode
 echo "--- Installing project package ---"
