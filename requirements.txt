@@ -6,7 +6,6 @@ tokenizers>=0.15.0,<1.0.0
 
 # Kurdish NLP
 klpt>=0.1.5,<1.0.0
-pyhunspell>=0.5.4,<1.0.0
 
 # Data Processing
 pandas>=2.0.0,<3.0.0
