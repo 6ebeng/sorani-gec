@@ -582,18 +582,22 @@ def main():
         _prev_level = _builder_log.level
         _builder_log.setLevel(logging.ERROR)
         hypotheses = []
+        _eval_batch = max(1, args.batch_size)  # reuse train batch size for GPU throughput
         try:
             with torch.no_grad():
                 _beam_w = cfg.get("evaluation", {}).get("beam_width", 4) if cfg else 4
-                for src in srcs_eval:
+                for i in range(0, len(srcs_eval), _eval_batch):
+                    batch_src = srcs_eval[i : i + _eval_batch]
                     try:
-                        hyp = model.correct_with_morphology(
-                            src, analyzer, feature_extractor, num_beams=_beam_w
+                        batch_hyp = model.correct_batch(
+                            batch_src, analyzer, feature_extractor, num_beams=_beam_w
                         )
+                        hypotheses.extend(batch_hyp)
                     except Exception:
-                        logger.warning("correct_with_morphology() failed for: %.50s", src)
-                        hyp = src  # fallback: return source unchanged
-                    hypotheses.append(hyp)
+                        logger.warning(
+                            "correct_batch() failed for batch starting at %d, falling back", i
+                        )
+                        hypotheses.extend(batch_src)  # fallback: return sources unchanged
         finally:
             _builder_log.setLevel(_prev_level)
         metrics = evaluate_corpus(srcs_eval, hypotheses, tgts_eval)
