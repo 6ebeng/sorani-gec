@@ -78,7 +78,7 @@ for SEED in $SEEDS; do
     echo "    Output: $OUT_DIR"
     echo "    Log:    $LOG"
 
-    python scripts/05_train_baseline.py \
+    python3 scripts/05_train_baseline.py \
       --data-dir "$DATA_DIR" \
       --output-dir "$OUT_DIR" \
       --model "$MODEL" \
@@ -104,7 +104,7 @@ for SEED in $SEEDS; do
     echo "    Output: $OUT_DIR"
     echo "    Log:    $LOG"
 
-    python scripts/06_train_morphaware.py \
+    python3 scripts/06_train_morphaware.py \
       --data-dir "$DATA_DIR" \
       --output-dir "$OUT_DIR" \
       --model "$MODEL" \
