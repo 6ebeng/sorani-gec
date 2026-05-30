@@ -42,6 +42,9 @@ DEFAULT_LR = [1e-5, 3e-5, 5e-5, 1e-4]
 DEFAULT_BATCH_SIZES = [8, 16, 32]
 DEFAULT_AGR_WEIGHTS = [0.1, 0.3, 0.5]
 DEFAULT_GRAD_ACCUM = [4, 8]
+# L9-01: warmup is now an explicit search axis. The single default (60 steps,
+# ~1.4 epochs on the 5k-pair corpus) replaces the implicit, mis-set 1000.
+DEFAULT_WARMUP = [60]
 
 
 def load_config(config_path: str) -> dict:
@@ -55,28 +58,31 @@ def build_search_space(args) -> list[dict]:
     lrs = args.lr or DEFAULT_LR
     batch_sizes = args.batch_size_list or DEFAULT_BATCH_SIZES
     grad_accums = args.grad_accum_list or DEFAULT_GRAD_ACCUM
+    warmups = args.warmup_list or DEFAULT_WARMUP
 
     if args.model_type == "morphaware":
         agr_weights = args.agr_weights or DEFAULT_AGR_WEIGHTS
-        combos = list(itertools.product(lrs, batch_sizes, grad_accums, agr_weights))
+        combos = list(itertools.product(lrs, batch_sizes, grad_accums, agr_weights, warmups))
         space = [
             {
                 "lr": lr,
                 "batch_size": bs,
                 "grad_accum_steps": ga,
                 "agreement_loss_weight": aw,
+                "warmup_steps": wu,
             }
-            for lr, bs, ga, aw in combos
+            for lr, bs, ga, aw, wu in combos
         ]
     else:
-        combos = list(itertools.product(lrs, batch_sizes, grad_accums))
+        combos = list(itertools.product(lrs, batch_sizes, grad_accums, warmups))
         space = [
             {
                 "lr": lr,
                 "batch_size": bs,
                 "grad_accum_steps": ga,
+                "warmup_steps": wu,
             }
-            for lr, bs, ga in combos
+            for lr, bs, ga, wu in combos
         ]
 
     return space
@@ -224,6 +230,10 @@ def _train_baseline_trial(
     use_fp16 = args.fp16 and device != "cpu"
     scaler = GradScaler(enabled=use_fp16)
 
+    from torch.optim.lr_scheduler import LinearLR
+    _warmup = max(1, int(hparams.get("warmup_steps", 60)))
+    scheduler = LinearLR(optimizer, start_factor=0.1, total_iters=_warmup)
+
     best_val_f05 = 0.0
     train_losses = []
 
@@ -266,6 +276,7 @@ def _train_baseline_trial(
                 scaler.step(optimizer)
                 scaler.update()
                 optimizer.zero_grad()
+                scheduler.step()
 
         avg_loss = epoch_loss / max(n_batches, 1)
         train_losses.append(avg_loss)
@@ -284,6 +295,7 @@ def _train_baseline_trial(
         "model_type": "baseline",
         "best_val_f05": round(best_val_f05, 4),
         "final_train_loss": round(train_losses[-1], 4) if train_losses else None,
+        "warmup_steps": hparams.get("warmup_steps"),
     }
 
 
@@ -325,6 +337,10 @@ def _train_morphaware_trial(
     use_fp16 = args.fp16 and device != "cpu"
     scaler = GradScaler(enabled=use_fp16)
 
+    from torch.optim.lr_scheduler import LinearLR
+    _warmup = max(1, int(hparams.get("warmup_steps", 60)))
+    scheduler = LinearLR(optimizer, start_factor=0.1, total_iters=_warmup)
+
     best_val_f05 = 0.0
 
     for epoch in range(n_epochs):
@@ -354,6 +370,7 @@ def _train_morphaware_trial(
                 scaler.step(optimizer)
                 scaler.update()
                 optimizer.zero_grad()
+                scheduler.step()
 
         avg_loss = epoch_loss / max(n_batches, 1)
 
@@ -370,6 +387,7 @@ def _train_morphaware_trial(
         "model_type": "morphaware",
         "best_val_f05": round(best_val_f05, 4),
         "agreement_loss_weight": hparams.get("agreement_loss_weight"),
+        "warmup_steps": hparams.get("warmup_steps"),
     }
 
 
@@ -465,6 +483,13 @@ def main():
         nargs="+",
         default=None,
         help="Agreement loss weights to search (morphaware only; default: 0.1 0.3 0.5)",
+    )
+    parser.add_argument(
+        "--warmup-list",
+        type=int,
+        nargs="+",
+        default=None,
+        help="LR-warmup steps to search (default: 60; L9-01 fix for the 5k corpus)",
     )
     args = parser.parse_args()
 

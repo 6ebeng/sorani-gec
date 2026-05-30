@@ -36,8 +36,8 @@ from src.morphology.analyzer import MorphologicalAnalyzer
 from src.morphology.features import FeatureExtractor
 from src.morphology.lexicon import SoraniLexicon
 
-DATA_DIR = "data/splits_v2"
-RESULTS_DIR = "results/phase_d"
+DATA_DIR = os.environ.get("PHASE_DATA_DIR", "data/splits_v2")
+RESULTS_DIR = os.environ.get("PHASE_RESULTS_DIR", "results/phase_d")
 MAX_LENGTH = 256
 BATCH_SIZE = 16
 NUM_BEAMS = 4

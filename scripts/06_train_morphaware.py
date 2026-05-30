@@ -87,6 +87,10 @@ def main():
     parser.add_argument("--selection-metric", type=str, default="val_loss",
                         choices=["val_f05", "val_loss"],
                         help="Metric for best-checkpoint and early-stopping (FM1).")
+    parser.add_argument("--warmup-steps", type=int, default=None,
+                        help="LR-warmup steps (optimizer updates). Overrides the config value. "
+                             "Size this to ~1-2 epochs of optimizer steps for the 5k corpus "
+                             "(~60); the legacy config default of 1000 covered ~81%% of training.")
     parser.add_argument("--val-f05-subsample", type=int, default=0,
                         help="If >0, subsample the dev set to N sentences for the slow F0.5 "
                              "computation (informational only when --selection-metric=val_loss). "
@@ -485,9 +489,12 @@ def main():
 
     _t_cfg = cfg.get("training", {}) if cfg else {}
     total_steps = math.ceil(len(train_loader) / args.grad_accum_steps) * args.epochs
-    warmup_steps = _t_cfg.get("warmup_steps", min(1000, total_steps // 10))
+    if args.warmup_steps is not None:
+        warmup_steps = args.warmup_steps
+    else:
+        warmup_steps = _t_cfg.get("warmup_steps", min(1000, total_steps // 10))
     from torch.optim.lr_scheduler import LinearLR, CosineAnnealingWarmRestarts, SequentialLR
-    warmup_scheduler = LinearLR(optimizer, start_factor=0.1, total_iters=warmup_steps)
+    warmup_scheduler = LinearLR(optimizer, start_factor=0.1, total_iters=max(1, warmup_steps))
     _cosine_restarts = _t_cfg.get("cosine_restarts", 3)
     cosine_scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=max(1, total_steps // _cosine_restarts))
     scheduler = SequentialLR(optimizer, [warmup_scheduler, cosine_scheduler],

@@ -89,6 +89,41 @@ def main():
             "n_sentences": res.n_sentences,
         })
 
+    # Pooled multi-seed baseline vs morphaware (L10-06): instead of resting the
+    # headline gap on the seed-42 checkpoints alone, pool the matched per-seed
+    # hypotheses across all three seeds (each test sentence contributes once per
+    # seed) so seed variance enters the resampling distribution directly.
+    pool_seeds = ["42", "123", "777"]
+    have_all = all(
+        f"baseline_seed{s}" in systems and f"morphaware_seed{s}" in systems
+        for s in pool_seeds
+    )
+    if have_all:
+        p_src, p_a, p_b, p_ref = [], [], [], []
+        for s in pool_seeds:
+            b_src, b_hyp, b_ref = systems[f"baseline_seed{s}"]
+            _m_src, m_hyp, _m_ref = systems[f"morphaware_seed{s}"]
+            p_src.extend(b_src)
+            p_a.extend(b_hyp)
+            p_b.extend(m_hyp)
+            p_ref.extend(b_ref)
+        res = paired_bootstrap_f05(
+            sources=p_src, hypotheses_a=p_a, hypotheses_b=p_b,
+            references=p_ref, n_resamples=N_RESAMPLES, seed=SEED,
+        )
+        print("\nbaseline_pooled3seed  vs  morphaware_pooled3seed")
+        print(f"  {res}")
+        results.append({
+            "system_a": "baseline_pooled3seed", "system_b": "morphaware_pooled3seed",
+            "f05_a": res.f05_a, "f05_b": res.f05_b,
+            "delta": res.delta, "ci_low": res.ci_low, "ci_high": res.ci_high,
+            "p_value": res.p_value, "n_resamples": res.n_resamples,
+            "n_sentences": res.n_sentences,
+            "pooled_seeds": pool_seeds,
+        })
+    else:
+        print("  skip pooled 3-seed baseline vs morphaware (missing per-seed hypotheses)")
+
     with open(f"{BASELINES}/bootstrap_pvalues.json", "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
     print(f"\nSaved -> {BASELINES}/bootstrap_pvalues.json")
