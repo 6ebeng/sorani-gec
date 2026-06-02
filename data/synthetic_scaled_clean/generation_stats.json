@@ -1,0 +1,30 @@
+{
+  "total": 50000,
+  "corrupted": 35000,
+  "clean_pairs": 15000,
+  "errors_by_type": {
+    "orthography": 29271,
+    "possessive_clitic": 2593,
+    "noun_adjective_agreement": 4951,
+    "whitespace": 33754,
+    "clitic_form": 3177,
+    "spelling_confusion": 23155,
+    "missing_adversative_connector": 54,
+    "tense_agreement": 735,
+    "quantifier_agreement": 549,
+    "subject_verb_number": 2948,
+    "case_role_preposition": 659,
+    "punctuation": 871,
+    "word_order": 531,
+    "morpheme_order": 137,
+    "adverb_verb_tense": 8,
+    "cross_clause_agreement": 447,
+    "dialectal_participle": 183,
+    "negative_concord": 28,
+    "demonstrative_contraction": 50,
+    "conditional_agreement": 25,
+    "vocative_imperative": 33,
+    "relative_clause_ezafe": 5
+  },
+  "validation_rejected": 5406
+}

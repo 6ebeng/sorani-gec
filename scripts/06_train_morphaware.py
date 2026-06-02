@@ -65,6 +65,14 @@ def main():
     parser.add_argument("--data-dir", default="data/splits")
     parser.add_argument("--output-dir", default="results/models/morphaware")
     parser.add_argument("--agreement-loss-weight", type=float, default=0.3)
+    parser.add_argument("--morph-gate-init", type=float, default=0.0,
+                        help="Initial value of the scalar morph residual gate. 0.0 (default) "
+                             "starts the morph contribution at zero (legacy). A positive value "
+                             "(e.g. 0.5) opens the gate so morphology fires from step 1.")
+    parser.add_argument("--morph-residual-init", type=float, default=0.0,
+                        help="Std of the small-normal init for the morph residual projection. "
+                             "0.0 (default) zero-inits it; a small positive value (e.g. 0.02) "
+                             "seeds it so morph features influence the encoder immediately.")
     parser.add_argument("--grad-accum-steps", type=int, default=4)
     parser.add_argument("--patience", type=int, default=5)
     parser.add_argument("--fp16", action="store_true", default=False)
@@ -183,6 +191,8 @@ def main():
         agreement_loss_weight=args.agreement_loss_weight,
         max_length=args.max_length,
         num_agreement_types=num_agreement_types,
+        morph_gate_init=args.morph_gate_init,
+        morph_residual_init=args.morph_residual_init,
     )
     logger.info(
         "Feature vocab: %d entries; model embedding capacity: %d",

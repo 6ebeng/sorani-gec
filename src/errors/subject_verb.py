@@ -68,9 +68,15 @@ Examples of errors:
   [Law 1 — imperative]
   - Number flip: "بنووسە" → "بنووسن" (write-SG! → write-PL!)
 
-  [Law 2 — past transitive, object-verb]
-  - Object suffix flip: "من نووسیم" → "من نووسیمان" (I wrote-it → I wrote-us)
-    (Here م marks 1sg agent, but we flip the object-agreement suffix)
+  [Law 2 domain — past transitive, ergative clause]
+  - Agent-clitic number flip: "من نووسیم" → "من نووسیمان"
+    ("I wrote-it" → 1pl-agent-marked "wrote-it"). On a bare past
+    transitive verb the overt enclitic م is the Set 1 AGENT clitic;
+    the object agreement is the separate verb ending — here 3sg, which
+    is zero on the stem نووسی. Flipping م→مان corrupts the agent's
+    number, so the clitic no longer matches the 1sg subject من. This is
+    an agent-agreement (Set 1) violation inside the ergative construction,
+    not an object-agreement edit.
 """
 
 import re
@@ -156,7 +162,9 @@ VOCATIVE_PLURAL_SUFFIX = "ینۆ"
 # 3. هەبوون (possession) — possessive set NEVER agrees, verb stays 3sg
 # Possession-use verbs should not be targeted for subject-verb error
 # injection because they are inherently invariant (3sg).
-EXISTENTIAL_POSSESSION_MARKERS = ["مم", "ت", "ی", "مان", "تان", "یان"]
+# The 1sg possessive clitic is م (the surface doubling مم only arises when
+# the host stem already ends in م, e.g. گەنم+م → گەنمم).
+EXISTENTIAL_POSSESSION_MARKERS = ["م", "ت", "ی", "مان", "تان", "یان"]
 
 # Compound verb prefixes that appear between negation/mood and the stem.
 # Source: Amin (2016), p. 62
@@ -272,8 +280,11 @@ class SubjectVerbErrorGenerator(BaseErrorGenerator):
     Handles three verb categories per Slevanayi's (2001) two-law system:
       1. Present/future verbs (Law 1): flip the subject-agreement suffix
       2. Imperative verbs (Law 1): flip 2sg ↔ 2pl
-      3. Past transitive verbs (Law 2): flip the object-agreement suffix
-         (the ergative clitic), since the verb agrees with the object
+      3. Past transitive verbs (Law 2 domain): flip the number of the overt
+         enclitic, which on a bare ergative verb is the Set 1 AGENT clitic.
+         The verb's object agreement is a separate ending (zero for a 3sg
+         object), so this perturbation corrupts agent marking, producing an
+         agent-agreement violation within the ergative construction.
     """
 
     @property
@@ -364,10 +375,12 @@ class SubjectVerbErrorGenerator(BaseErrorGenerator):
                 },
             })
 
-        # Pattern 3: Past-tense transitive verbs (Law 2 — ergative)
+        # Pattern 3: Past-tense transitive verbs (Law 2 — ergative clause)
         # Source: Slevanayi (2001), pp. 60-61; Amin (2016), pp. 51-52
-        # In past transitive, the verb agrees with the OBJECT. The clitic
-        # suffixes (م/ت/∅/مان/تان/یان) on the verb mark the object.
+        # In a past transitive (ergative) clause the verb's object agreement
+        # is its inflectional ending (3sg = zero on the bare stem). The overt
+        # enclitic that surfaces on a bare verb (م/ت/∅/مان/تان/یان) is the
+        # Set 1 AGENT clitic. Flipping its number corrupts agent marking.
         # Negation prefix نە- can appear before past stems.
         neg_alt = "|".join(re.escape(p) for p in ["نە"])
         past_endings_alt = "مان|تان|یان|م|ت"  # longest first; 3sg = zero
@@ -428,8 +441,9 @@ class SubjectVerbErrorGenerator(BaseErrorGenerator):
         """Flip the verb's number (singular ↔ plural).
 
         For present and imperative verbs (Law 1): flips subject-agreement.
-        For past transitive verbs (Law 2): flips object-agreement suffix
-        (the ergative clitic), since the verb agrees with the object.
+        For past transitive verbs (Law 2 domain): flips the number of the
+        overt Set 1 AGENT clitic (the object agreement is a separate, often
+        zero, ending), producing an agent-agreement violation.
         """
         ctx = position["context"]
         current_pn = ctx["person_number"]
@@ -441,7 +455,7 @@ class SubjectVerbErrorGenerator(BaseErrorGenerator):
         target_pn = NUMBER_FLIP[current_pn]
 
         if verb_type == "past_transitive":
-            # Law 2: flip the object-agreement clitic (past paradigm)
+            # Law 2 domain: flip the Set 1 agent clitic's number (past paradigm)
             target_ending = PAST_VERB_ENDINGS.get(target_pn, "")
             error_verb = ctx["prefix"] + ctx["stem"] + target_ending
         elif verb_type == "imperative":

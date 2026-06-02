@@ -139,7 +139,7 @@ def main():
 
     # Load model
     logger.info("Loading model: %s", args.model)
-    model = BaselineGEC(model_name=args.model)
+    model = BaselineGEC(model_name=args.model, max_length=args.max_length)
     model = model.to(device)
     total_params = sum(p.numel() for p in model.parameters())
     logger.info("Total parameters: %s", f"{total_params:,}")

@@ -29,7 +29,7 @@ logging.getLogger("__main__").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 logging.getLogger(__name__).setLevel(logging.INFO)
 
-from src.evaluation.f05_scorer import evaluate_corpus
+from src.evaluation.f05_scorer import evaluate_corpus, evaluate_corpus_span
 from src.model.baseline import BaselineGEC
 from src.model.morphology_aware import MorphologyAwareGEC, EDGE_TYPE_ORDER
 from src.morphology.analyzer import MorphologicalAnalyzer
@@ -114,20 +114,29 @@ def run_eval(run_name: str, is_morphaware: bool,
     elapsed = time.time() - t0
 
     metrics = evaluate_corpus(srcs, hypotheses, tgts)
+    span_metrics, _span_by_type = evaluate_corpus_span(srcs, hypotheses, tgts)
     result = {
         "run": run_name,
-        "f05": metrics.f05,
-        "precision": metrics.precision,
-        "recall": metrics.recall,
-        "tp": metrics.tp,
-        "fp": metrics.fp,
-        "fn": metrics.fn,
+        # Headline is the span-aware (position-aware) scorer; the word-level
+        # numbers are kept under word_* for backward comparison only.
+        "f05": span_metrics.f05,
+        "precision": span_metrics.precision,
+        "recall": span_metrics.recall,
+        "tp": span_metrics.tp,
+        "fp": span_metrics.fp,
+        "fn": span_metrics.fn,
+        "word_f05": metrics.f05,
+        "word_precision": metrics.precision,
+        "word_recall": metrics.recall,
+        "word_tp": metrics.tp,
+        "word_fp": metrics.fp,
+        "word_fn": metrics.fn,
         "elapsed_sec": round(elapsed, 1),
         "n_sentences": len(srcs),
     }
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
-    print(f"  F0.5={metrics.f05:.4f}  P={metrics.precision:.4f}  R={metrics.recall:.4f}  TP={metrics.tp}  FP={metrics.fp}  FN={metrics.fn}")
+    print(f"  span F0.5={span_metrics.f05:.4f}  P={span_metrics.precision:.4f}  R={span_metrics.recall:.4f}  (word F0.5={metrics.f05:.4f})")
     print(f"  Saved -> {out_path}")
 
     # Free VRAM

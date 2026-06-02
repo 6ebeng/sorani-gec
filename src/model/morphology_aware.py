@@ -111,10 +111,20 @@ class MorphologyAwareGEC(nn.Module):
         edge_type_loss_weights: Optional[dict[str, float]] = None,
         max_length: int = 128,
         num_agreement_types: int = len(EDGE_TYPE_ORDER) + 1,
+        morph_gate_init: float = 0.0,
+        morph_residual_init: float = 0.0,
     ):
         super().__init__()
         self.model_name = model_name
         self.max_length = max_length
+        # Injection warm-start knobs. With both at 0.0 the morph contribution
+        # starts at exactly zero (legacy ARCH-9 behaviour). A positive
+        # morph_gate_init opens the gate from step 1 and a positive
+        # morph_residual_init seeds the residual projection with small random
+        # weights, so morphological features influence the encoder immediately
+        # instead of having to climb out of a zero-gradient identity start.
+        self.morph_gate_init = morph_gate_init
+        self.morph_residual_init = morph_residual_init
         self._base_agreement_loss_weight = agreement_loss_weight
         self.agreement_loss_weight = agreement_loss_weight
         # Default: equal weights for every edge type so the per-type loss
@@ -152,11 +162,18 @@ class MorphologyAwareGEC(nn.Module):
         )
         self.morph_layer_norm = nn.LayerNorm(hidden_dim)
         self.morph_residual_proj = nn.Linear(morph_embed_dim, hidden_dim)
-        # Zero-init so morph contribution starts at exactly zero.
-        nn.init.zeros_(self.morph_residual_proj.weight)
-        nn.init.zeros_(self.morph_residual_proj.bias)
-        # Learnable scalar gate, initialised at 0 -> identity start.
-        self.morph_gate = nn.Parameter(torch.zeros(1))
+        # Zero-init so morph contribution starts at exactly zero, unless a
+        # positive morph_residual_init is requested (warm-started injection).
+        if morph_residual_init and morph_residual_init > 0.0:
+            nn.init.normal_(self.morph_residual_proj.weight, mean=0.0, std=morph_residual_init)
+            nn.init.zeros_(self.morph_residual_proj.bias)
+        else:
+            nn.init.zeros_(self.morph_residual_proj.weight)
+            nn.init.zeros_(self.morph_residual_proj.bias)
+        # Learnable scalar gate. Default 0 -> identity start; a positive
+        # morph_gate_init opens the gate immediately so morph signal flows
+        # from the first optimiser step.
+        self.morph_gate = nn.Parameter(torch.full((1,), float(morph_gate_init)))
         
         # Auxiliary agreement predictor
         self.agreement_predictor = AgreementPredictor(

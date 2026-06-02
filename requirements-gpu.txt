@@ -1,0 +1,16 @@
+# Slim requirements for TRAINING/EVAL only on the rented GPU instance.
+# torch is installed separately with the CUDA 12.8 index (Blackwell sm_120).
+# Excludes the Kurdish error-generation + web stack (klpt, gradio, fastapi,
+# jupyter, etc.) because the data is built locally and shipped pre-made.
+transformers>=4.40.0,<5.0.0
+tokenizers>=0.19.0,<1.0.0
+sentencepiece>=0.1.99
+protobuf>=3.20,<6.0
+numpy>=1.24.0,<2.3.0
+scipy>=1.11.0,<2.0.0
+scikit-learn>=1.3.0,<2.0.0
+pandas>=2.0.0,<3.0.0
+pyyaml>=6.0,<7.0
+regex>=2023.10.3
+tqdm>=4.66.0,<5.0.0
+tensorboard>=2.15.0,<3.0.0

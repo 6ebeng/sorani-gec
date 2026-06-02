@@ -54,16 +54,37 @@ _IMPERATIVE_PREFIX = "ب"
 
 @dataclass
 class AgreementResult:
-    """Result of agreement checking on a single sentence."""
+    """Result of agreement checking on a single sentence.
+
+    ``checks_total`` is the number of checks run (always 14). ``checks_applicable``
+    is how many of those checks had their trigger structure present in the
+    sentence — the denominator that matters. A check that never fired (no
+    pronoun, no quantifier, no relative clause, …) is neither a pass nor a
+    fail; counting it as a silent pass is what inflated the old headline
+    toward 1.0. ``accuracy`` divides passed checks by *applicable* checks.
+    """
     sentence: str
     checks_passed: int
     checks_total: int
     violations: list[str]
-    
+    checks_applicable: int = 0
+
     @property
     def accuracy(self) -> float:
-        return self.checks_passed / self.checks_total if self.checks_total > 0 else 1.0
-    
+        # Denominator = applicable checks, not all 14. A sentence that
+        # triggered no check is undefined for this metric; callers should
+        # gate on is_applicable. To keep the property total we return 1.0
+        # when nothing applied.
+        if self.checks_applicable <= 0:
+            return 1.0
+        failed = self.checks_total - self.checks_passed
+        passed_applicable = self.checks_applicable - failed
+        return passed_applicable / self.checks_applicable
+
+    @property
+    def is_applicable(self) -> bool:
+        return self.checks_applicable > 0
+
     @property
     def is_correct(self) -> bool:
         return len(self.violations) == 0
@@ -89,116 +110,53 @@ class AgreementChecker:
         self._analyzer = analyzer or MorphologicalAnalyzer(use_klpt=False)
     
     def check_sentence(self, sentence: str) -> AgreementResult:
-        """Run all agreement checks on a sentence."""
-        violations = []
+        """Run all agreement checks on a sentence.
+
+        Each check returns ``(applicable, violations)``. ``applicable`` is
+        True only when the check's trigger structure is present (a pronoun
+        for subject-verb, a quantifier for quantifier-noun, …). Checks that
+        do not apply are excluded from the denominator instead of silently
+        counting as passes.
+        """
+        violations: list[str] = []
         failed_checks = 0
+        applicable_checks = 0
         total_checks = 0
-        
-        # Check 1: Subject-verb number
-        sv_violations = self._check_subject_verb(sentence)
-        violations.extend(sv_violations)
-        if sv_violations:
-            failed_checks += 1
-        total_checks += 1
-        
-        # Check 2: Clitic consistency
-        cl_violations = self._check_clitic_consistency(sentence)
-        violations.extend(cl_violations)
-        if cl_violations:
-            failed_checks += 1
-        total_checks += 1
-        
-        # Check 3: Ezafe presence
-        ez_violations = self._check_ezafe(sentence)
-        violations.extend(ez_violations)
-        if ez_violations:
-            failed_checks += 1
-        total_checks += 1
-        
-        # Check 4: Tense consistency
-        t_violations = self._check_tense_consistency(sentence)
-        violations.extend(t_violations)
-        if t_violations:
-            failed_checks += 1
-        total_checks += 1
 
-        # Check 5: Object-verb agreement (Law 2 — ergative past transitive)
-        ov_violations = self._check_object_verb_ergative(sentence)
-        violations.extend(ov_violations)
-        if ov_violations:
-            failed_checks += 1
-        total_checks += 1
+        checks = [
+            self._check_subject_verb,
+            self._check_clitic_consistency,
+            self._check_ezafe,
+            self._check_tense_consistency,
+            self._check_object_verb_ergative,
+            self._check_negative_concord,
+            self._check_orthography,
+            self._check_conditional_agreement,
+            self._check_quantifier_noun,
+            self._check_relative_clause,
+            self._check_vocative_imperative,
+            self._check_adverb_verb_tense,
+            self._check_compound_subject,
+            self._check_bare_noun_agreement,
+        ]
 
-        # Check 6: Negative concord (double negation required in Sorani)
-        nc_violations = self._check_negative_concord(sentence)
-        violations.extend(nc_violations)
-        if nc_violations:
-            failed_checks += 1
-        total_checks += 1
+        for check in checks:
+            applicable, check_violations = check(sentence)
+            violations.extend(check_violations)
+            total_checks += 1
+            if applicable:
+                applicable_checks += 1
+            if check_violations:
+                failed_checks += 1
 
-        # Check 7: Orthographic consistency (common confusion pairs)
-        orth_violations = self._check_orthography(sentence)
-        violations.extend(orth_violations)
-        if orth_violations:
-            failed_checks += 1
-        total_checks += 1
-
-        # Check 8: Conditional agreement (ئەگەر clause tense constraints)
-        cond_violations = self._check_conditional_agreement(sentence)
-        violations.extend(cond_violations)
-        if cond_violations:
-            failed_checks += 1
-        total_checks += 1
-
-        # Check 9: Quantifier–noun agreement (CRIT-4)
-        qn_violations = self._check_quantifier_noun(sentence)
-        violations.extend(qn_violations)
-        if qn_violations:
-            failed_checks += 1
-        total_checks += 1
-
-        # Check 10: Relative clause agreement (CRIT-4)
-        rc_violations = self._check_relative_clause(sentence)
-        violations.extend(rc_violations)
-        if rc_violations:
-            failed_checks += 1
-        total_checks += 1
-
-        # Check 11: Vocative–imperative agreement (CRIT-4)
-        vi_violations = self._check_vocative_imperative(sentence)
-        violations.extend(vi_violations)
-        if vi_violations:
-            failed_checks += 1
-        total_checks += 1
-
-        # Check 12: Adverb–verb tense consistency (CRIT-4)
-        av_violations = self._check_adverb_verb_tense(sentence)
-        violations.extend(av_violations)
-        if av_violations:
-            failed_checks += 1
-        total_checks += 1
-
-        # Check 13: Compound subject person resolution (Slevanayi 2001, p. 89)
-        cs_violations = self._check_compound_subject(sentence)
-        violations.extend(cs_violations)
-        if cs_violations:
-            failed_checks += 1
-        total_checks += 1
-
-        # Check 14: Bare noun person-only agreement (Slevanayi 2001, p. 60)
-        bn_violations = self._check_bare_noun_agreement(sentence)
-        violations.extend(bn_violations)
-        if bn_violations:
-            failed_checks += 1
-        total_checks += 1
-        
         passed = total_checks - failed_checks
-        
+
         return AgreementResult(
             sentence=sentence,
             checks_passed=passed,
             checks_total=total_checks,
             violations=violations,
+            checks_applicable=applicable_checks,
         )
     
     def _clause_boundary_indices(self, words: list[str]) -> list[int]:
@@ -234,7 +192,7 @@ class AgreementChecker:
                         break
         return boundaries
 
-    def _check_subject_verb(self, sentence: str) -> list[str]:
+    def _check_subject_verb(self, sentence: str) -> tuple[bool, list[str]]:
         """Check subject-verb person/number agreement (Law 1).
         
         Source: Slevanayi (2001), p. 89 — verb agrees with subject in
@@ -242,8 +200,12 @@ class AgreementChecker:
 
         Scans forward from each pronoun to the next clause boundary
         (instead of a fixed 6-word window) to avoid missing distant verbs.
+
+        Applicable only when a subject pronoun is paired with a
+        present-tense verb inside the same clause.
         """
         violations = []
+        applicable = False
         words = self._analyzer.tokenize(sentence)
         clause_bounds = set(self._clause_boundary_indices(words))
         
@@ -268,6 +230,7 @@ class AgreementChecker:
                 if verb_pn is None:
                     break
                 
+                applicable = True
                 verb_person, verb_number = verb_pn
                 if verb_person != expected_person or verb_number != expected_number:
                     violations.append(
@@ -276,7 +239,7 @@ class AgreementChecker:
                     )
                 break
         
-        return violations
+        return applicable, violations
     
     @staticmethod
     def _verb_ending_to_pn(verb: str) -> Optional[tuple[str, str]]:
@@ -287,7 +250,7 @@ class AgreementChecker:
                 return _PRESENT_ENDINGS[suffix]
         return None
     
-    def _check_clitic_consistency(self, sentence: str) -> list[str]:
+    def _check_clitic_consistency(self, sentence: str) -> tuple[bool, list[str]]:
         """Check for inconsistent clitic usage within a clause.
 
         Rules enforced:
@@ -302,6 +265,7 @@ class AgreementChecker:
           of bare endswith("ی"), avoiding false filtering on ezafe/indefinite ی.
         """
         violations = []
+        applicable = False
         words = self._analyzer.tokenize(sentence)
         found_clitics: list[tuple[str, str, str]] = []  # (clitic, person, number)
 
@@ -335,6 +299,7 @@ class AgreementChecker:
         # distinct clitics — either with different persons or the same
         # clitic appearing on multiple hosts.
         if len(found_clitics) >= 2:
+            applicable = True
             persons_seen = {c[1] for c in found_clitics}
             distinct_clitics = {c[0] for c in found_clitics}
             if len(persons_seen) >= 2 or len(distinct_clitics) >= 2 or len(found_clitics) > len(distinct_clitics):
@@ -344,17 +309,21 @@ class AgreementChecker:
                     f"{len(persons_seen)} person(s) in one clause (F#133)"
                 )
 
-        return violations
+        return applicable, violations
     
-    def _check_ezafe(self, sentence: str) -> list[str]:
+    def _check_ezafe(self, sentence: str) -> tuple[bool, list[str]]:
         """Check for ezafe (ی/یی) issues in noun phrases.
         
         Rules enforced:
         - F#165: After consonant-final noun, ezafe is ی; after vowel-final, یی.
         - F#10/R4: Demonstrative (ئەم/ئەو) cannot co-occur with ەکە/ێک.
         - Missing ezafe between noun and attributive adjective is an error.
+
+        Applicable when a demonstrative NP is present or a word carries an
+        ezafe-ی before a modifier.
         """
         violations = []
+        applicable = False
         words = self._analyzer.tokenize(sentence)
         
         # Check demonstrative + definiteness co-occurrence (F#10, Rule R4)
@@ -368,6 +337,7 @@ class AgreementChecker:
         for i, word in enumerate(words):
             if word in demonstratives:
                 in_dem_np = True
+                applicable = True
                 dem_word = word
                 dem_words_seen = 0
                 continue
@@ -411,14 +381,15 @@ class AgreementChecker:
                 continue
             final_char = base[-1]
             if final_char in _vowels and not word.endswith("یی"):
+                applicable = True
                 violations.append(
                     f"Ezafe allomorph: vowel-final '{base}' should take یی "
                     f"not single ی (F#165)"
                 )
         
-        return violations
+        return applicable, violations
     
-    def _check_tense_consistency(self, sentence: str) -> list[str]:
+    def _check_tense_consistency(self, sentence: str) -> tuple[bool, list[str]]:
         """Check tense marker consistency within a clause.
         
         Rules enforced:
@@ -429,6 +400,7 @@ class AgreementChecker:
           present stem) within a single clause flag inconsistency.
         """
         violations = []
+        applicable = False
         words = self._analyzer.tokenize(sentence)
         
         # Split on و to find coordinated clauses, but only when و
@@ -468,6 +440,7 @@ class AgreementChecker:
             t1 = clause_tenses[i]
             t2 = clause_tenses[i + 1]
             if t1 and t2:
+                applicable = True
                 # Non-past followed by past is blocked
                 if t1 == "present" and t2 == "past":
                     violations.append(
@@ -475,7 +448,7 @@ class AgreementChecker:
                         f"past clause in و-coordination (F#254)"
                     )
         
-        return violations
+        return applicable, violations
     
     @staticmethod
     def _detect_clause_tense(words: list[str]) -> Optional[str]:
@@ -510,21 +483,30 @@ class AgreementChecker:
                 return "past"
         return None
 
-    def _check_object_verb_ergative(self, sentence: str) -> list[str]:
-        """Check object-verb agreement in past transitive clauses (Law 2).
+    def _check_object_verb_ergative(self, sentence: str) -> tuple[bool, list[str]]:
+        """Check agent-clitic agreement in past transitive (ergative) clauses.
 
-        In Sorani Kurdish, past transitive verbs agree with the object in
-        person and number — not the subject. This is the ergative split
-        described by Slevanayi (2001, pp. 60-61, 89) and implemented in
-        the builder as Step 3 (VS) and Step 7 (VO).
+        Slevanayi (2001, pp. 60-61, 89) describes the split: in a past
+        transitive clause the verb's *object* agreement is its inflectional
+        ending (3sg = zero on a bare stem), while the agent is marked by a
+        Set 1 enclitic. On a bare verb such as ``نووسیم`` the only overt
+        person marker is that agent clitic ``م`` — not object agreement.
 
-        Checks: if a past transitive verb carries a Set 2 suffix whose
-        person/number conflicts with a nearby definite object NP, flag it.
+        So this check verifies the *agent* relation: when an overt subject
+        pronoun (the agent) sits in the same clause as a past transitive
+        verb carrying a Set 1 clitic, their person/number must match.
+        Comparing the clitic against the object would conflate the agent
+        marker with object agreement and falsely flag grammatical clauses
+        (e.g. 1sg agent + 3sg object ``نامەکەم نووسی``); the check therefore
+        scans backward to the clause boundary for the subject pronoun.
 
-        EVAL-5 fix: scans backward to clause boundary instead of a fixed
-        6-word window, catching distant object-verb pairs within a clause.
+        The verb's object-agreement ending is not separable from the bare
+        stem by surface heuristics, so object agreement itself is not scored
+        here; it is the agent clitic that the generator perturbs and that
+        this check validates.
         """
         violations = []
+        applicable = False
         words = self._analyzer.tokenize(sentence)
         clause_bounds = set(self._clause_boundary_indices(words))
 
@@ -535,40 +517,32 @@ class AgreementChecker:
             if not _is_transitive_past(word):
                 continue
 
-            # Extract verb person/number from suffix
+            # The overt enclitic on a bare ergative verb is the Set 1 agent
+            # clitic; extract its person/number.
             verb_pn = self._verb_ending_to_pn(word)
             if verb_pn is None:
                 continue
-            verb_person, verb_number = verb_pn
+            agent_person, agent_number = verb_pn
 
-            # Scan backward to clause boundary for the nearest object
+            # Scan backward to clause boundary for the overt subject (agent).
             for j in range(i - 1, -1, -1):
                 if j in clause_bounds:
                     break
-                obj = words[j]
-                obj_person: str | None = None
-                obj_number: str | None = None
-
-                if obj in _PRONOUN_AGREEMENT:
-                    obj_person, obj_number = _PRONOUN_AGREEMENT[obj]
-                elif obj.endswith("ەکان") or obj.endswith("یەکان"):
-                    obj_person, obj_number = "3", "pl"
-                elif obj.endswith("ەکە") or obj.endswith("یەکە"):
-                    obj_person, obj_number = "3", "sg"
-                else:
+                subj = words[j]
+                if subj not in _PRONOUN_AGREEMENT:
                     continue
-
-                if obj_person and (
-                    obj_person != verb_person or obj_number != verb_number
-                ):
+                subj_person, subj_number = _PRONOUN_AGREEMENT[subj]
+                applicable = True
+                if subj_person != agent_person or subj_number != agent_number:
                     violations.append(
-                        f"Ergative mismatch (Law 2): object '{obj}' "
-                        f"({obj_person}{obj_number}) with past transitive "
-                        f"verb '{word}' ({verb_person}{verb_number})"
+                        f"Ergative agent mismatch (Law 2 clause): subject "
+                        f"'{subj}' ({subj_person}{subj_number}) with Set 1 "
+                        f"agent clitic on '{word}' "
+                        f"({agent_person}{agent_number})"
                     )
-                break  # only check nearest object
+                break  # only the nearest overt subject is the agent
 
-        return violations
+        return applicable, violations
 
     # ── PIPE-9: Additional checks for uncovered error generators ──
 
@@ -581,18 +555,22 @@ class AgreementChecker:
         ("ع", "ئ"),
     ]
 
-    def _check_orthography(self, sentence: str) -> list[str]:
+    def _check_orthography(self, sentence: str) -> tuple[bool, list[str]]:
         """Flag words containing likely orthographic confusions.
 
         Uses the lexicon (when available) to check whether a word with a
         known confusion character is misspelled. This catches cases where
         the model preserved a misspelling instead of correcting it.
+
+        Applicable when a confusion character appears in some word.
         """
         violations = []
+        applicable = False
         words = self._analyzer.tokenize(sentence)
         for word in words:
             for a, b in self._ORTHO_CONFUSIONS:
                 if a in word:
+                    applicable = True
                     alt = word.replace(a, b, 1)
                     if (self._analyzer._lexicon
                             and hasattr(self._analyzer._lexicon, 'is_correct')
@@ -603,23 +581,25 @@ class AgreementChecker:
                             f"({a}→{b})"
                         )
                         break
-        return violations
+        return applicable, violations
 
     _NEG_MARKERS = {"نە", "نا", "هیچ", "هەرگیز"}
 
-    def _check_negative_concord(self, sentence: str) -> list[str]:
+    def _check_negative_concord(self, sentence: str) -> tuple[bool, list[str]]:
         """Check negative concord: هیچ/هەرگیز require نە/نا on the verb.
 
         In Sorani Kurdish, negative polarity items like هیچ (nothing) and
         هەرگیز (never) require a negated verb in the same clause. A
         sentence like *هیچ دەزانم is ungrammatical.
+
+        Applicable when an NPI is present.
         """
         violations = []
         words = self._analyzer.tokenize(sentence)
         npi_words = {"هیچ", "هەرگیز", "هیچکەس", "هیچکام"}
         has_npi = any(w in npi_words for w in words)
         if not has_npi:
-            return violations
+            return False, violations
         has_neg_verb = any(
             w.startswith("نا") or w.startswith("نە") for w in words
         )
@@ -628,23 +608,27 @@ class AgreementChecker:
             violations.append(
                 f"Negative concord: NPI {npis} without negated verb"
             )
-        return violations
+        return True, violations
 
-    def _check_conditional_agreement(self, sentence: str) -> list[str]:
+    def _check_conditional_agreement(self, sentence: str) -> tuple[bool, list[str]]:
         """Check conditional clause tense constraints.
 
         ئەگەر (if) clauses in Sorani typically take subjunctive or past
         tense in the protasis, not indicative present with دە-prefix.
         A sentence like *ئەگەر دەڕۆم is non-standard; the correct form
         uses the bare subjunctive (ئەگەر بچم).
+
+        Applicable when a conditional marker is present.
         """
         violations = []
+        applicable = False
         words = self._analyzer.tokenize(sentence)
         cond_markers = {"ئەگەر", "ئەگەری"}
         in_cond = False
         for i, word in enumerate(words):
             if word in cond_markers:
                 in_cond = True
+                applicable = True
                 continue
             if in_cond:
                 # End condition at clause boundaries
@@ -658,7 +642,7 @@ class AgreementChecker:
                         f"ئەگەر-clause; expected subjunctive (ب-prefix)"
                     )
                     in_cond = False
-        return violations
+        return applicable, violations
 
     # ── CRIT-4: Four additional agreement checks ──
 
@@ -666,7 +650,7 @@ class AgreementChecker:
     # (Slevanayi 2001, pp. 87-88; Maaruf 2010, p. 139)
     _QUANTIFIERS_PLURAL = {"هەر", "هیچ", "هەموو", "چەند", "هەندێک"}
 
-    def _check_quantifier_noun(self, sentence: str) -> list[str]:
+    def _check_quantifier_noun(self, sentence: str) -> tuple[bool, list[str]]:
         """Check quantifier–verb number agreement.
 
         In Sorani Kurdish, certain quantifiers (هەموو, هەر, هیچ, چەند,
@@ -675,8 +659,11 @@ class AgreementChecker:
         هەموو منداڵ دەچن (3pl).
 
         Source: Slevanayi (2001), pp. 87-88; Maaruf (2010), p. 139.
+
+        Applicable when a governing quantifier is paired with a verb.
         """
         violations = []
+        applicable = False
         words = self._analyzer.tokenize(sentence)
         clause_bounds = set(self._clause_boundary_indices(words))
 
@@ -695,6 +682,7 @@ class AgreementChecker:
                 verb_pn = self._verb_ending_to_pn(candidate)
                 if verb_pn is None:
                     break
+                applicable = True
                 _, verb_number = verb_pn
                 if verb_number == "sg":
                     violations.append(
@@ -702,12 +690,12 @@ class AgreementChecker:
                         f"verb, but '{candidate}' is singular"
                     )
                 break
-        return violations
+        return applicable, violations
 
     # Sorani relative clause markers
     _REL_MARKERS = {"کە", "ئەوەی"}
 
-    def _check_relative_clause(self, sentence: str) -> list[str]:
+    def _check_relative_clause(self, sentence: str) -> tuple[bool, list[str]]:
         """Check antecedent–verb agreement in relative clauses.
 
         When a relative clause (introduced by کە or ئەوەی) modifies an
@@ -717,8 +705,12 @@ class AgreementChecker:
 
         Heuristic: if the word before کە is a pronoun with known person/
         number, the first verb after کە should agree with it.
+
+        Applicable when a relative marker has a determinable antecedent
+        and an inner verb.
         """
         violations = []
+        applicable = False
         words = self._analyzer.tokenize(sentence)
 
         for i, word in enumerate(words):
@@ -751,6 +743,7 @@ class AgreementChecker:
                 verb_pn = self._verb_ending_to_pn(candidate)
                 if verb_pn is None:
                     break
+                applicable = True
                 verb_person, verb_number = verb_pn
                 if ant_number and verb_number != ant_number:
                     violations.append(
@@ -765,12 +758,12 @@ class AgreementChecker:
                         f"({verb_person}{verb_number}) in کە-clause"
                     )
                 break
-        return violations
+        return applicable, violations
 
     # Vocative markers and imperative detection
     _VOCATIVE_MARKERS = {"ئەی", "یا"}
 
-    def _check_vocative_imperative(self, sentence: str) -> list[str]:
+    def _check_vocative_imperative(self, sentence: str) -> tuple[bool, list[str]]:
         """Check vocative marker–imperative verb number agreement.
 
         A sentence beginning with a vocative marker (ئەی, یا) followed
@@ -778,14 +771,18 @@ class AgreementChecker:
         plural addressee (or plural noun), 2pl imperative.
 
         Imperative verbs in Sorani start with ب- (or بی-).
+
+        Applicable when a vocative-led clause has a determinable addressee
+        number and an imperative verb.
         """
         violations = []
+        applicable = False
         words = self._analyzer.tokenize(sentence)
         if not words:
-            return violations
+            return False, violations
 
         if words[0] not in self._VOCATIVE_MARKERS:
-            return violations
+            return False, violations
 
         # Determine addressee number from the noun after vocative marker
         addressee_number: str | None = None
@@ -802,11 +799,12 @@ class AgreementChecker:
                 break
 
         if addressee_number is None:
-            return violations
+            return False, violations
 
         # Find imperative verb (ب-prefix)
         for word in words:
             if word.startswith("ب") and len(word) > 2 and not _is_present_verb(word):
+                applicable = True
                 # Imperative 2sg typically ends without ن; 2pl ends with ن
                 if addressee_number == "pl" and not word.endswith("ن"):
                     violations.append(
@@ -819,18 +817,21 @@ class AgreementChecker:
                         f"but imperative '{word}' is plural"
                     )
                 break
-        return violations
+        return applicable, violations
 
     # Temporal adverbs with tense constraints
     _PAST_ADVERBS = {"دوێنێ", "پار", "پێشتر", "بەرلە", "پارێ"}
     _PRESENT_ADVERBS = {"ئێستا", "ئەمڕۆ", "دواتر", "هەمیشە"}
 
-    def _check_adverb_verb_tense(self, sentence: str) -> list[str]:
+    def _check_adverb_verb_tense(self, sentence: str) -> tuple[bool, list[str]]:
         """Check temporal adverb–verb tense consistency.
 
         Temporal adverbs constrain the tense of the clause verb. A past
         adverb (دوێنێ = yesterday, پار = last year) with a present-tense
         verb is inconsistent, and vice versa.
+
+        Applicable when a temporal adverb co-occurs with a detectable
+        clause tense.
         """
         violations = []
         words = self._analyzer.tokenize(sentence)
@@ -838,11 +839,11 @@ class AgreementChecker:
         has_present_adv = any(w in self._PRESENT_ADVERBS for w in words)
 
         if not (has_past_adv or has_present_adv):
-            return violations
+            return False, violations
 
         clause_tense = self._detect_clause_tense(words)
         if clause_tense is None:
-            return violations
+            return False, violations
 
         if has_past_adv and clause_tense == "present":
             adverbs = [w for w in words if w in self._PAST_ADVERBS]
@@ -856,17 +857,19 @@ class AgreementChecker:
                 f"Adverb-tense mismatch: present adverb(s) {adverbs} "
                 f"with past-tense verb"
             )
-        return violations
+        return True, violations
 
     # Person hierarchy for compound subjects: 1st > 2nd > 3rd
     _PERSON_HIERARCHY = {"1": 3, "2": 2, "3": 1}
 
-    def _check_compound_subject(self, sentence: str) -> list[str]:
+    def _check_compound_subject(self, sentence: str) -> tuple[bool, list[str]]:
         """Check compound subject person resolution (Slevanayi 2001, p. 89).
 
         When two subjects are coordinated with و, the verb should agree with
         the highest person in the hierarchy: 1st > 2nd > 3rd.
         Example: من و تۆ دەچین (I and you go-1pl), NOT *من و تۆ دەچن (go-3pl).
+
+        Applicable when at least two pronouns are coordinated with و.
         """
         violations = []
         words = self._analyzer.tokenize(sentence)
@@ -878,7 +881,7 @@ class AgreementChecker:
                 pronouns_found.append((i, word))
 
         if len(pronouns_found) < 2:
-            return violations
+            return False, violations
 
         # Check if pronouns are coordinated with و
         coordinated_pronouns = []
@@ -891,8 +894,9 @@ class AgreementChecker:
                 coordinated_pronouns.append(pronouns_found[idx + 1][1])
 
         if len(coordinated_pronouns) < 2:
-            return violations
+            return False, violations
 
+        applicable = True
         # Determine expected person: highest in hierarchy
         persons = [_PRONOUN_AGREEMENT[p][0] for p in coordinated_pronouns]
         expected_person = max(persons, key=lambda p: self._PERSON_HIERARCHY.get(p, 0))
@@ -910,21 +914,24 @@ class AgreementChecker:
                             f"expect person={expected_person} but verb "
                             f"'{word}' has person={person}"
                         )
-                    return violations
+                    return applicable, violations
 
-        return violations
+        return applicable, violations
 
     # Common bare nouns (non-pronominal) — treated as 3sg for agreement
     _BARE_NOUN_INDICATORS = {"پیاو", "ژن", "منداڵ", "مامۆستا", "قوتابی", "کچ", "کوڕ"}
 
-    def _check_bare_noun_agreement(self, sentence: str) -> list[str]:
+    def _check_bare_noun_agreement(self, sentence: str) -> tuple[bool, list[str]]:
         """Check bare noun person-only agreement (Slevanayi 2001, p. 60).
 
         Bare nouns (without demonstrative/definite marker) agree with the
         verb in person only (3sg) without number constraint. A 1st or 2nd
         person verb after a bare noun subject is a violation.
+
+        Applicable when a bare noun indicator is paired with a verb.
         """
         violations = []
+        applicable = False
         words = self._analyzer.tokenize(sentence)
 
         for i, word in enumerate(words):
@@ -940,14 +947,15 @@ class AgreementChecker:
                     break
                 for ending, (person, _number) in _PRESENT_ENDINGS.items():
                     if v.endswith(ending) and any(v.startswith(p) for p in _PRESENT_PREFIXES):
+                        applicable = True
                         if person in ("1", "2"):
                             violations.append(
                                 f"Bare noun '{word}' expects 3rd person verb "
                                 f"but '{v}' has person={person}"
                             )
-                        return violations
+                        return applicable, violations
 
-        return violations
+        return applicable, violations
 
 
 def evaluate_agreement_accuracy(
@@ -955,24 +963,42 @@ def evaluate_agreement_accuracy(
     checker: Optional[AgreementChecker] = None,
 ) -> dict:
     """Compute agreement accuracy over a corpus.
-    
+
+    Reports two denominators. ``accuracy`` keeps the legacy sentence-level
+    pass rate (fraction of sentences with no violation), which is inflated
+    on corpora full of sentences where no check applies. ``accuracy_applicable``
+    restricts to sentences with at least one applicable check — the
+    denominator the metric was meant to use.
+
     Returns:
-        Dict with 'accuracy', 'total_sentences', 'correct_sentences', 'details'.
+        Dict with accuracy fields, totals, and average check counts.
     """
     if checker is None:
         checker = AgreementChecker()
-    
+
     results = [checker.check_sentence(s) for s in sentences]
-    
+
     correct = sum(1 for r in results if r.is_correct)
     total = len(results)
-    
+
+    applicable_results = [r for r in results if r.is_applicable]
+    n_applicable = len(applicable_results)
+    correct_applicable = sum(1 for r in applicable_results if r.is_correct)
+
     return {
         "accuracy": correct / total if total > 0 else 0.0,
+        "accuracy_applicable": (
+            correct_applicable / n_applicable if n_applicable > 0 else 0.0
+        ),
         "total_sentences": total,
         "correct_sentences": correct,
+        "applicable_sentences": n_applicable,
+        "correct_applicable_sentences": correct_applicable,
         "avg_checks_passed": sum(r.checks_passed for r in results) / total if total > 0 else 0,
         "avg_checks_total": sum(r.checks_total for r in results) / total if total > 0 else 0,
+        "avg_checks_applicable": (
+            sum(r.checks_applicable for r in results) / total if total > 0 else 0
+        ),
     }
 
 
@@ -1031,7 +1057,11 @@ def evaluate_agreement_by_check(
     for sent in sentences:
         for (label, _law), method_name in zip(_CHECK_LABELS, check_methods):
             method = getattr(checker, method_name)
-            violations = method(sent)
+            applicable, violations = method(sent)
+            # Only count a check toward its denominator when it applied —
+            # inapplicable checks are not silent passes.
+            if not applicable:
+                continue
             per_check[label]["total"] += 1
             if not violations:
                 per_check[label]["correct"] += 1

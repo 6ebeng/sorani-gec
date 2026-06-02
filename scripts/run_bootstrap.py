@@ -21,8 +21,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.evaluation.bootstrap import paired_bootstrap_f05
 
-PHASE_D = "results/phase_d"
-BASELINES = "results/baselines"
+PHASE_D = os.environ.get("PHASE_D_DIR", "results/phase_d")
+BASELINES = os.environ.get("BASELINES_DIR", "results/baselines")
 N_RESAMPLES = 2000
 SEED = 42
 

@@ -24,7 +24,7 @@ import random
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-from .f05_scorer import compute_f05, sentence_level_edits
+from .f05_scorer import compute_f05, sentence_level_edits, span_based_edits
 
 
 @dataclass
@@ -85,6 +85,38 @@ def _per_sentence_counts(
     return out
 
 
+def _per_sentence_counts_span(
+    sources: list[str],
+    hypotheses: list[str],
+    references: list[str],
+    tokenize: Optional[Callable[[str], list[str]]] = None,
+) -> list[SentenceCounts]:
+    """Span-aware per-sentence (tp, fp, fn) counts.
+
+    Mirrors the position-aware matching in ``evaluate_corpus_span``: edits are
+    keyed by (src_start, src_end, tgt_text), so the same correction applied at
+    the wrong position is not a true positive. Summing these counts reproduces
+    the span-aware corpus F0.5.
+    """
+    _tok = tokenize or str.split
+    out: list[SentenceCounts] = []
+    for src, hyp, ref in zip(sources, hypotheses, references):
+        hyp_edits = span_based_edits(src, hyp, tokenize=_tok)
+        ref_edits = span_based_edits(src, ref, tokenize=_tok)
+        hyp_keys = [(e.src_start, e.src_end, e.tgt_text) for e in hyp_edits]
+        ref_keys = [(e.src_start, e.src_end, e.tgt_text) for e in ref_edits]
+        ref_remaining = list(ref_keys)
+        tp = 0
+        for hk in hyp_keys:
+            if hk in ref_remaining:
+                tp += 1
+                ref_remaining.remove(hk)
+        fp = len(hyp_keys) - tp
+        fn = len(ref_remaining)
+        out.append(SentenceCounts(tp=tp, fp=fp, fn=fn))
+    return out
+
+
 def _corpus_f05(counts: list[SentenceCounts], indices: list[int]) -> float:
     tp = fp = fn = 0
     for i in indices:
@@ -105,6 +137,7 @@ def paired_bootstrap_f05(
     n_resamples: int = 1000,
     seed: int = 42,
     tokenize: Optional[Callable[[str], list[str]]] = None,
+    scoring: str = "word",
 ) -> BootstrapResult:
     """Paired sentence-level bootstrap comparing system A against system B.
 
@@ -116,6 +149,8 @@ def paired_bootstrap_f05(
         n_resamples: number of bootstrap draws.
         seed: RNG seed for reproducibility.
         tokenize: optional tokenizer; defaults to ``str.split``.
+        scoring: "word" (position-agnostic, legacy) or "span" (position-aware,
+            matches evaluate_corpus_span — the headline scorer).
 
     Returns:
         BootstrapResult with point estimates, the 95% CI of the delta, and a
@@ -125,8 +160,15 @@ def paired_bootstrap_f05(
     assert len(hypotheses_a) == len(hypotheses_b) == len(references) == n, \
         "All inputs must have the same length"
 
-    counts_a = _per_sentence_counts(sources, hypotheses_a, references, tokenize)
-    counts_b = _per_sentence_counts(sources, hypotheses_b, references, tokenize)
+    if scoring == "span":
+        counts_fn = _per_sentence_counts_span
+    elif scoring == "word":
+        counts_fn = _per_sentence_counts
+    else:
+        raise ValueError(f"scoring must be 'word' or 'span', got {scoring!r}")
+
+    counts_a = counts_fn(sources, hypotheses_a, references, tokenize)
+    counts_b = counts_fn(sources, hypotheses_b, references, tokenize)
 
     all_idx = list(range(n))
     f05_a = _corpus_f05(counts_a, all_idx)

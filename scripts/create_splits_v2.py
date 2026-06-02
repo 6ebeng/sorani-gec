@@ -138,6 +138,42 @@ def per_type_counts(records: list[dict]) -> dict[str, int]:
 
 
 # ---------------------------------------------------------------------------
+# Provenance + residual-overlap helpers (audit rows 2.3/2.4)
+# ---------------------------------------------------------------------------
+
+def load_provenance(path: Path) -> dict[str, tuple[str, str]]:
+    """Map clean sentence -> (source_id, category) from synthetic annotations."""
+    prov: dict[str, tuple[str, str]] = {}
+    if not path.exists():
+        logger.warning("Provenance file %s not found; records left un-enriched.", path)
+        return prov
+    for r in load_split(path):
+        prov[r.get("original", "").strip()] = (
+            str(r.get("source_id", "")), r.get("category", "")
+        )
+    return prov
+
+
+def enrich_provenance(records: list[dict], prov: dict[str, tuple[str, str]]) -> int:
+    """Attach source_id/category to each record in place. Returns match count."""
+    matched = 0
+    for r in records:
+        key = r.get("original", "").strip()
+        if key in prov:
+            sid, cat = prov[key]
+            r["source_id"] = sid
+            r["category"] = cat
+            matched += 1
+    return matched
+
+
+def source_id_overlap(anchor: list[dict], candidates: list[dict]) -> int:
+    """Count candidate records whose source_id also appears in anchor."""
+    anchor_ids = {r.get("source_id") for r in anchor if r.get("source_id")}
+    return sum(1 for r in candidates if r.get("source_id") in anchor_ids)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -156,6 +192,16 @@ def main() -> None:
     parser.add_argument(
         "--drop-trivial", dest="keep_trivial", action="store_false",
         help="Drop trivial (source==target) pairs — use for edited-subset-only splits"
+    )
+    parser.add_argument(
+        "--dedup-dev-test", action="store_true", default=False,
+        help="Also remove test pairs that are near-duplicates of dev (L6-02); "
+             "off by default so splits_v2 reproduces bit-for-bit."
+    )
+    parser.add_argument(
+        "--provenance", default=None,
+        help="Path to synthetic annotations jsonl; when given, joins source_id/category "
+             "onto each record and reports residual cross-split source overlap."
     )
     args = parser.parse_args()
 
@@ -219,6 +265,39 @@ def main() -> None:
     logger.info("Test: %d → %d  (%d removed as near-dup of train)", len(test_se), len(test_dedup), test_removed)
 
     # ------------------------------------------------------------------
+    # 3b. L6-02: optional dev↔test near-dup dedup (off by default)
+    # ------------------------------------------------------------------
+    dev_test_removed = 0
+    if args.dedup_dev_test:
+        logger.info("L6-02: dev↔test Jaccard-%.2f dedup (removing test near-dups of dev) …", threshold)
+        test_dedup, dev_test_removed = cross_split_dedup(dev_dedup, test_dedup, threshold)
+        logger.info("Test: → %d  (%d removed as near-dup of dev)", len(test_dedup), dev_test_removed)
+
+    # ------------------------------------------------------------------
+    # 3c. Optional provenance join + residual cross-split overlap (rows 2.3/2.4)
+    # ------------------------------------------------------------------
+    residual = {}
+    if args.provenance:
+        prov = load_provenance(Path(args.provenance))
+        m_tr = enrich_provenance(train_se,   prov)
+        m_dv = enrich_provenance(dev_dedup,  prov)
+        m_te = enrich_provenance(test_dedup, prov)
+        residual = {
+            "provenance_matched": {"train": m_tr, "dev": m_dv, "test": m_te},
+            "test_source_in_train": source_id_overlap(train_se, test_dedup),
+            "dev_source_in_train":  source_id_overlap(train_se, dev_dedup),
+            "dev_source_in_test":   source_id_overlap(test_dedup, dev_dedup),
+        }
+        logger.info(
+            "Provenance matched train=%d dev=%d test=%d; residual source overlap "
+            "test∈train=%d dev∈train=%d dev∈test=%d",
+            m_tr, m_dv, m_te,
+            residual["test_source_in_train"],
+            residual["dev_source_in_train"],
+            residual["dev_source_in_test"],
+        )
+
+    # ------------------------------------------------------------------
     # 4. Per-type statistics (for R10 gap analysis)
     # ------------------------------------------------------------------
     test_type_counts = per_type_counts(test_dedup)
@@ -256,6 +335,9 @@ def main() -> None:
         "splits": {},
         "per_type_test": test_type_counts,
         "under_20_error_types": under_20,
+        "dev_test_dedup_applied": bool(args.dedup_dev_test),
+        "dev_test_near_dups_removed": dev_test_removed,
+        "residual_overlap": residual,
     }
 
     for name in ("train", "dev", "test"):

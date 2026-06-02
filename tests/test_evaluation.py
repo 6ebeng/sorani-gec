@@ -474,7 +474,11 @@ def test_evaluate_agreement_by_check_basic():
     for label, info in result["per_check"].items():
         assert "accuracy" in info
         assert "total" in info
-        assert info["total"] == 2  # two sentences
+        # Denominator counts only sentences the check applies to, so it
+        # ranges 0..2 — inapplicable checks are not silent passes.
+        assert 0 <= info["total"] <= 2
+    # Both sentences are pronoun+present-verb, so subject-verb applies twice.
+    assert result["per_check"]["subject_verb"]["total"] == 2
     print(f"  Per-check breakdown: {len(result['per_check'])} checks")
 
 

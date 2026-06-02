@@ -118,11 +118,14 @@ def evaluate_corpus(
     references: list[str],  # gold clean text
     tokenize: Optional[Callable[[str], list[str]]] = None,
 ) -> GECMetrics:
-    """Evaluate GEC performance on a corpus.
-    
-    Uses simple word-level edit comparison.
-    For rigorous evaluation, use ERRANT or M2Scorer.
-    
+    """Evaluate GEC performance on a corpus (word-level, position-agnostic).
+
+    DEPRECATED as a headline scorer. Edit matching here is position-agnostic
+    exact-tuple equality, so a correct fix applied at the wrong location still
+    counts as a true positive and a near-miss morphological fix is scored as a
+    full miss. Use ``evaluate_corpus_span`` for reported results; this function
+    is retained only for backward comparison with the earlier campaign.
+
     Args:
         sources: Original corrupted sentences
         hypotheses: Model-corrected sentences
