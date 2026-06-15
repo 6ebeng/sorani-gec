@@ -65,7 +65,7 @@ KURMANJI_LATIN_SENTENCES = [
 # ============================================================================
 
 class TestSoraniDetection:
-    """Verify genuine Sorani Kurdish text is correctly identified."""
+    """Verify genuine Central Kurdish (Sorani) text is correctly identified."""
 
     def setup_method(self):
         self.detector = SoraniDetector()

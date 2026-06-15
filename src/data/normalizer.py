@@ -1,7 +1,7 @@
 """
-Sorani Kurdish Text Normalizer
+Central Kurdish (Sorani) Text Normalizer
 
-Handles Arabic-script normalization for Sorani Kurdish text:
+Handles Arabic-script normalization for Central Kurdish (Sorani) text:
 - Character normalization (e.g., different forms of ی, ک, ە)
 - Whitespace normalization
 - Zero-width character handling
@@ -15,10 +15,10 @@ from typing import Optional
 
 
 # ============================================================================
-# Sorani Kurdish Character Mappings
+# Central Kurdish (Sorani) Character Mappings
 # ============================================================================
 
-# Standard Sorani Kurdish alphabet (Arabic script):
+# Standard Central Kurdish (Sorani) alphabet (Arabic script):
 # ئ ا ب پ ت ج چ ح خ د ر ڕ ز ژ س ش ع غ ف ڤ ق ک گ ل ڵ م ن و ۆ ھ ە ی ێ
 
 # Common normalization mappings
@@ -45,7 +45,7 @@ CHAR_NORMALIZATIONS = {
     # Heh (U+0647) handled separately in normalize() — context-dependent.
     # Word-initial ه is consonant /h/; non-initial ه is vowel ə → ە (U+06D5).
     
-    # Western digits → Extended Arabic-Indic digits (Sorani Kurdish uses Extended form U+06F0–U+06F9)
+    # Western digits → Extended Arabic-Indic digits (Central Kurdish (Sorani) uses Extended form U+06F0–U+06F9)
     "0": "\u06F0", "1": "\u06F1", "2": "\u06F2", "3": "\u06F3",
     "4": "\u06F4", "5": "\u06F5", "6": "\u06F6", "7": "\u06F7",
     "8": "\u06F8", "9": "\u06F9",
@@ -138,7 +138,7 @@ _ELLIPSIS_NO_SPACE = re.compile(r'…(?=[\u0600-\u06FF])')
 
 
 def normalize_punctuation(text: str) -> str:
-    """Normalize punctuation spacing for Sorani Kurdish text.
+    """Normalize punctuation spacing for Central Kurdish (Sorani) text.
 
     Fixes common OCR and digitisation artefacts:
     - Latin comma (,) → Arabic comma (،)
@@ -178,7 +178,7 @@ def normalize_punctuation(text: str) -> str:
 
 
 class SoraniNormalizer:
-    """Normalize Sorani Kurdish text for consistent processing."""
+    """Normalize Central Kurdish (Sorani) text for consistent processing."""
     
     def __init__(
         self,

@@ -6,7 +6,7 @@ Early epochs train on easier (shorter) samples; later epochs include
 the full dataset.
 
 6B.8: Difficulty is measured by word count (not byte length), which
-correlates more reliably with morphological complexity in Sorani Kurdish.
+correlates more reliably with morphological complexity in Central Kurdish (Sorani).
 Byte length is misleading for Arabic-script text because multi-byte
 UTF-8 characters inflate length without increasing linguistic complexity.
 Optionally, agreement-edge density can augment the difficulty score.

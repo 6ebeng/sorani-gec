@@ -1,5 +1,5 @@
 """
-Tests for the Sorani Kurdish tokenization utilities.
+Tests for the Central Kurdish (Sorani) tokenization utilities.
 """
 
 import sys

@@ -96,7 +96,7 @@ class BaselineGEC(nn.Module):
         """Correct a single sentence.
         
         Args:
-            text: Corrupted Sorani Kurdish sentence.
+            text: Corrupted Central Kurdish (Sorani) sentence.
             num_beams: Beam search width.
             length_penalty: Exponential penalty on length (>1 = longer, <1 = shorter).
             no_repeat_ngram_size: If >0, prevents repeated n-grams of this size.

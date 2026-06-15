@@ -2,7 +2,7 @@
 Demonstrative-Preposition Contraction Error Generator
 
 Injects errors by splitting or failing to contract demonstrative+preposition
-combinations. In Sorani Kurdish, بە/لە + ئەم/ئەو obligatorily contract
+combinations. In Central Kurdish (Sorani), بە/لە + ئەم/ئەو obligatorily contract
 [F#123, Haji Marf (2014), pp. 263-264]:
 
     بە + ئەم → بەم       لە + ئەم → لەم

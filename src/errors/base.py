@@ -1,7 +1,7 @@
 """
 Base Error Generator
 
-Abstract base class for all Sorani Kurdish agreement error generators.
+Abstract base class for all Central Kurdish (Sorani) agreement error generators.
 Each generator targets a specific error type and can inject realistic
 errors into clean Sorani text.
 """
@@ -117,7 +117,7 @@ class BaseErrorGenerator(ABC):
         """Inject errors into a clean sentence.
         
         Args:
-            sentence: Clean Sorani Kurdish sentence.
+            sentence: Clean Central Kurdish (Sorani) sentence.
             skip_word_indices: Word indices (0-based) to exclude from
                 corruption.  Used by the pipeline to prevent a second
                 generator from flipping a token that was already

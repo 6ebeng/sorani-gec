@@ -1,6 +1,6 @@
 """Ingest OCR'd dissertation/book files into the training corpus.
 
-Reads every .txt file from DISS_DIR, extracts Sorani Kurdish lines,
+Reads every .txt file from DISS_DIR, extracts Central Kurdish (Sorani) lines,
 maps the filename-encoded category to a canonical label, and appends
 `category\tline` records to the pre-resegment backup so the existing
 resegment_clean_corpus.py pipeline can clean them identically to the

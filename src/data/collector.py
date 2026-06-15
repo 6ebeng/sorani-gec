@@ -1,7 +1,7 @@
 """
-Sorani Kurdish Corpus Collector
+Central Kurdish (Sorani) Corpus Collector
 
-Utilities for collecting and preparing Sorani Kurdish text from various sources:
+Utilities for collecting and preparing Central Kurdish (Sorani) text from various sources:
 - Kurdish Wikipedia dumps
 - Kurdish-BLARK resources
 - Academic theses (with permission)
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class CorpusCollector:
-    """Collect Sorani Kurdish text from multiple sources."""
+    """Collect Central Kurdish (Sorani) text from multiple sources."""
     
     def __init__(self, output_dir: str = "data/raw", rate_limit: float = 1.0):
         self.output_dir = Path(output_dir)
@@ -89,7 +89,7 @@ class CorpusCollector:
         return requests.get(url, params=params, timeout=30)  # final attempt
     
     def collect_wikipedia(self, dump_path: Optional[str] = None, max_articles: int = 5000) -> int:
-        """Extract Sorani Kurdish text from Wikipedia.
+        """Extract Central Kurdish (Sorani) text from Wikipedia.
         
         Can use a local dump file or download articles via API.
         Returns number of sentences collected.
@@ -101,7 +101,7 @@ class CorpusCollector:
             logger.info("Processing Wikipedia dump from %s", dump_path)
             sentences = self._process_wiki_dump(dump_path)
         else:
-            logger.info("Fetching Sorani Kurdish Wikipedia articles via API")
+            logger.info("Fetching Central Kurdish (Sorani) Wikipedia articles via API")
             sentences = self._fetch_wiki_api(max_articles=max_articles)
         
         # Write sentences
@@ -116,7 +116,7 @@ class CorpusCollector:
         return len(sentences)
     
     def _fetch_wiki_api(self, max_articles: int = 5000) -> list[str]:
-        """Fetch articles from Sorani Kurdish Wikipedia (ckb.wikipedia.org)."""
+        """Fetch articles from Central Kurdish (Sorani) Wikipedia (ckb.wikipedia.org)."""
         base_url = "https://ckb.wikipedia.org/w/api.php"
         sentences = []
         
@@ -235,7 +235,7 @@ class CorpusCollector:
         """Process a downloaded Wikipedia dump file (XML or bz2-compressed XML).
 
         Parses the MediaWiki XML dump format, extracts article text, splits
-        into sentences, and filters for Sorani Kurdish content.
+        into sentences, and filters for Central Kurdish (Sorani) content.
         """
         import bz2
         import xml.etree.ElementTree as ET
@@ -450,7 +450,7 @@ class CorpusCollector:
     
     @staticmethod
     def _is_sorani(text: str) -> bool:
-        """Check if text is likely Sorani Kurdish.
+        """Check if text is likely Central Kurdish (Sorani).
 
         Legacy static method kept for backward compatibility.
         Prefer using SoraniDetector directly for richer diagnostics.

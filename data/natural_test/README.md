@@ -1,6 +1,6 @@
 # Natural Test Set — Organic Sorani Error Collection
 
-This directory holds **human-generated** Sorani Kurdish sentences with naturally
+This directory holds **human-generated** Central Kurdish (Sorani) sentences with naturally
 occurring grammatical errors, collected to complement the synthetic pipeline's
 training and dev data. The goal is a minimum of **500 sentences** with organic
 errors for final test-set evaluation.

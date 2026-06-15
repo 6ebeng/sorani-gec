@@ -1,4 +1,4 @@
-"""Data processing modules for Sorani Kurdish GEC."""
+"""Data processing modules for Central Kurdish (Sorani) GEC."""
 
 from .normalizer import SoraniNormalizer
 from .sanitizer import SoraniSanitizer

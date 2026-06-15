@@ -1,5 +1,5 @@
 """
-Corpus Sanitizer for Sorani Kurdish Text
+Corpus Sanitizer for Central Kurdish (Sorani) Text
 
 Sits between collection (01_collect_data.py) and normalization (02_normalize.py)
 to remove noise that the normalizer is not designed to handle: URLs, citation

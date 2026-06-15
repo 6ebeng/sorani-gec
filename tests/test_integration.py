@@ -4,7 +4,7 @@ Integration tests using small Wikipedia corpus texts.
 These tests exercise the full pipeline end-to-end:
   normalizer → analyzer → agreement graph → agreement checker → error pipeline
 
-Corpus sentences are drawn from Sorani Kurdish Wikipedia articles on
+Corpus sentences are drawn from Central Kurdish (Sorani) Wikipedia articles on
 Kurdistan, Hewlêr (Erbil), the Kurdish language, and Sorani grammar.
 Each sentence is real Sorani text, not synthetic.
 """
@@ -29,10 +29,10 @@ from src.evaluation.agreement_accuracy import (
 )
 
 # ============================================================================
-# Wikipedia Corpus Fixture — Real Sorani Kurdish sentences
+# Wikipedia Corpus Fixture — Real Central Kurdish (Sorani) sentences
 # ============================================================================
 
-# Source: Sorani Kurdish Wikipedia — articles on Kurdistan Region, Hewlêr,
+# Source: Central Kurdish (Sorani) Wikipedia — articles on Kurdistan Region, Hewlêr,
 # Kurdish language, and general encyclopedic topics.
 # These are grammatically correct reference sentences.
 WIKI_CORPUS = [

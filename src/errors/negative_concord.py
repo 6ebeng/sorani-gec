@@ -1,7 +1,7 @@
 """
 Negative Concord Error Generator
 
-Generates errors relating to the strict negative concord rules in Sorani Kurdish.
+Generates errors relating to the strict negative concord rules in Central Kurdish (Sorani).
 
 Targets:
   - Finding #121 (Negative Concord: هیچ/چ Require Verb Negation)

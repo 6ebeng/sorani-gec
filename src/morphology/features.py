@@ -7,7 +7,7 @@ morphological analysis output for use in model embeddings.
 
 The POS_CATEGORIES and SORANI_GENDER_CATEGORIES constants from
 constants.py (F#263, F#266; Haji Marf) define the full taxonomy of
-POS tags and gender categories for Sorani Kurdish; this module
+POS tags and gender categories for Central Kurdish (Sorani); this module
 extracts a subset of those features into numeric vectors.
 """
 

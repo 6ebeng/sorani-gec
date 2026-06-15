@@ -17,7 +17,7 @@ Provides two edit extraction modes:
 Deviation from ERRANT:
   ERRANT (Bryant et al., 2017) uses spaCy NLP models for automatic edit
   extraction and fine-grained error-type classification (M:NOUN:NUM, etc.).
-  No spaCy model exists for Sorani Kurdish (ckb), so this module relies on
+  No spaCy model exists for Central Kurdish (Sorani) (ckb), so this module relies on
   character-overlap heuristics (≥50% shared prefix/suffix) instead of lemma
   matching. Results should be compared with ERRANT numbers only qualitatively.
   When reporting results, use evaluate_corpus_span() for the closest

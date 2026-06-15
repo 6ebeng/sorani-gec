@@ -1,4 +1,4 @@
-"""Evaluation modules for Sorani Kurdish GEC."""
+"""Evaluation modules for Central Kurdish (Sorani) GEC."""
 
 from .f05_scorer import (
     GECMetrics,

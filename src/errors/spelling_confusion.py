@@ -1,7 +1,7 @@
 """
 Spelling Confusion Error Generator
 
-Simulates character-level confusion errors common in Sorani Kurdish writing.
+Simulates character-level confusion errors common in Central Kurdish (Sorani) writing.
 Distinct from orthography.py (which handles Arabic loanword phone swaps);
 this generator targets confusion between graphemes that share visual
 similarity or articulatory proximity specific to Kurdish:

@@ -1,5 +1,5 @@
 """
-Tests for the Sorani Kurdish lexicon module.
+Tests for the Central Kurdish (Sorani) lexicon module.
 """
 
 import sys

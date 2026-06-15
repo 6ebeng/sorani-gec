@@ -1,5 +1,5 @@
 """
-Tests for the Sorani Kurdish text normalizer.
+Tests for the Central Kurdish (Sorani) text normalizer.
 """
 
 import sys

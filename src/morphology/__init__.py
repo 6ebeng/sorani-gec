@@ -1,4 +1,4 @@
-"""Morphological analysis modules for Sorani Kurdish."""
+"""Morphological analysis modules for Central Kurdish (Sorani)."""
 
 from .analyzer import MorphologicalAnalyzer, MorphFeatures
 from .features import FeatureExtractor

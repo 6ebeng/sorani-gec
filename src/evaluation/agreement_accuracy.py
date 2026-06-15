@@ -1,5 +1,5 @@
 """
-Sorani Kurdish Agreement Accuracy Checker
+Central Kurdish (Sorani) Agreement Accuracy Checker
 
 Sorani-specific evaluation metric that checks whether agreement constraints
 are satisfied in the model's output. Measures the percentage of sentences
@@ -91,7 +91,7 @@ class AgreementResult:
 
 
 class AgreementChecker:
-    """Check Sorani Kurdish agreement constraints in sentences.
+    """Check Central Kurdish (Sorani) agreement constraints in sentences.
     
     Uses rule-based morphological analysis to detect:
     1. Subject-verb person/number mismatch (Law 1 — Slevanayi 2001, p. 89)
@@ -588,7 +588,7 @@ class AgreementChecker:
     def _check_negative_concord(self, sentence: str) -> tuple[bool, list[str]]:
         """Check negative concord: هیچ/هەرگیز require نە/نا on the verb.
 
-        In Sorani Kurdish, negative polarity items like هیچ (nothing) and
+        In Central Kurdish (Sorani), negative polarity items like هیچ (nothing) and
         هەرگیز (never) require a negated verb in the same clause. A
         sentence like *هیچ دەزانم is ungrammatical.
 
@@ -653,7 +653,7 @@ class AgreementChecker:
     def _check_quantifier_noun(self, sentence: str) -> tuple[bool, list[str]]:
         """Check quantifier–verb number agreement.
 
-        In Sorani Kurdish, certain quantifiers (هەموو, هەر, هیچ, چەند,
+        In Central Kurdish (Sorani), certain quantifiers (هەموو, هەر, هیچ, چەند,
         هەندێک) govern a plural verb. For example:
         هەموو منداڵ *دەچێت is wrong; the correct form is
         هەموو منداڵ دەچن (3pl).

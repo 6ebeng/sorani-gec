@@ -2,7 +2,7 @@
 Synthetic Error Generation Pipeline
 
 Orchestrates all error generators to produce a synthetic error-annotated dataset
-of (clean, corrupted) Sorani Kurdish sentence pairs with error annotations.
+of (clean, corrupted) Central Kurdish (Sorani) sentence pairs with error annotations.
 """
 
 import json

@@ -1,5 +1,5 @@
 """
-Step 1: Collect Sorani Kurdish Text Data
+Step 1: Collect Central Kurdish (Sorani) Text Data
 
 Usage:
     python scripts/01_collect_data.py [--source wikipedia|local] [--output data/raw]
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Collect Sorani Kurdish text data")
+    parser = argparse.ArgumentParser(description="Collect Central Kurdish (Sorani) text data")
     parser.add_argument("--source", choices=["local", "categorized", "ktc", "all"],
                         default="all",
                         help="Data source. Wikipedia is permanently excluded; use "

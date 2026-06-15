@@ -1,5 +1,5 @@
 """
-Data Augmentation for Sorani Kurdish GEC
+Data Augmentation for Central Kurdish (Sorani) GEC
 
 Provides augmentation strategies to expand the synthetic training corpus:
 - Synonym replacement using the morphological lexicon
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class SoraniAugmenter:
-    """Augmentation strategies for Sorani Kurdish sentence pairs."""
+    """Augmentation strategies for Central Kurdish (Sorani) sentence pairs."""
 
     def __init__(self, seed: int = 42):
         self.rng = random.Random(seed)

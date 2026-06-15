@@ -1,7 +1,7 @@
 """
 Agreement Graph Builder
 
-Constructs agreement graphs for Sorani Kurdish sentences using the two-law
+Constructs agreement graphs for Central Kurdish (Sorani) sentences using the two-law
 system from Slevanayi (2001):
   Law 1 — Subject-verb agreement (person + number)
   Law 2 — Object-verb agreement (ergative, past transitive only)
@@ -483,7 +483,7 @@ def build_agreement_graph(
     sentence: str,
     analyzer: MorphologicalAnalyzer,
 ) -> AgreementGraph:
-    """Build agreement graph for a Sorani Kurdish sentence.
+    """Build agreement graph for a Central Kurdish (Sorani) sentence.
 
     Implements the two-law agreement system from Slevanayi (2001) [F#66]:
 
@@ -1097,7 +1097,7 @@ def build_agreement_graph(
     # ------------------------------------------------------------------
     # Step 3b: Pro-drop recovery (Finding #75 — subject omission)
     # ------------------------------------------------------------------
-    # Sorani Kurdish allows pro-drop: the subject pronoun is omitted
+    # Central Kurdish (Sorani) allows pro-drop: the subject pronoun is omitted
     # when verb inflection unambiguously marks person/number.
     # Source: Slevanayi (2001), pp. 61-62 — verb agreement suffixes
     # encode the dropped subject.

@@ -2,7 +2,7 @@
 Agreement Graph Data Structures
 
 Contains the AgreementEdge dataclass and AgreementGraph class that model
-agreement dependencies in Sorani Kurdish sentences.
+agreement dependencies in Central Kurdish (Sorani) sentences.
 
 Implements Slevanayi's (2001) two-law agreement system:
   Law 1 — Subject-verb agreement (nominative-accusative alignment)

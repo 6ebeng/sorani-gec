@@ -1,7 +1,7 @@
 """Ingest KTC (Kurdish Textbooks Corpus) files into the training corpus.
 
 Reads every .txt file from data/ktc/<subject>/ subdirectories, extracts
-Sorani Kurdish lines, and appends `category\tline` records to the
+Central Kurdish (Sorani) lines, and appends `category\tline` records to the
 pre-resegment backup so resegment_clean_corpus.py can clean them.
 
 Usage (from sorani-gec root):

@@ -2,7 +2,7 @@
 Quantifier-Verb Number Agreement Error Generator
 
 Injects errors by flipping the verb from plural to singular when a
-quantifier or numeral subject is present. In Sorani Kurdish, quantifiers
+quantifier or numeral subject is present. In Central Kurdish (Sorani), quantifiers
 and numerals always force PLURAL agreement on the verb, regardless of the
 noun's surface form [F#77, Slevanayi (2001), pp. 87-88]:
 

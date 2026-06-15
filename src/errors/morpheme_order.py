@@ -1,7 +1,7 @@
 """
 Morpheme Order Error Generator
 
-Sorani Kurdish has a fixed internal ordering of derivational and inflectional
+Central Kurdish (Sorani) has a fixed internal ordering of derivational and inflectional
 morphemes.  The canonical slot order for verbs is:
 
     NEG – MOOD – STEM – VOICE – TENSE/AGR – CLITIC

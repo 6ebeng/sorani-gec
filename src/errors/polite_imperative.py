@@ -4,7 +4,7 @@ Polite Imperative Error Generator
 Generates errors by dropping or swapping obligatory preparatory phrases
 (politeness markers) in polite imperative constructions.
 
-In Sorani Kurdish, polite imperatives REQUIRE a preparatory phrase such as
+In Central Kurdish (Sorani), polite imperatives REQUIRE a preparatory phrase such as
 تکایە ('please'), فەرموو/فەرمون ('go ahead'), بێ زەحمەت ('without trouble'),
 ببوورە/ببوورن ('excuse me/us'), or بەڕێزتان ('with your respect').
 Dropping the marker turns a polite request into a blunt command — a

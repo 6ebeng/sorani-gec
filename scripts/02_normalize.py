@@ -66,7 +66,7 @@ _RESIDUAL_MARKER_RE = re.compile(
 )
 
 # Arabic tashkeel (vowel diacritics): fatḥa, ḍamma, kasra, shadda, sukūn, tanwīn
-# Sorani Kurdish does not use these — their presence signals Classical Arabic /
+# Central Kurdish (Sorani) does not use these — their presence signals Classical Arabic /
 # Quranic text that is not natural Sorani prose.
 _ARABIC_TASHKEEL_RE = re.compile(r'[\u064B-\u0652]')
 _MIN_TASHKEEL_COUNT = 3  # threshold: 3+ diacritics → Arabic text
@@ -93,7 +93,7 @@ _SLASH_DELIMITER_RE = re.compile(r'/[^/\s]{2,}[^/]*/')
 _NESTED_REF_RE = re.compile(r'\([^)]*\([^)]*\)\s*\)')
 
 # Single Latin letter (any Latin char in sentence: "b", "d.c", "7A" etc.)
-# Sorani Kurdish uses Arabic script exclusively; Latin chars signal
+# Central Kurdish (Sorani) uses Arabic script exclusively; Latin chars signal
 # technical notation, formulas, or untranslated content.
 _SINGLE_LATIN_RE = re.compile(r'[a-zA-Z]')
 
@@ -223,13 +223,13 @@ def passes_quality_gate(sentence: str, strict_sorani: bool = False) -> tuple[boo
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Normalize Sorani Kurdish text")
+    parser = argparse.ArgumentParser(description="Normalize Central Kurdish (Sorani) text")
     parser.add_argument("--input", default="data/raw")
     parser.add_argument("--output", default="data/clean")
     parser.add_argument("--remove-diacritics", dest="remove_diacritics",
                         action=argparse.BooleanOptionalAction, default=True,
                         help="Strip Arabic harakat (FATHA/KASRA/SHADDA/SUKUN/…) from text. "
-                             "Default on — Sorani Kurdish does not use vocalisation marks; "
+                             "Default on — Central Kurdish (Sorani) does not use vocalisation marks; "
                              "any harakat in the input are Arabic-citation noise.")
     parser.add_argument("--strict-sorani", action="store_true",
                         help="Reject sentences that contain no Sorani-distinctive letters "

@@ -79,7 +79,7 @@ def load_model(model_path: str, morphaware: bool, backbone: str, max_length: int
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Sorani Kurdish GEC — command-line inference",
+        description="Central Kurdish (Sorani) GEC — command-line inference",
     )
     parser.add_argument("--model", required=True,
                         help="Path to model checkpoint (.pt)")

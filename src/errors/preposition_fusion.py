@@ -2,7 +2,7 @@
 Preposition-Clitic Fusion Error Generator
 
 Injects errors by "un-fusing" preposition-clitic fused forms, or by
-applying the fused form incorrectly. Sorani Kurdish has three base
+applying the fused form incorrectly. Central Kurdish (Sorani) has three base
 prepositions that fuse completely with pronominal clitics [F#33]:
 
     بە + clitic → پێ + clitic   (e.g. پێم = 'with me')

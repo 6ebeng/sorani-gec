@@ -1,6 +1,6 @@
-"""Standalone Sorani Kurdish Lexicon Tool
+"""Standalone Central Kurdish (Sorani) Lexicon Tool
 
-A self-contained morphological lexicon for Sorani Kurdish, built by
+A self-contained morphological lexicon for Central Kurdish (Sorani), built by
 parsing both the .dic (dictionary) and .aff (affix rules) files from
 the KurdishHunspell project into native Python data structures.
 
@@ -79,7 +79,7 @@ class MorphAnalysis:
 
 
 class SoraniLexicon:
-    """Standalone Sorani Kurdish lexicon and morphological tool.
+    """Standalone Central Kurdish (Sorani) lexicon and morphological tool.
 
     Parses both .dic and .aff files into native Python data structures,
     replacing any runtime dependency on the Hunspell library or format.
@@ -87,7 +87,7 @@ class SoraniLexicon:
     The .dic file provides 33,856 surface forms with POS tags, stems,
     lemmas, and inflectional status. The .aff file provides ~5,400
     affix rules (prefix and suffix) organized by flag, encoding the
-    full inflectional morphology of Sorani Kurdish: noun declension,
+    full inflectional morphology of Central Kurdish (Sorani): noun declension,
     adjective comparison, verb conjugation (4 tense/transitivity
     paradigms), passive voice, and more.
     """

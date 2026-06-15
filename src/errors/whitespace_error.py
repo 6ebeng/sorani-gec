@@ -1,7 +1,7 @@
 """
 Whitespace / Segmentation Error Generator
 
-Sorani Kurdish — written in Arabic script — lacks mandatory word-boundary
+Central Kurdish (Sorani) — written in Arabic script — lacks mandatory word-boundary
 indicators, leading to frequent segmentation errors in informal and
 learner text:
 

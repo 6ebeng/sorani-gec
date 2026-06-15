@@ -1,5 +1,5 @@
 """
-Train / Dev / Test Splitter for Sorani Kurdish GEC
+Train / Dev / Test Splitter for Central Kurdish (Sorani) GEC
 
 Splits a corpus of (source, target) sentence pairs into training,
 development, and test sets according to configurable ratios.

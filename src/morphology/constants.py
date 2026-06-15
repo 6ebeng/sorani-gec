@@ -1,5 +1,5 @@
 ﻿"""
-Sorani Kurdish Linguistic Constants
+Central Kurdish (Sorani) Linguistic Constants
 
 Single source of truth for all linguistic constants, lexicons, and rule
 encodings used across the morphology, error generation, and evaluation modules.
@@ -35,7 +35,7 @@ Language" (ڕێککەوتن لە زمانی کوردیدا), which formalises tw
        transitive verbs in PRESENT/FUTURE tenses (Slevanayi 2001, p. 89).
        Law 2 — Object-verb (ergative) [F#14, F#39]: The verb agrees with
        the OBJECT in person and number. Applies to PAST transitive verbs
-       only, due to Sorani Kurdish's split-ergative alignment [F#80]
+       only, due to Central Kurdish (Sorani)'s split-ergative alignment [F#80]
        (Slevanayi 2001, pp. 60-61; Amin 2016, pp. 17-18).
 
 Further refinements:
@@ -456,7 +456,7 @@ COMPLEMENT_REQUIRING_VERBS = {
 # ---------------------------------------------------------------------------
 # Interrogative sentence formation — Farhadi (2013), pp. 49-51 (Finding #119)
 # ---------------------------------------------------------------------------
-# Four question types in Sorani Kurdish, each with specific formation rules:
+# Four question types in Central Kurdish (Sorani), each with specific formation rules:
 # 1. Yes/no: ئایا/ئەرێ + declarative, OR intonation-only (no marker)
 # 2. Wh-question: question word replaces the questioned constituent
 # 3. Choice: X یان Y structure
@@ -1600,7 +1600,7 @@ DETERMINER_ALLOMORPHS: dict[str, tuple[str, ...]] = {
 # Data structures for findings from Books 31–36 (noun morphology, izafe,
 # adjective, number/quantifier, adverb, verb morphology, clitic).
 
-# ── F#257: Ten parts of speech in Sorani Kurdish ──
+# ── F#257: Ten parts of speech in Central Kurdish (Sorani) ──
 POS_CATEGORIES: tuple[str, ...] = (
     "ناو",         # noun
     "جێناو",       # pronoun
@@ -2155,7 +2155,7 @@ PRESENT_STEM_IRREGULAR_CLASSES: dict[str, str] = {
 # ---------------------------------------------------------------------------
 # F#81  — Case Determines Agreement Domain
 #         Nominative → sentence-level; oblique → NP-internal agreement
-# F#177 — Sorani Kurdish Lacks Morphological Case Marking
+# F#177 — Central Kurdish (Sorani) Lacks Morphological Case Marking
 #         Unlike Kurmanji, Sorani has no overt case morphemes on nouns
 # F#205 — Inanimate Nouns Carry Arbitrary Grammatical Gender
 #         Gender assignment to inanimates is lexical, not semantic

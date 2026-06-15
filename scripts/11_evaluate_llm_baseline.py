@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = (
     "You are a Kurdish grammar correction assistant. "
-    "Correct any grammatical errors in the given Sorani Kurdish sentence. "
+    "Correct any grammatical errors in the given Central Kurdish (Sorani) sentence. "
     "Return ONLY the corrected sentence, nothing else. "
     "If the sentence is already correct, return it unchanged."
 )
@@ -44,7 +44,7 @@ SYSTEM_PROMPT = (
 
 def build_prompt(source: str) -> str:
     """Build a zero-shot GEC prompt for Aya."""
-    return f"Correct this Sorani Kurdish sentence grammatically:\n\n{source}"
+    return f"Correct this Central Kurdish (Sorani) sentence grammatically:\n\n{source}"
 
 
 def load_test_data(path: Path, edited_only: bool) -> tuple[list[str], list[str]]:

@@ -55,7 +55,7 @@ class OrthographicErrorGenerator(BaseErrorGenerator):
                 options.append(word.replace('و', 'وو', 1))
 
             # PIPE-22: Additional orthographic confusion pairs common
-            # in Sorani Kurdish writing (native speaker errors).
+            # in Central Kurdish (Sorani) writing (native speaker errors).
             # ئ↔ی word-initially: initial glottal stop vs yeh
             if word.startswith('ئ'):
                 options.append('ی' + word[1:])

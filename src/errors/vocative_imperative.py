@@ -63,7 +63,7 @@ COMPOUND_PREVERBS = ["وەر", "هەڵ", "لێ", "تێ", "دەر", "پێ"]
 class VocativeImperativeErrorGenerator(BaseErrorGenerator):
     """Generate errors by mismatching vocative address number with imperative verb number.
 
-    In Sorani Kurdish, when a speaker addresses someone with a vocative noun
+    In Central Kurdish (Sorani), when a speaker addresses someone with a vocative noun
     (e.g., کوڕۆ 'hey boy-SG') the imperative verb must agree in number (بنووسە
     'write-SG!'). This generator flips the imperative ending so it disagrees
     with the vocative addressee: SG vocative + PL imperative, or vice versa.

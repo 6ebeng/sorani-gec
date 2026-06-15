@@ -1,6 +1,6 @@
-# Sorani Kurdish GEC — Implementation
+# Central Kurdish (Sorani) GEC — Implementation
 
-## Agreement-Aware Grammatical Error Correction for Sorani Kurdish
+## Agreement-Aware Grammatical Error Correction for Central Kurdish (Sorani)
 
 A morphology-driven neural approach to grammatical error correction (GEC) for Sorani (Central) Kurdish, focusing on agreement errors.
 
@@ -189,7 +189,7 @@ A Gradio-based web interface is provided in `../web/` (sibling directory). It in
 
 ### Research Objectives
 
-1. Develop a synthetic error-annotated dataset (~50,000 sentence pairs) of correct/erroneous Sorani Kurdish
+1. Develop a synthetic error-annotated dataset (~50,000 sentence pairs) of correct/erroneous Central Kurdish (Sorani)
 2. Design a morphology-aware neural GEC model using ByT5 (byte-level Transformer)
 3. Evaluate using F₀.₅, agreement-accuracy, and human evaluation
 

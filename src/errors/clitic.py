@@ -1,8 +1,8 @@
 """
 Pronominal Clitic Error Generator
 
-Injects incorrect pronominal clitic forms into Sorani Kurdish sentences.
-Sorani Kurdish has a rich system of enclitic pronouns that attach to verbs,
+Injects incorrect pronominal clitic forms into Central Kurdish (Sorani) sentences.
+Central Kurdish (Sorani) has a rich system of enclitic pronouns that attach to verbs,
 nouns, and prepositions. In past transitive sentences (ergative construction),
 the clitic agrees with the object, not the subject [F#14, F#39, F#66].
 
@@ -12,7 +12,7 @@ Language", pp. 17-18 and 51-52, and Slevanayi (2001) "Agreement in the
 Kurdish Language" (ڕێککەوتن لە زمانی کوردیدا).
 
 Haji Marif (2014) "Kurdish Grammar: Volume One (Word Formation) Part Two
-(Pronouns)" provides the most comprehensive classification of Sorani Kurdish
+(Pronouns)" provides the most comprehensive classification of Central Kurdish (Sorani)
 pronouns, organising them into ten categories [F#45]:
     1. Personal / independent  (جیناوی کەسیی جودا)
     2. Personal / bound        (جیناوی کەسی لکاو)  — these are the clitics
@@ -153,7 +153,7 @@ from ..morphology.constants import (
 )
 
 
-# Sorani Kurdish enclitic pronouns
+# Central Kurdish (Sorani) enclitic pronouns
 # Source: Amin (2016), pp. 17-18; Haji Marif (2014), Chapter on bound pronouns
 CLITICS = {
     "1sg": "م",     # my / me
@@ -281,7 +281,7 @@ NEGATIVE_PROGRESSIVE_CLITIC_ORDER = {
 # ---------------------------------------------------------------------------
 # Word Order Constraints — Mukriani (2000, pp. 62, 75-77)
 # ---------------------------------------------------------------------------
-# Sorani Kurdish is fundamentally SOV.  Mukriani's exhaustive permutation
+# Central Kurdish (Sorani) is fundamentally SOV.  Mukriani's exhaustive permutation
 # analysis (Appendices 1–2) with grammaticality judgements establishes:
 #   - Subject generally sentence-initial
 #   - Verb generally sentence-final
@@ -336,7 +336,7 @@ COMMON_CLITIC_HOSTS = [
 # ---------------------------------------------------------------------------
 # In passive constructions, the clitic shifts from Set 1 (proclitic agent)
 # to Set 2 (enclitic patient) because the verb no longer assigns agent role.
-# Passive morphology markers in Sorani Kurdish (common patterns):
+# Passive morphology markers in Central Kurdish (Sorani) (common patterns):
 # Source: Kurdish Academy grammar (2018), pp. 112–125; Farhadi (2013), pp. 38–40
 # Passive morpheme is {ڕ}: past → ڕا, present → ڕێ
 PASSIVE_MARKERS = {"درا", "دراو", "را", "راو", "کرا", "کراو",

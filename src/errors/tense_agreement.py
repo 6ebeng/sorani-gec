@@ -1,7 +1,7 @@
 """
 Tense-Agreement Error Generator (Split-Ergative Pattern)
 
-Injects tense-agreement errors exploiting Sorani Kurdish's split-ergative
+Injects tense-agreement errors exploiting Central Kurdish (Sorani)'s split-ergative
 system [F#80]. In present/future tenses, the verb agrees with the subject
 (nominative-accusative) [F#1, F#66 Law 1]. In past tenses with transitive
 verbs, the verb agrees with the object (ergative) [F#14, F#66 Law 2].

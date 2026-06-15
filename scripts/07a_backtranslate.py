@@ -1,7 +1,7 @@
 """
 R7 — Back-translation corpus expansion.
 
-Back-translates monolingual Sorani Kurdish text (from KTC or dissertation sentences)
+Back-translates monolingual Central Kurdish (Sorani) text (from KTC or dissertation sentences)
 into English via NLLB-200 or Aya-23, then translates the English back to Sorani,
 producing (corrupted-back-translated, original) pairs that augment the synthetic
 training corpus to ≥ 30,000 pairs.

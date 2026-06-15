@@ -1,7 +1,7 @@
 """
 Subject-Verb Number Disagreement Error Generator
 
-Injects subject-verb number agreement errors into Sorani Kurdish sentences.
+Injects subject-verb number agreement errors into Central Kurdish (Sorani) sentences.
 Implements Slevanayi's (2001) two-law agreement system:
 
   Law 1 — Subject-verb [F#1, F#66, F#94]: The verb agrees with the subject
@@ -10,7 +10,7 @@ Implements Slevanayi's (2001) two-law agreement system:
 
   Law 2 — Object-verb (ergative) [F#14, F#66, F#80]: The verb agrees with
   the OBJECT in person and number. Applies to past transitive verbs only,
-  due to Sorani Kurdish's split-ergative alignment (Slevanayi 2001,
+  due to Central Kurdish (Sorani)'s split-ergative alignment (Slevanayi 2001,
   pp. 60-61).
 
 The verb morphology templates are based on the conjugation tables in

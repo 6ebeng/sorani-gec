@@ -89,7 +89,7 @@ class MorphologyAwareGEC(nn.Module):
 
     RTL Script Note (ARCH-8): ByT5 processes raw UTF-8 bytes in their
     natural storage order (left-to-right at the byte level).  Arabic
-    script characters — including Sorani Kurdish — are encoded as
+    script characters — including Central Kurdish (Sorani) — are encoded as
     multi-byte UTF-8 sequences whose byte order is determined by
     Unicode codepoint, not visual rendering direction.  The model's
     positional embeddings therefore capture byte-sequence position,

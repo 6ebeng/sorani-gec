@@ -36,6 +36,7 @@ class TestSearchSpace:
             "lr": None,
             "batch_size_list": None,
             "grad_accum_list": None,
+            "warmup_list": None,
             "agr_weights": None,
         }
         defaults.update(overrides)
@@ -81,11 +82,11 @@ class TestSearchSpace:
 
     def test_single_value_per_dim(self):
         args = self._make_args(
-            lr=[5e-5], batch_size_list=[16], grad_accum_list=[4]
+            lr=[5e-5], batch_size_list=[16], grad_accum_list=[4], warmup_list=[60]
         )
         space = hp_mod.build_search_space(args)
         assert len(space) == 1
-        assert space[0] == {"lr": 5e-5, "batch_size": 16, "grad_accum_steps": 4}
+        assert space[0] == {"lr": 5e-5, "batch_size": 16, "grad_accum_steps": 4, "warmup_steps": 60}
 
     def test_space_entries_are_dicts(self):
         args = self._make_args()

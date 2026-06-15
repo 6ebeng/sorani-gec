@@ -9,7 +9,7 @@ from .tokenize import sorani_word_tokenize
 logger = logging.getLogger(__name__)
 
 class SoraniSpellChecker:
-    """Spell-checker for Sorani Kurdish using the standalone SoraniLexicon."""
+    """Spell-checker for Central Kurdish (Sorani) using the standalone SoraniLexicon."""
 
     def __init__(self, dict_path: Optional[str] = None, max_suggestions: int = 3):
         self.max_suggestions = max_suggestions

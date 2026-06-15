@@ -1,7 +1,7 @@
 """
 Pipeline integration tests using small corpus texts.
 
-Tests the full sorani-gec pipeline end-to-end with real Sorani Kurdish
+Tests the full sorani-gec pipeline end-to-end with real Central Kurdish (Sorani)
 sentences: normalization → language detection → error injection →
 synthetic pair generation → evaluation scoring.
 
@@ -31,10 +31,10 @@ from src.evaluation.f05_scorer import evaluate_corpus, compute_f05, GECMetrics
 from src.evaluation.agreement_accuracy import AgreementChecker
 
 # ============================================================================
-# Small Corpus Fixture — diverse real Sorani Kurdish sentences
+# Small Corpus Fixture — diverse real Central Kurdish (Sorani) sentences
 # ============================================================================
 
-# 15 grammatically correct Sorani Kurdish sentences covering different
+# 15 grammatically correct Central Kurdish (Sorani) sentences covering different
 # syntactic patterns: present tense, past transitive (ergative), past
 # intransitive, compound, demonstratives, clitics, questions.
 SMALL_CORPUS = [

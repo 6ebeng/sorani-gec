@@ -1,7 +1,7 @@
 """
 Noun-Adjective Agreement Error Generator
 
-Injects noun-adjective agreement errors into Sorani Kurdish. Based on the
+Injects noun-adjective agreement errors into Central Kurdish (Sorani). Based on the
 NP-internal agreement analysis in Slevanayi (2001) "Agreement in the Kurdish
 Language" (ڕێککەوتن لە زمانی کوردیدا), pp. 37-48, which covers agreement
 within the noun phrase (فریزی ناوی) including determiners, number,
@@ -91,7 +91,7 @@ from ..morphology.constants import (
 )
 
 
-# Definiteness suffixes in Sorani Kurdish
+# Definiteness suffixes in Central Kurdish (Sorani)
 # Source: Slevanayi (2001), pp. 41-44 — NP-internal agreement
 # DEFINITE_ATTACHMENT_TYPES (F#268, Haji Marf): 4 phonological types,
 # DEFINITE_BLOCKS_SECONDARY_PLURAL (F#302, Haji Marf): definite suffix

@@ -1,4 +1,4 @@
-"""Shared Sorani Kurdish tokenization utilities.
+"""Shared Central Kurdish (Sorani) tokenization utilities.
 
 Provides consistent tokenization across the pipeline, replacing bare
 str.split() calls that mishandle zero-width characters and Arabic-script

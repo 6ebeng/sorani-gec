@@ -2,7 +2,7 @@
 Possessive Clitic Error Generator
 
 Injects errors by confusing possessive clitics with agreement clitics.
-In Sorani Kurdish, the six bound morphemes (م/ت/ی/مان/تان/یان) serve
+In Central Kurdish (Sorani), the six bound morphemes (م/ت/ی/مان/تان/یان) serve
 both possessive and agreement functions, but their distribution is
 strictly constrained [F#21, F#71]:
 

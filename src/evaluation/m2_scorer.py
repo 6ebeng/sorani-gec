@@ -13,7 +13,7 @@ ERRANT integration note:
     ERRANT (Bryant et al., 2017) is the de-facto standard GEC evaluation
     toolkit but depends on spaCy language models for automatic edit
     extraction and error-type classification. No spaCy model exists for
-    Sorani Kurdish (ckb), making direct ERRANT use infeasible.
+    Central Kurdish (Sorani) (ckb), making direct ERRANT use infeasible.
 
     This module provides M2-format-compatible parsing and scoring so that
     annotations produced by this pipeline can be evaluated against ERRANT

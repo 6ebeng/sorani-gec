@@ -1,4 +1,4 @@
-"""Collect natural Sorani Kurdish sentences for the R31 natural test set.
+"""Collect natural Central Kurdish (Sorani) sentences for the R31 natural test set.
 
 Draws from two locally-available authoritative corpora:
   1. OCR'd university dissertations — Koya, Sulaymaniyah, Salahaddin

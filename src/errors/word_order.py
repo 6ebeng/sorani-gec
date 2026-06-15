@@ -1,7 +1,7 @@
 """
 Word Order Error Generator
 
-Sorani Kurdish is canonically SOV (Subject–Object–Verb), though pragmatic
+Central Kurdish (Sorani) is canonically SOV (Subject–Object–Verb), though pragmatic
 fronting and topicalization allow some flexibility.  This generator
 introduces word-order errors by:
 

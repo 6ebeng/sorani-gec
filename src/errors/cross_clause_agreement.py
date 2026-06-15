@@ -1,7 +1,7 @@
 """
 Cross-Clause Agreement Error Generator
 
-In Sorani Kurdish compound and complex sentences, the verbs in
+In Central Kurdish (Sorani) compound and complex sentences, the verbs in
 coordinated clauses should maintain tense concordance when the temporal
 frame is the same.  For example:
 
@@ -20,7 +20,7 @@ from .base import BaseErrorGenerator
 from ..data.tokenize import sorani_word_tokenize
 
 
-# Common coordinating conjunctions in Sorani Kurdish
+# Common coordinating conjunctions in Central Kurdish (Sorani)
 _CONJUNCTIONS = {"و", "هەروەها", "پاشان", "بەڵام", "یان"}
 
 # Simple past → present tense ending swaps (3sg as default)

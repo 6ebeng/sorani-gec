@@ -1,7 +1,7 @@
 """
-Rule-Based Morphological Analyzer for Sorani Kurdish
+Rule-Based Morphological Analyzer for Central Kurdish (Sorani)
 
-Extracts structured morphological features from Sorani Kurdish text using
+Extracts structured morphological features from Central Kurdish (Sorani) text using
 rule-based decomposition informed by Kurdish linguistics literature.
 
 The morpheme slot model and feature inventory for verbs are based on
@@ -427,7 +427,7 @@ _ADVERBIAL_QUESTION_WORDS = QUESTION_WORDS - INTERROGATIVE_PRONOUNS
 
 @dataclass
 class MorphFeatures:
-    """Structured morphological features for a Sorani Kurdish token.
+    """Structured morphological features for a Central Kurdish (Sorani) token.
     
     Feature inventory based on Amin (2016) for verbal features and
     Saliqanai (2001) for agreement-relevant features (person, number,
@@ -462,7 +462,7 @@ class MorphFeatures:
 
 
 class MorphologicalAnalyzer:
-    """Rule-based morphological analyzer for Sorani Kurdish.
+    """Rule-based morphological analyzer for Central Kurdish (Sorani).
     
     Uses lexicon-based closed-class detection and rule-based morpheme
     decomposition for open-class words (verbs, nouns).
@@ -540,7 +540,7 @@ class MorphologicalAnalyzer:
                 pass
         
         # Default: if no POS assigned after all analysis, assume NOUN
-        # Most open-class unrecognized words in Sorani Kurdish text are nouns
+        # Most open-class unrecognized words in Central Kurdish (Sorani) text are nouns
         if not features.pos:
             features.pos = "NOUN"
             if not features.number:
@@ -1344,7 +1344,7 @@ class MorphologicalAnalyzer:
         return features_list
     
     def tokenize(self, text: str) -> list[str]:
-        """Tokenize Sorani Kurdish text.
+        """Tokenize Central Kurdish (Sorani) text.
         
         Handles Arabic script punctuation, zero-width characters, and
         Kurdish-specific orthographic conventions.

@@ -1,7 +1,7 @@
 """
 Punctuation Error Generator
 
-Sorani Kurdish uses a mix of Arabic-script punctuation (،  ؛  ؟) and
+Central Kurdish (Sorani) uses a mix of Arabic-script punctuation (،  ؛  ؟) and
 Latin punctuation (.  ,  ;  ?  !).  Common errors in learner and
 informal text include:
 

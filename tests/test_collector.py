@@ -19,7 +19,7 @@ def test_collector_init():
 
 def test_is_sorani():
     """Sorani detection works on Kurdish text."""
-    # Sorani Kurdish text
+    # Central Kurdish (Sorani) text
     assert CorpusCollector._is_sorani("من دەچم بۆ قوتابخانە لە شاری هەولێر") is True
     # English text
     assert CorpusCollector._is_sorani("This is an English sentence") is False

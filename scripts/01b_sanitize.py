@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Sanitize collected Sorani Kurdish text",
+        description="Sanitize collected Central Kurdish (Sorani) text",
     )
     parser.add_argument("--input", default="data/raw",
                         help="Directory containing raw .txt files")

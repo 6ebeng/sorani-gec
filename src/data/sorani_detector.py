@@ -1,7 +1,7 @@
 """
-Sorani Kurdish Language Detector
+Central Kurdish (Sorani) Language Detector
 
-Preprocessing filter that identifies whether a given text is Sorani Kurdish
+Preprocessing filter that identifies whether a given text is Central Kurdish (Sorani)
 (Central Kurdish / کوردیی ناوەندی), distinguishing it from:
   - Kurmanji (Northern Kurdish) — different function words, often Latin script
   - Arabic — no Kurdish-specific characters (ڕ, ڵ, ۆ, ێ)
@@ -83,7 +83,7 @@ _KURMANJI_FUNCTION_WORDS = frozenset({
     "ژی", "دی", "ناڤ",
 })
 
-# Arabic function words unlikely in Sorani Kurdish text.
+# Arabic function words unlikely in Central Kurdish (Sorani) text.
 _ARABIC_FUNCTION_WORDS = frozenset({
     "في", "من", "إلى", "على", "هذا", "هذه", "ذلك", "التي", "الذي",
     "أن", "لا", "ما", "هو", "هي", "كان", "عن", "مع", "قد",
@@ -154,7 +154,7 @@ from .tokenize import sorani_word_tokenize
 
 
 class SoraniDetector:
-    """Detect whether text is Sorani Kurdish.
+    """Detect whether text is Central Kurdish (Sorani).
 
     Uses a weighted multi-signal approach combining script analysis,
     function word frequency, and morphological marker matching.
@@ -171,7 +171,7 @@ class SoraniDetector:
         self.min_words = min_words
 
     def detect(self, text: str) -> DetectionResult:
-        """Classify a text string as Sorani Kurdish or not.
+        """Classify a text string as Central Kurdish (Sorani) or not.
 
         Returns a DetectionResult with confidence score and diagnostics.
         """
@@ -226,7 +226,7 @@ class SoraniDetector:
         return self.detect(text).is_sorani
 
     def filter_corpus(self, sentences: list[str]) -> list[str]:
-        """Filter a list of sentences, keeping only Sorani Kurdish ones."""
+        """Filter a list of sentences, keeping only Central Kurdish (Sorani) ones."""
         kept = []
         rejected = 0
         for s in sentences:
