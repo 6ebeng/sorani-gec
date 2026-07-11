@@ -1,0 +1,141 @@
+{
+  "source_prefix_counts": {
+    "synthetic_seed": 287,
+    "dissertation": 180,
+    "ktc": 20
+  },
+  "blocks": [
+    {
+      "subset": "full_487_mixed",
+      "n_sentences": 487,
+      "n_edited": 295,
+      "systems": [
+        {
+          "system": "copy",
+          "word_f05": 0.0,
+          "word_p": 0.0,
+          "word_r": 0.0,
+          "span_f05": 0.0,
+          "span_p": 0.0,
+          "span_r": 0.0
+        },
+        {
+          "system": "hunspell",
+          "word_f05": 0.0,
+          "word_p": 0.0,
+          "word_r": 0.0,
+          "span_f05": 0.0,
+          "span_p": 0.0,
+          "span_r": 0.0
+        },
+        {
+          "system": "reverse_rule",
+          "word_f05": 0.161,
+          "word_p": 0.1798,
+          "word_r": 0.1135,
+          "span_f05": 0.1456,
+          "span_p": 0.161,
+          "span_r": 0.1053
+        },
+        {
+          "system": "ngram_lm",
+          "word_f05": 0.2184,
+          "word_p": 0.2881,
+          "word_r": 0.111,
+          "span_f05": 0.2028,
+          "span_p": 0.2619,
+          "span_r": 0.1066
+        }
+      ]
+    },
+    {
+      "subset": "natural_200_human",
+      "n_sentences": 200,
+      "n_edited": 37,
+      "systems": [
+        {
+          "system": "copy",
+          "word_f05": 0.0,
+          "word_p": 0.0,
+          "word_r": 0.0,
+          "span_f05": 0.0,
+          "span_p": 0.0,
+          "span_r": 0.0
+        },
+        {
+          "system": "hunspell",
+          "word_f05": 0.0,
+          "word_p": 0.0,
+          "word_r": 0.0,
+          "span_f05": 0.0,
+          "span_p": 0.0,
+          "span_r": 0.0
+        },
+        {
+          "system": "reverse_rule",
+          "word_f05": 0.0,
+          "word_p": 0.0,
+          "word_r": 0.0,
+          "span_f05": 0.0,
+          "span_p": 0.0,
+          "span_r": 0.0
+        },
+        {
+          "system": "ngram_lm",
+          "word_f05": 0.0,
+          "word_p": 0.0,
+          "word_r": 0.0,
+          "span_f05": 0.0,
+          "span_p": 0.0,
+          "span_r": 0.0
+        }
+      ]
+    },
+    {
+      "subset": "synthetic_seed_287",
+      "n_sentences": 287,
+      "n_edited": 258,
+      "systems": [
+        {
+          "system": "copy",
+          "word_f05": 0.0,
+          "word_p": 0.0,
+          "word_r": 0.0,
+          "span_f05": 0.0,
+          "span_p": 0.0,
+          "span_r": 0.0
+        },
+        {
+          "system": "hunspell",
+          "word_f05": 0.0,
+          "word_p": 0.0,
+          "word_r": 0.0,
+          "span_f05": 0.0,
+          "span_p": 0.0,
+          "span_r": 0.0
+        },
+        {
+          "system": "reverse_rule",
+          "word_f05": 0.2154,
+          "word_p": 0.2618,
+          "word_r": 0.1261,
+          "span_f05": 0.1955,
+          "span_p": 0.2346,
+          "span_r": 0.1173
+        },
+        {
+          "system": "ngram_lm",
+          "word_f05": 0.2851,
+          "word_p": 0.4244,
+          "word_r": 0.1232,
+          "span_f05": 0.2666,
+          "span_p": 0.3869,
+          "span_r": 0.1188
+        }
+      ]
+    }
+  ],
+  "natural_human_error_types": {
+    "whitespace": 37
+  }
+}

@@ -1,0 +1,205 @@
+{
+  "f05": {
+    "precision": 0.0035054674828650656,
+    "recall": 0.07411504424778761,
+    "f05": 0.004330627229949841,
+    "tp": 67,
+    "fp": 19046,
+    "fn": 837
+  },
+  "f05_sentence_stats": {
+    "mean": 0.004013189398596235,
+    "min": 0.0,
+    "max": 0.2777777777777778,
+    "zero_count": 965,
+    "perfect_count": 0
+  },
+  "f05_per_type": {},
+  "f05_span": {
+    "overall": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f05": 0.0,
+      "tp": 0,
+      "fp": 1788,
+      "fn": 813
+    },
+    "per_edit_type": {
+      "deletion": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f05": 0.0,
+        "tp": 0,
+        "fp": 1003,
+        "fn": 60
+      },
+      "insertion": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f05": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 88
+      },
+      "morphological": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f05": 0.0,
+        "tp": 0,
+        "fp": 1,
+        "fn": 594
+      },
+      "substitution": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f05": 0.0,
+        "tp": 0,
+        "fp": 784,
+        "fn": 71
+      }
+    }
+  },
+  "gleu": 0.0002209651486445074,
+  "m2": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "f05": 0.0,
+    "tp": 0,
+    "fp": 1004,
+    "fn": 785
+  },
+  "agreement": {
+    "accuracy": 0.9970089730807578,
+    "total_sentences": 1003,
+    "correct_sentences": 1000,
+    "avg_checks_passed": 13.997008973080758,
+    "avg_checks_total": 14.0
+  },
+  "agreement_by_check": {
+    "per_check": {
+      "subject_verb": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "Law 1",
+        "accuracy": 1.0
+      },
+      "clitic_consistency": {
+        "correct": 1002,
+        "total": 1003,
+        "law": "",
+        "accuracy": 0.9990029910269193
+      },
+      "ezafe": {
+        "correct": 1001,
+        "total": 1003,
+        "law": "",
+        "accuracy": 0.9980059820538385
+      },
+      "tense_consistency": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      },
+      "object_verb_ergative": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "Law 2",
+        "accuracy": 1.0
+      },
+      "negative_concord": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      },
+      "orthography": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      },
+      "conditional": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      },
+      "quantifier_noun": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      },
+      "relative_clause": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      },
+      "vocative_imperative": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      },
+      "adverb_verb_tense": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      },
+      "compound_subject": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      },
+      "bare_noun": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      }
+    },
+    "per_law": {
+      "Law 1": {
+        "correct": 1003,
+        "total": 1003,
+        "accuracy": 1.0
+      },
+      "Law 2": {
+        "correct": 1003,
+        "total": 1003,
+        "accuracy": 1.0
+      }
+    }
+  },
+  "cer": 0.9778592188048929,
+  "latency": {
+    "total_seconds": 164.25789367599646,
+    "avg_ms_per_sentence": 163.76659389431353,
+    "throughput_sentences_per_s": 6.106251441275919
+  },
+  "model_info": {
+    "param_count": 305238307,
+    "param_count_m": 305.24
+  },
+  "bootstrap_ci": {
+    "f05_95ci": [
+      0.002976883849757966,
+      0.005985975714041388
+    ],
+    "gleu_95ci": [
+      0.00015191345597218264,
+      0.00031554913125530533
+    ],
+    "m2_f05_95ci": [
+      0.0,
+      0.0
+    ],
+    "n_resamples": 1000
+  },
+  "model_path": "results/models/morphaware_fp32/best_model.pt",
+  "test_size": 1003
+}

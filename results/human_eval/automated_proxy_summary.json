@@ -1,0 +1,27 @@
+{
+  "evaluation_type": "automated_proxy_in_lieu_of_humans",
+  "source_predictions": "results\\metrics_remote\\baseline\\evaluation_pairs.jsonl",
+  "n_pairs": 60,
+  "raters": {
+    "auto_agreement_rules": "AgreementChecker on corrected; passing-checks fraction binned to 1-5",
+    "auto_surface_fluency": "Surface fluency: char-repeat + length stability + non-Kurdish char ratio; penalty binned to 1-5"
+  },
+  "rater_A_distribution": {
+    "4": 41,
+    "5": 19
+  },
+  "rater_B_distribution": {
+    "4": 21,
+    "3": 30,
+    "5": 8,
+    "2": 1
+  },
+  "agreement": {
+    "auto_agreement_rules||vs||auto_surface_fluency": {
+      "kappa": -0.0205,
+      "agreement": 0.2667,
+      "n_overlap": 60
+    }
+  },
+  "caveat": "Both raters are automated and target different signals (rule-based grammaticality vs surface fluency). The kappa value reflects how consistent two independent automated quality signals are on real model output — it does not substitute for native-speaker consensus. Full human evaluation with two Sorani native speakers is documented as future work in thesis Ch.9."
+}

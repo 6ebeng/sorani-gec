@@ -1,0 +1,205 @@
+{
+  "f05": {
+    "precision": 0.0023012689854691303,
+    "recall": 0.03871681415929203,
+    "f05": 0.0028344671201814063,
+    "tp": 35,
+    "fp": 15174,
+    "fn": 869
+  },
+  "f05_sentence_stats": {
+    "mean": 0.002049953639851956,
+    "min": 0.0,
+    "max": 0.32894736842105265,
+    "zero_count": 980,
+    "perfect_count": 0
+  },
+  "f05_per_type": {},
+  "f05_span": {
+    "overall": {
+      "precision": 0.00047607712449416806,
+      "recall": 0.0024600246002460025,
+      "f05": 0.0005676335357892943,
+      "tp": 2,
+      "fp": 4199,
+      "fn": 811
+    },
+    "per_edit_type": {
+      "deletion": {
+        "precision": 0.0007293946024799417,
+        "recall": 0.016666666666666666,
+        "f05": 0.000901875901875902,
+        "tp": 1,
+        "fp": 1370,
+        "fn": 59
+      },
+      "insertion": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f05": 0.0,
+        "tp": 0,
+        "fp": 606,
+        "fn": 88
+      },
+      "morphological": {
+        "precision": 0.0013531799729364006,
+        "recall": 0.0016835016835016834,
+        "f05": 0.0014084507042253522,
+        "tp": 1,
+        "fp": 738,
+        "fn": 593
+      },
+      "substitution": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f05": 0.0,
+        "tp": 0,
+        "fp": 1485,
+        "fn": 71
+      }
+    }
+  },
+  "gleu": 0.16704763285306842,
+  "m2": {
+    "precision": 0.0016578249336870027,
+    "recall": 0.006369426751592357,
+    "f05": 0.0019456767063584716,
+    "tp": 5,
+    "fp": 3011,
+    "fn": 780
+  },
+  "agreement": {
+    "accuracy": 0.2333000997008973,
+    "total_sentences": 1003,
+    "correct_sentences": 234,
+    "avg_checks_passed": 12.90727816550349,
+    "avg_checks_total": 14.0
+  },
+  "agreement_by_check": {
+    "per_check": {
+      "subject_verb": {
+        "correct": 996,
+        "total": 1003,
+        "law": "Law 1",
+        "accuracy": 0.9930209371884346
+      },
+      "clitic_consistency": {
+        "correct": 292,
+        "total": 1003,
+        "law": "",
+        "accuracy": 0.29112662013958124
+      },
+      "ezafe": {
+        "correct": 638,
+        "total": 1003,
+        "law": "",
+        "accuracy": 0.6360917248255235
+      },
+      "tense_consistency": {
+        "correct": 1002,
+        "total": 1003,
+        "law": "",
+        "accuracy": 0.9990029910269193
+      },
+      "object_verb_ergative": {
+        "correct": 998,
+        "total": 1003,
+        "law": "Law 2",
+        "accuracy": 0.9950149551345963
+      },
+      "negative_concord": {
+        "correct": 1002,
+        "total": 1003,
+        "law": "",
+        "accuracy": 0.9990029910269193
+      },
+      "orthography": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      },
+      "conditional": {
+        "correct": 1002,
+        "total": 1003,
+        "law": "",
+        "accuracy": 0.9990029910269193
+      },
+      "quantifier_noun": {
+        "correct": 999,
+        "total": 1003,
+        "law": "",
+        "accuracy": 0.996011964107677
+      },
+      "relative_clause": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      },
+      "vocative_imperative": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      },
+      "adverb_verb_tense": {
+        "correct": 1002,
+        "total": 1003,
+        "law": "",
+        "accuracy": 0.9990029910269193
+      },
+      "compound_subject": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      },
+      "bare_noun": {
+        "correct": 1003,
+        "total": 1003,
+        "law": "",
+        "accuracy": 1.0
+      }
+    },
+    "per_law": {
+      "Law 1": {
+        "correct": 996,
+        "total": 1003,
+        "accuracy": 0.9930209371884346
+      },
+      "Law 2": {
+        "correct": 998,
+        "total": 1003,
+        "accuracy": 0.9950149551345963
+      }
+    }
+  },
+  "cer": 0.6516479831369167,
+  "latency": {
+    "total_seconds": 73.69837056100368,
+    "avg_ms_per_sentence": 73.47793675075143,
+    "throughput_sentences_per_s": 13.60952748839635
+  },
+  "model_info": {
+    "param_count": 299637760,
+    "param_count_m": 299.64
+  },
+  "bootstrap_ci": {
+    "f05_95ci": [
+      0.0016920473773265653,
+      0.004269719779872224
+    ],
+    "gleu_95ci": [
+      0.15618973155190286,
+      0.1776309990322184
+    ],
+    "m2_f05_95ci": [
+      0.0003938558487593541,
+      0.0038804811796662782
+    ],
+    "n_resamples": 1000
+  },
+  "model_path": "results/models/baseline_fp32/best_model.pt",
+  "test_size": 1003
+}

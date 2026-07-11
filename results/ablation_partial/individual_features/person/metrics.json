@@ -1,0 +1,13 @@
+{
+  "precision": 0.0018301216492625687,
+  "recall": 0.05641592920353982,
+  "f05": 0.002269248567258748,
+  "tp": 51,
+  "fp": 27816,
+  "fn": 853,
+  "agreement_accuracy": 1.0,
+  "agreement_correct": 1003,
+  "agreement_total": 1003,
+  "experiment": "individual_features",
+  "feature": "person"
+}

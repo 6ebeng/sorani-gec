@@ -1,0 +1,91 @@
+[
+  {
+    "system_a": "baseline_seed42",
+    "system_b": "morphaware_seed42",
+    "f05_a": 0.07913318724129534,
+    "f05_b": 0.09229633275904506,
+    "delta": -0.01316314551774972,
+    "ci_low": -0.024439584620554344,
+    "ci_high": -0.003775349392999991,
+    "p_value": 0.003,
+    "n_resamples": 2000,
+    "n_sentences": 647
+  },
+  {
+    "system_a": "ngram_lm",
+    "system_b": "baseline_seed42",
+    "f05_a": 0.1394422310756972,
+    "f05_b": 0.07913318724129534,
+    "delta": 0.06030904383440186,
+    "ci_low": 0.016533388552030043,
+    "ci_high": 0.10185562546167758,
+    "p_value": 0.004,
+    "n_resamples": 2000,
+    "n_sentences": 647
+  },
+  {
+    "system_a": "reverse_rule",
+    "system_b": "baseline_seed42",
+    "f05_a": 0.08487269096355467,
+    "f05_b": 0.07913318724129534,
+    "delta": 0.005739503722259329,
+    "ci_low": -0.025959225993275922,
+    "ci_high": 0.034487553886802955,
+    "p_value": 0.738,
+    "n_resamples": 2000,
+    "n_sentences": 647
+  },
+  {
+    "system_a": "ngram_lm",
+    "system_b": "morphaware_seed42",
+    "f05_a": 0.1394422310756972,
+    "f05_b": 0.09229633275904506,
+    "delta": 0.04714589831665214,
+    "ci_low": 0.004410232822413707,
+    "ci_high": 0.08797923436547611,
+    "p_value": 0.03,
+    "n_resamples": 2000,
+    "n_sentences": 647
+  },
+  {
+    "system_a": "ngram_lm",
+    "system_b": "reverse_rule",
+    "f05_a": 0.1394422310756972,
+    "f05_b": 0.08487269096355467,
+    "delta": 0.05456954011214253,
+    "ci_low": 0.03722314265783047,
+    "ci_high": 0.0723964784049102,
+    "p_value": 0.0,
+    "n_resamples": 2000,
+    "n_sentences": 647
+  },
+  {
+    "system_a": "reverse_rule",
+    "system_b": "hunspell",
+    "f05_a": 0.08487269096355467,
+    "f05_b": 0.009487666034155599,
+    "delta": 0.07538502492939907,
+    "ci_low": 0.04451379319661722,
+    "ci_high": 0.10529995697338494,
+    "p_value": 0.0,
+    "n_resamples": 2000,
+    "n_sentences": 647
+  },
+  {
+    "system_a": "baseline_pooled3seed",
+    "system_b": "morphaware_pooled3seed",
+    "f05_a": 0.08280982295830953,
+    "f05_b": 0.08796334178872431,
+    "delta": -0.005153518830414774,
+    "ci_low": -0.011512884107127822,
+    "ci_high": 0.0008501515576450763,
+    "p_value": 0.094,
+    "n_resamples": 2000,
+    "n_sentences": 1941,
+    "pooled_seeds": [
+      "42",
+      "123",
+      "777"
+    ]
+  }
+]

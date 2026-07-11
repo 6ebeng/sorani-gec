@@ -1,0 +1,161 @@
+{
+  "model": "baseline",
+  "n_edited": 287,
+  "n_skipped_trivial_copies": 716,
+  "f05": {
+    "precision": 0.007244876837093769,
+    "recall": 0.03871681415929203,
+    "f05": 0.008651374332608265,
+    "tp": 35,
+    "fp": 4796,
+    "fn": 869
+  },
+  "gleu": 0.09073375050115616,
+  "cer_mean": 0.64696687238253,
+  "agreement_raw": 0.2264808362369338,
+  "agreement_cer_floor_0.5": 0.010452961672473868,
+  "f05_per_type": {
+    "case_role_preposition": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f05": 0.0,
+      "n_pairs": 7,
+      "tp": 0,
+      "fp": 129,
+      "fn": 11
+    },
+    "clitic_form": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f05": 0.0,
+      "n_pairs": 20,
+      "tp": 0,
+      "fp": 396,
+      "fn": 34
+    },
+    "conditional_agreement": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f05": 0.0,
+      "n_pairs": 1,
+      "tp": 0,
+      "fp": 15,
+      "fn": 1
+    },
+    "dialectal_participle": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f05": 0.0,
+      "n_pairs": 1,
+      "tp": 0,
+      "fp": 6,
+      "fn": 1
+    },
+    "noun_adjective_agreement": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f05": 0.0,
+      "n_pairs": 41,
+      "tp": 0,
+      "fp": 717,
+      "fn": 58
+    },
+    "orthography": {
+      "precision": 0.0010460251046025104,
+      "recall": 0.004545454545454545,
+      "f05": 0.0012363996043521265,
+      "n_pairs": 60,
+      "tp": 1,
+      "fp": 955,
+      "fn": 219
+    },
+    "possessive_clitic": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f05": 0.0,
+      "n_pairs": 19,
+      "tp": 0,
+      "fp": 325,
+      "fn": 37
+    },
+    "punctuation": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f05": 0.0,
+      "n_pairs": 10,
+      "tp": 0,
+      "fp": 90,
+      "fn": 15
+    },
+    "quantifier_agreement": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f05": 0.0,
+      "n_pairs": 3,
+      "tp": 0,
+      "fp": 63,
+      "fn": 5
+    },
+    "spelling_confusion": {
+      "precision": 0.001098901098901099,
+      "recall": 0.005649717514124294,
+      "f05": 0.0013099292638197538,
+      "n_pairs": 53,
+      "tp": 1,
+      "fp": 909,
+      "fn": 176
+    },
+    "subject_verb_number": {
+      "precision": 0.01098901098901099,
+      "recall": 0.08163265306122448,
+      "f05": 0.013289036544850499,
+      "n_pairs": 18,
+      "tp": 4,
+      "fp": 360,
+      "fn": 45
+    },
+    "tense_agreement": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f05": 0.0,
+      "n_pairs": 8,
+      "tp": 0,
+      "fp": 196,
+      "fn": 8
+    },
+    "whitespace": {
+      "precision": 0.04662379421221865,
+      "recall": 0.10357142857142858,
+      "f05": 0.05238439306358382,
+      "n_pairs": 42,
+      "tp": 29,
+      "fp": 593,
+      "fn": 251
+    },
+    "word_order": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f05": 0.0,
+      "n_pairs": 4,
+      "tp": 0,
+      "fp": 42,
+      "fn": 8
+    }
+  },
+  "type_distribution": {
+    "orthography": 60,
+    "spelling_confusion": 53,
+    "whitespace": 42,
+    "noun_adjective_agreement": 41,
+    "clitic_form": 20,
+    "possessive_clitic": 19,
+    "subject_verb_number": 18,
+    "punctuation": 10,
+    "tense_agreement": 8,
+    "case_role_preposition": 7,
+    "word_order": 4,
+    "quantifier_agreement": 3,
+    "conditional_agreement": 1,
+    "dialectal_participle": 1
+  }
+}

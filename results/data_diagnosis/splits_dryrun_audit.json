@@ -1,0 +1,83 @@
+[
+  {
+    "file": "train.jsonl",
+    "records": 7998,
+    "arabic_chars_pre_normalize": 148,
+    "arabic_chars_post_normalize": 0,
+    "no_sorani_distinctive_letter": 6,
+    "strict_gate_fail_reasons": {
+      "too_many_bytes": 6,
+      "fragment": 50,
+      "non_sorani_script": 6,
+      "too_few_tokens": 8,
+      "slash_delimiter": 1,
+      "too_many_tokens": 3,
+      "clitic_notation": 1
+    },
+    "examples_arabic_post": [],
+    "examples_no_sorani": [
+      [
+        "?",
+        "source",
+        "عبد العزیزالدوری العصر العباسی الاول."
+      ],
+      [
+        "?",
+        "target",
+        "عبد العزیزالدوری العصر العباسی الاول."
+      ],
+      [
+        "?",
+        "source",
+        "سامی سعید الآحمد و جمال رشید احمد، تاریخ الشرق القدیم، ."
+      ],
+      [
+        "?",
+        "target",
+        "سامی سعید الآحمد و جمال رشید احمد، تاریخ الشرق القدیم، ."
+      ],
+      [
+        "?",
+        "source",
+        "النعیمی، الدارس فی تاریخ المدارس."
+      ]
+    ]
+  },
+  {
+    "file": "dev.jsonl",
+    "records": 999,
+    "arabic_chars_pre_normalize": 10,
+    "arabic_chars_post_normalize": 0,
+    "no_sorani_distinctive_letter": 0,
+    "strict_gate_fail_reasons": {
+      "fragment": 4
+    },
+    "examples_arabic_post": [],
+    "examples_no_sorani": []
+  },
+  {
+    "file": "test.jsonl",
+    "records": 1003,
+    "arabic_chars_pre_normalize": 18,
+    "arabic_chars_post_normalize": 0,
+    "no_sorani_distinctive_letter": 2,
+    "strict_gate_fail_reasons": {
+      "fragment": 12,
+      "too_few_tokens": 3,
+      "non_sorani_script": 2
+    },
+    "examples_arabic_post": [],
+    "examples_no_sorani": [
+      [
+        "?",
+        "source",
+        "جرجی زیدان، تاریخ التمدن الاسلامی."
+      ],
+      [
+        "?",
+        "target",
+        "جرجی زیدان، تاریخ التمدن الاسلامی."
+      ]
+    ]
+  }
+]

@@ -1,0 +1,13 @@
+{
+	"precision": 0.00321843853820598,
+	"recall": 0.06858407079646017,
+	"f05": 0.003976398152898923,
+	"tp": 62,
+	"fp": 19202,
+	"fn": 842,
+	"agreement_accuracy": 0.9820538384845464,
+	"agreement_correct": 985,
+	"agreement_total": 1003,
+	"experiment": "individual_features",
+	"feature": "tense"
+}

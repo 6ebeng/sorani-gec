@@ -1,0 +1,3210 @@
+{
+  "n_annotators": 37,
+  "annotators": [
+    "1",
+    "37",
+    "A",
+    "AFAAKA",
+    "Ahmed132005",
+    "Aza3",
+    "Batista",
+    "Dania1",
+    "Davar",
+    "Dlo01",
+    "Helav22",
+    "KMR",
+    "Kareen3",
+    "Kode",
+    "Lalo",
+    "Lawand_Kaka",
+    "Mahmood",
+    "Nur",
+    "R1",
+    "Ramyar77",
+    "Rezhiar",
+    "Shaho2",
+    "Shajwan96",
+    "Username",
+    "Zhala1",
+    "a2",
+    "aa",
+    "ahmad",
+    "amaya",
+    "frish1",
+    "lazo21",
+    "mommy",
+    "okay2",
+    "p8",
+    "shaho97",
+    "username2",
+    "vana7"
+  ],
+  "n_pairs_in_manifest": 60,
+  "n_pairs_with_human_signal": 60,
+  "inter_annotator_agreement_R6": {
+    "37 vs A": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs AFAAKA": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "37 vs Ahmed132005": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "37 vs Aza3": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Batista": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "37 vs Dania1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Davar": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Dlo01": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Helav22": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs KMR": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Kareen3": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Kode": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Lalo": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Mahmood": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Nur": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs R1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "37 vs Ramyar77": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Rezhiar": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Shaho2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Shajwan96": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Username": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs Zhala1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "37 vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs ahmad": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs amaya": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs lazo21": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs mommy": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs p8": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "37 vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs username2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "37 vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "A vs AFAAKA": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs Ahmed132005": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs Aza3": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs Batista": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs Dania1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "A vs Davar": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "A vs Dlo01": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "A vs Helav22": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs KMR": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs Kareen3": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs Kode": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "A vs Lalo": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "A vs Mahmood": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "A vs Nur": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs R1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "A vs Ramyar77": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs Rezhiar": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs Shaho2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs Shajwan96": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs Username": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs Zhala1": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs ahmad": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "A vs amaya": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs lazo21": {
+      "cohens_kappa": 1.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "A vs mommy": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "A vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs p8": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs username2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "A vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Ahmed132005": {
+      "cohens_kappa": 1.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Aza3": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Batista": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Dania1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "AFAAKA vs Davar": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Dlo01": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "AFAAKA vs Helav22": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "AFAAKA vs KMR": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Kareen3": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Kode": {
+      "cohens_kappa": -1.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Lalo": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "AFAAKA vs Mahmood": {
+      "cohens_kappa": -1.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Nur": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "AFAAKA vs R1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Ramyar77": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Rezhiar": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Shaho2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Shajwan96": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Username": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs Zhala1": {
+      "cohens_kappa": 1.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "AFAAKA vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "AFAAKA vs ahmad": {
+      "cohens_kappa": -1.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "AFAAKA vs amaya": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs frish1": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs lazo21": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "AFAAKA vs mommy": {
+      "cohens_kappa": -1.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "AFAAKA vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs p8": {
+      "cohens_kappa": 1.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "AFAAKA vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "AFAAKA vs username2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "AFAAKA vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Ahmed132005 vs Aza3": {
+      "cohens_kappa": 0.0204,
+      "percent_agreement": 0.3333,
+      "n_overlap": 12
+    },
+    "Ahmed132005 vs Batista": {
+      "cohens_kappa": 0.0538,
+      "percent_agreement": 0.3125,
+      "n_overlap": 16
+    },
+    "Ahmed132005 vs Dania1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Ahmed132005 vs Davar": {
+      "cohens_kappa": 0.0769,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Ahmed132005 vs Dlo01": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Ahmed132005 vs Helav22": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Ahmed132005 vs KMR": {
+      "cohens_kappa": 0.0253,
+      "percent_agreement": 0.3636,
+      "n_overlap": 11
+    },
+    "Ahmed132005 vs Kareen3": {
+      "cohens_kappa": 0.1111,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Ahmed132005 vs Kode": {
+      "cohens_kappa": -0.0219,
+      "percent_agreement": 0.2857,
+      "n_overlap": 14
+    },
+    "Ahmed132005 vs Lalo": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Ahmed132005 vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Ahmed132005 vs Mahmood": {
+      "cohens_kappa": -0.0687,
+      "percent_agreement": 0.2857,
+      "n_overlap": 14
+    },
+    "Ahmed132005 vs Nur": {
+      "cohens_kappa": -0.129,
+      "percent_agreement": 0.2857,
+      "n_overlap": 7
+    },
+    "Ahmed132005 vs R1": {
+      "cohens_kappa": 0.195,
+      "percent_agreement": 0.5,
+      "n_overlap": 16
+    },
+    "Ahmed132005 vs Ramyar77": {
+      "cohens_kappa": 0.3488,
+      "percent_agreement": 0.5625,
+      "n_overlap": 16
+    },
+    "Ahmed132005 vs Rezhiar": {
+      "cohens_kappa": 0.1579,
+      "percent_agreement": 0.5,
+      "n_overlap": 16
+    },
+    "Ahmed132005 vs Shaho2": {
+      "cohens_kappa": 0.0886,
+      "percent_agreement": 0.4375,
+      "n_overlap": 16
+    },
+    "Ahmed132005 vs Shajwan96": {
+      "cohens_kappa": 0.0323,
+      "percent_agreement": 0.4667,
+      "n_overlap": 15
+    },
+    "Ahmed132005 vs Username": {
+      "cohens_kappa": 0.1579,
+      "percent_agreement": 0.5,
+      "n_overlap": 16
+    },
+    "Ahmed132005 vs Zhala1": {
+      "cohens_kappa": 0.2727,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Ahmed132005 vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Ahmed132005 vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "Ahmed132005 vs ahmad": {
+      "cohens_kappa": -0.0787,
+      "percent_agreement": 0.25,
+      "n_overlap": 16
+    },
+    "Ahmed132005 vs amaya": {
+      "cohens_kappa": 0.0464,
+      "percent_agreement": 0.4375,
+      "n_overlap": 16
+    },
+    "Ahmed132005 vs frish1": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Ahmed132005 vs lazo21": {
+      "cohens_kappa": 0.1377,
+      "percent_agreement": 0.4375,
+      "n_overlap": 16
+    },
+    "Ahmed132005 vs mommy": {
+      "cohens_kappa": 0.1111,
+      "percent_agreement": 0.4286,
+      "n_overlap": 14
+    },
+    "Ahmed132005 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.4375,
+      "n_overlap": 16
+    },
+    "Ahmed132005 vs p8": {
+      "cohens_kappa": 0.2866,
+      "percent_agreement": 0.5625,
+      "n_overlap": 16
+    },
+    "Ahmed132005 vs shaho97": {
+      "cohens_kappa": 0.0769,
+      "percent_agreement": 0.25,
+      "n_overlap": 8
+    },
+    "Ahmed132005 vs username2": {
+      "cohens_kappa": -0.0127,
+      "percent_agreement": 0.375,
+      "n_overlap": 16
+    },
+    "Ahmed132005 vs vana7": {
+      "cohens_kappa": -0.5,
+      "percent_agreement": 0.3333,
+      "n_overlap": 3
+    },
+    "Aza3 vs Batista": {
+      "cohens_kappa": 0.0442,
+      "percent_agreement": 0.25,
+      "n_overlap": 12
+    },
+    "Aza3 vs Dania1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Aza3 vs Davar": {
+      "cohens_kappa": 0.6364,
+      "percent_agreement": 0.75,
+      "n_overlap": 4
+    },
+    "Aza3 vs Dlo01": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Aza3 vs Helav22": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Aza3 vs KMR": {
+      "cohens_kappa": 0.0678,
+      "percent_agreement": 0.5455,
+      "n_overlap": 11
+    },
+    "Aza3 vs Kareen3": {
+      "cohens_kappa": 0.1111,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Aza3 vs Kode": {
+      "cohens_kappa": 0.0769,
+      "percent_agreement": 0.4,
+      "n_overlap": 10
+    },
+    "Aza3 vs Lalo": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Aza3 vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Aza3 vs Mahmood": {
+      "cohens_kappa": 0.7073,
+      "percent_agreement": 0.8333,
+      "n_overlap": 12
+    },
+    "Aza3 vs Nur": {
+      "cohens_kappa": -0.4,
+      "percent_agreement": 0.1429,
+      "n_overlap": 7
+    },
+    "Aza3 vs R1": {
+      "cohens_kappa": 0.0769,
+      "percent_agreement": 0.5,
+      "n_overlap": 12
+    },
+    "Aza3 vs Ramyar77": {
+      "cohens_kappa": 0.4353,
+      "percent_agreement": 0.6667,
+      "n_overlap": 12
+    },
+    "Aza3 vs Rezhiar": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 12
+    },
+    "Aza3 vs Shaho2": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.6667,
+      "n_overlap": 12
+    },
+    "Aza3 vs Shajwan96": {
+      "cohens_kappa": 0.2542,
+      "percent_agreement": 0.6364,
+      "n_overlap": 11
+    },
+    "Aza3 vs Username": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.6667,
+      "n_overlap": 12
+    },
+    "Aza3 vs Zhala1": {
+      "cohens_kappa": 0.2727,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Aza3 vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Aza3 vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "Aza3 vs ahmad": {
+      "cohens_kappa": -0.102,
+      "percent_agreement": 0.25,
+      "n_overlap": 12
+    },
+    "Aza3 vs amaya": {
+      "cohens_kappa": 0.1429,
+      "percent_agreement": 0.5833,
+      "n_overlap": 12
+    },
+    "Aza3 vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Aza3 vs lazo21": {
+      "cohens_kappa": 0.0667,
+      "percent_agreement": 0.4167,
+      "n_overlap": 12
+    },
+    "Aza3 vs mommy": {
+      "cohens_kappa": -0.12,
+      "percent_agreement": 0.4167,
+      "n_overlap": 12
+    },
+    "Aza3 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5833,
+      "n_overlap": 12
+    },
+    "Aza3 vs p8": {
+      "cohens_kappa": 0.2,
+      "percent_agreement": 0.5833,
+      "n_overlap": 12
+    },
+    "Aza3 vs shaho97": {
+      "cohens_kappa": 0.2308,
+      "percent_agreement": 0.375,
+      "n_overlap": 8
+    },
+    "Aza3 vs username2": {
+      "cohens_kappa": 0.4783,
+      "percent_agreement": 0.75,
+      "n_overlap": 12
+    },
+    "Aza3 vs vana7": {
+      "cohens_kappa": 1.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 3
+    },
+    "Batista vs Dania1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Batista vs Davar": {
+      "cohens_kappa": 0.1429,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Batista vs Dlo01": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Batista vs Helav22": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.2,
+      "n_overlap": 5
+    },
+    "Batista vs KMR": {
+      "cohens_kappa": -0.1635,
+      "percent_agreement": 0.0,
+      "n_overlap": 11
+    },
+    "Batista vs Kareen3": {
+      "cohens_kappa": -0.1429,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Batista vs Kode": {
+      "cohens_kappa": 0.1398,
+      "percent_agreement": 0.375,
+      "n_overlap": 16
+    },
+    "Batista vs Lalo": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "Batista vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Batista vs Mahmood": {
+      "cohens_kappa": 0.0411,
+      "percent_agreement": 0.2857,
+      "n_overlap": 14
+    },
+    "Batista vs Nur": {
+      "cohens_kappa": -0.0769,
+      "percent_agreement": 0.1429,
+      "n_overlap": 7
+    },
+    "Batista vs R1": {
+      "cohens_kappa": 0.1021,
+      "percent_agreement": 0.4167,
+      "n_overlap": 36
+    },
+    "Batista vs Ramyar77": {
+      "cohens_kappa": 0.0666,
+      "percent_agreement": 0.4,
+      "n_overlap": 60
+    },
+    "Batista vs Rezhiar": {
+      "cohens_kappa": 0.3583,
+      "percent_agreement": 0.6,
+      "n_overlap": 60
+    },
+    "Batista vs Shaho2": {
+      "cohens_kappa": -0.0672,
+      "percent_agreement": 0.3333,
+      "n_overlap": 45
+    },
+    "Batista vs Shajwan96": {
+      "cohens_kappa": 0.1089,
+      "percent_agreement": 0.5085,
+      "n_overlap": 59
+    },
+    "Batista vs Username": {
+      "cohens_kappa": 0.1241,
+      "percent_agreement": 0.4,
+      "n_overlap": 60
+    },
+    "Batista vs Zhala1": {
+      "cohens_kappa": 0.2,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Batista vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "Batista vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.1111,
+      "n_overlap": 9
+    },
+    "Batista vs ahmad": {
+      "cohens_kappa": 0.1391,
+      "percent_agreement": 0.45,
+      "n_overlap": 60
+    },
+    "Batista vs amaya": {
+      "cohens_kappa": 0.1376,
+      "percent_agreement": 0.4324,
+      "n_overlap": 37
+    },
+    "Batista vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "Batista vs lazo21": {
+      "cohens_kappa": -0.0336,
+      "percent_agreement": 0.3333,
+      "n_overlap": 60
+    },
+    "Batista vs mommy": {
+      "cohens_kappa": -0.1831,
+      "percent_agreement": 0.1429,
+      "n_overlap": 14
+    },
+    "Batista vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.383,
+      "n_overlap": 47
+    },
+    "Batista vs p8": {
+      "cohens_kappa": 0.2864,
+      "percent_agreement": 0.5667,
+      "n_overlap": 60
+    },
+    "Batista vs shaho97": {
+      "cohens_kappa": 0.04,
+      "percent_agreement": 0.25,
+      "n_overlap": 8
+    },
+    "Batista vs username2": {
+      "cohens_kappa": 0.0746,
+      "percent_agreement": 0.4,
+      "n_overlap": 60
+    },
+    "Batista vs vana7": {
+      "cohens_kappa": 0.1429,
+      "percent_agreement": 0.3333,
+      "n_overlap": 3
+    },
+    "Dania1 vs Davar": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Dlo01": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Helav22": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs KMR": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Kareen3": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Kode": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Lalo": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Mahmood": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Nur": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs R1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Ramyar77": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Rezhiar": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Shaho2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Shajwan96": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Username": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs Zhala1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs ahmad": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs amaya": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs lazo21": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs mommy": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs p8": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs username2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dania1 vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Davar vs Dlo01": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Davar vs Helav22": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Davar vs KMR": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs Kareen3": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs Kode": {
+      "cohens_kappa": -0.0909,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs Lalo": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Davar vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Davar vs Mahmood": {
+      "cohens_kappa": 0.0769,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs Nur": {
+      "cohens_kappa": -0.4545,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Davar vs R1": {
+      "cohens_kappa": 0.2727,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Davar vs Ramyar77": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Davar vs Rezhiar": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs Shaho2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs Shajwan96": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs Username": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs Zhala1": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Davar vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Davar vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Davar vs ahmad": {
+      "cohens_kappa": -0.2,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs amaya": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs frish1": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Davar vs lazo21": {
+      "cohens_kappa": 0.6,
+      "percent_agreement": 0.75,
+      "n_overlap": 4
+    },
+    "Davar vs mommy": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs p8": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Davar vs username2": {
+      "cohens_kappa": 0.2727,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Davar vs vana7": {
+      "cohens_kappa": 0.5,
+      "percent_agreement": 0.6667,
+      "n_overlap": 3
+    },
+    "Dlo01 vs Helav22": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs KMR": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs Kareen3": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs Kode": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs Lalo": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs Mahmood": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs Nur": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs R1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs Ramyar77": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs Rezhiar": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs Shaho2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs Shajwan96": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs Username": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs Zhala1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs ahmad": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs amaya": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs lazo21": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs mommy": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs p8": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs username2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Dlo01 vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Helav22 vs KMR": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs Kareen3": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Helav22 vs Kode": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs Lalo": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "Helav22 vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Helav22 vs Mahmood": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.2,
+      "n_overlap": 5
+    },
+    "Helav22 vs Nur": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs R1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs Ramyar77": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs Rezhiar": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs Shaho2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs Shajwan96": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs Username": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs Zhala1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Helav22 vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "Helav22 vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs ahmad": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs amaya": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Helav22 vs lazo21": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs mommy": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs p8": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs username2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 5
+    },
+    "Helav22 vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 3
+    },
+    "KMR vs Kareen3": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.75,
+      "n_overlap": 4
+    },
+    "KMR vs Kode": {
+      "cohens_kappa": 0.1509,
+      "percent_agreement": 0.4444,
+      "n_overlap": 9
+    },
+    "KMR vs Lalo": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "KMR vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "KMR vs Mahmood": {
+      "cohens_kappa": -0.0,
+      "percent_agreement": 0.4545,
+      "n_overlap": 11
+    },
+    "KMR vs Nur": {
+      "cohens_kappa": -0.25,
+      "percent_agreement": 0.2857,
+      "n_overlap": 7
+    },
+    "KMR vs R1": {
+      "cohens_kappa": -0.3051,
+      "percent_agreement": 0.3636,
+      "n_overlap": 11
+    },
+    "KMR vs Ramyar77": {
+      "cohens_kappa": 0.0984,
+      "percent_agreement": 0.5455,
+      "n_overlap": 11
+    },
+    "KMR vs Rezhiar": {
+      "cohens_kappa": -0.32,
+      "percent_agreement": 0.4545,
+      "n_overlap": 11
+    },
+    "KMR vs Shaho2": {
+      "cohens_kappa": 0.0222,
+      "percent_agreement": 0.6364,
+      "n_overlap": 11
+    },
+    "KMR vs Shajwan96": {
+      "cohens_kappa": -0.25,
+      "percent_agreement": 0.6,
+      "n_overlap": 10
+    },
+    "KMR vs Username": {
+      "cohens_kappa": -0.2791,
+      "percent_agreement": 0.5455,
+      "n_overlap": 11
+    },
+    "KMR vs Zhala1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "KMR vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "KMR vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "KMR vs ahmad": {
+      "cohens_kappa": -0.2222,
+      "percent_agreement": 0.2727,
+      "n_overlap": 11
+    },
+    "KMR vs amaya": {
+      "cohens_kappa": 0.1316,
+      "percent_agreement": 0.7273,
+      "n_overlap": 11
+    },
+    "KMR vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "KMR vs lazo21": {
+      "cohens_kappa": -0.1,
+      "percent_agreement": 0.3636,
+      "n_overlap": 11
+    },
+    "KMR vs mommy": {
+      "cohens_kappa": -0.32,
+      "percent_agreement": 0.4545,
+      "n_overlap": 11
+    },
+    "KMR vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.8182,
+      "n_overlap": 11
+    },
+    "KMR vs p8": {
+      "cohens_kappa": 0.1538,
+      "percent_agreement": 0.6364,
+      "n_overlap": 11
+    },
+    "KMR vs shaho97": {
+      "cohens_kappa": -0.037,
+      "percent_agreement": 0.125,
+      "n_overlap": 8
+    },
+    "KMR vs username2": {
+      "cohens_kappa": -0.1579,
+      "percent_agreement": 0.6364,
+      "n_overlap": 11
+    },
+    "KMR vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.6667,
+      "n_overlap": 3
+    },
+    "Kareen3 vs Kode": {
+      "cohens_kappa": 0.1111,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Kareen3 vs Lalo": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Kareen3 vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Kareen3 vs Mahmood": {
+      "cohens_kappa": -0.0909,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Kareen3 vs Nur": {
+      "cohens_kappa": 0.5556,
+      "percent_agreement": 0.75,
+      "n_overlap": 4
+    },
+    "Kareen3 vs R1": {
+      "cohens_kappa": -0.2308,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Kareen3 vs Ramyar77": {
+      "cohens_kappa": 0.5,
+      "percent_agreement": 0.75,
+      "n_overlap": 4
+    },
+    "Kareen3 vs Rezhiar": {
+      "cohens_kappa": 1.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 4
+    },
+    "Kareen3 vs Shaho2": {
+      "cohens_kappa": 1.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 4
+    },
+    "Kareen3 vs Shajwan96": {
+      "cohens_kappa": 1.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 4
+    },
+    "Kareen3 vs Username": {
+      "cohens_kappa": 1.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 4
+    },
+    "Kareen3 vs Zhala1": {
+      "cohens_kappa": 0.2,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Kareen3 vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Kareen3 vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Kareen3 vs ahmad": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Kareen3 vs amaya": {
+      "cohens_kappa": 1.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 4
+    },
+    "Kareen3 vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Kareen3 vs lazo21": {
+      "cohens_kappa": -0.1429,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Kareen3 vs mommy": {
+      "cohens_kappa": 0.2,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Kareen3 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.75,
+      "n_overlap": 4
+    },
+    "Kareen3 vs p8": {
+      "cohens_kappa": 0.5,
+      "percent_agreement": 0.75,
+      "n_overlap": 4
+    },
+    "Kareen3 vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Kareen3 vs username2": {
+      "cohens_kappa": 0.4286,
+      "percent_agreement": 0.75,
+      "n_overlap": 4
+    },
+    "Kareen3 vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.6667,
+      "n_overlap": 3
+    },
+    "Kode vs Lalo": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Kode vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Kode vs Mahmood": {
+      "cohens_kappa": 0.0894,
+      "percent_agreement": 0.4286,
+      "n_overlap": 14
+    },
+    "Kode vs Nur": {
+      "cohens_kappa": 0.125,
+      "percent_agreement": 0.4286,
+      "n_overlap": 7
+    },
+    "Kode vs R1": {
+      "cohens_kappa": -0.1527,
+      "percent_agreement": 0.2778,
+      "n_overlap": 18
+    },
+    "Kode vs Ramyar77": {
+      "cohens_kappa": 0.04,
+      "percent_agreement": 0.3333,
+      "n_overlap": 18
+    },
+    "Kode vs Rezhiar": {
+      "cohens_kappa": 0.202,
+      "percent_agreement": 0.5,
+      "n_overlap": 18
+    },
+    "Kode vs Shaho2": {
+      "cohens_kappa": 0.0246,
+      "percent_agreement": 0.3889,
+      "n_overlap": 18
+    },
+    "Kode vs Shajwan96": {
+      "cohens_kappa": 0.1105,
+      "percent_agreement": 0.4706,
+      "n_overlap": 17
+    },
+    "Kode vs Username": {
+      "cohens_kappa": 0.2098,
+      "percent_agreement": 0.5,
+      "n_overlap": 18
+    },
+    "Kode vs Zhala1": {
+      "cohens_kappa": -0.4545,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Kode vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Kode vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "Kode vs ahmad": {
+      "cohens_kappa": 0.073,
+      "percent_agreement": 0.3333,
+      "n_overlap": 18
+    },
+    "Kode vs amaya": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.3889,
+      "n_overlap": 18
+    },
+    "Kode vs frish1": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "Kode vs lazo21": {
+      "cohens_kappa": 0.1346,
+      "percent_agreement": 0.4444,
+      "n_overlap": 18
+    },
+    "Kode vs mommy": {
+      "cohens_kappa": -0.0862,
+      "percent_agreement": 0.3571,
+      "n_overlap": 14
+    },
+    "Kode vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.3889,
+      "n_overlap": 18
+    },
+    "Kode vs p8": {
+      "cohens_kappa": 0.0246,
+      "percent_agreement": 0.3889,
+      "n_overlap": 18
+    },
+    "Kode vs shaho97": {
+      "cohens_kappa": 0.0204,
+      "percent_agreement": 0.25,
+      "n_overlap": 8
+    },
+    "Kode vs username2": {
+      "cohens_kappa": 0.3239,
+      "percent_agreement": 0.5556,
+      "n_overlap": 18
+    },
+    "Kode vs vana7": {
+      "cohens_kappa": -0.5,
+      "percent_agreement": 0.3333,
+      "n_overlap": 3
+    },
+    "Lalo vs Lawand_Kaka": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lalo vs Mahmood": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Lalo vs Nur": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Lalo vs R1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "Lalo vs Ramyar77": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Lalo vs Rezhiar": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Lalo vs Shaho2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Lalo vs Shajwan96": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Lalo vs Username": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Lalo vs Zhala1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Lalo vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Lalo vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "Lalo vs ahmad": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Lalo vs amaya": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Lalo vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Lalo vs lazo21": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "Lalo vs mommy": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Lalo vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Lalo vs p8": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Lalo vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "Lalo vs username2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Lalo vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Lawand_Kaka vs Mahmood": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs Nur": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs R1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs Ramyar77": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs Rezhiar": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs Shaho2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs Shajwan96": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs Username": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs Zhala1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs ahmad": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs amaya": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs lazo21": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs mommy": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs p8": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs username2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Lawand_Kaka vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 1
+    },
+    "Mahmood vs Nur": {
+      "cohens_kappa": -0.3548,
+      "percent_agreement": 0.1429,
+      "n_overlap": 7
+    },
+    "Mahmood vs R1": {
+      "cohens_kappa": 0.0841,
+      "percent_agreement": 0.5,
+      "n_overlap": 14
+    },
+    "Mahmood vs Ramyar77": {
+      "cohens_kappa": 0.2344,
+      "percent_agreement": 0.5,
+      "n_overlap": 14
+    },
+    "Mahmood vs Rezhiar": {
+      "cohens_kappa": -0.0208,
+      "percent_agreement": 0.5,
+      "n_overlap": 14
+    },
+    "Mahmood vs Shaho2": {
+      "cohens_kappa": 0.2075,
+      "percent_agreement": 0.5714,
+      "n_overlap": 14
+    },
+    "Mahmood vs Shajwan96": {
+      "cohens_kappa": 0.2073,
+      "percent_agreement": 0.6154,
+      "n_overlap": 13
+    },
+    "Mahmood vs Username": {
+      "cohens_kappa": 0.2708,
+      "percent_agreement": 0.6429,
+      "n_overlap": 14
+    },
+    "Mahmood vs Zhala1": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Mahmood vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Mahmood vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.1111,
+      "n_overlap": 9
+    },
+    "Mahmood vs ahmad": {
+      "cohens_kappa": -0.0145,
+      "percent_agreement": 0.2857,
+      "n_overlap": 14
+    },
+    "Mahmood vs amaya": {
+      "cohens_kappa": 0.1158,
+      "percent_agreement": 0.5714,
+      "n_overlap": 14
+    },
+    "Mahmood vs frish1": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "Mahmood vs lazo21": {
+      "cohens_kappa": 0.1833,
+      "percent_agreement": 0.5,
+      "n_overlap": 14
+    },
+    "Mahmood vs mommy": {
+      "cohens_kappa": 0.0392,
+      "percent_agreement": 0.5,
+      "n_overlap": 14
+    },
+    "Mahmood vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5714,
+      "n_overlap": 14
+    },
+    "Mahmood vs p8": {
+      "cohens_kappa": 0.0577,
+      "percent_agreement": 0.5,
+      "n_overlap": 14
+    },
+    "Mahmood vs shaho97": {
+      "cohens_kappa": 0.1111,
+      "percent_agreement": 0.25,
+      "n_overlap": 8
+    },
+    "Mahmood vs username2": {
+      "cohens_kappa": 0.0755,
+      "percent_agreement": 0.5,
+      "n_overlap": 14
+    },
+    "Mahmood vs vana7": {
+      "cohens_kappa": 0.4,
+      "percent_agreement": 0.6667,
+      "n_overlap": 3
+    },
+    "Nur vs R1": {
+      "cohens_kappa": -0.1667,
+      "percent_agreement": 0.2857,
+      "n_overlap": 7
+    },
+    "Nur vs Ramyar77": {
+      "cohens_kappa": -0.25,
+      "percent_agreement": 0.2857,
+      "n_overlap": 7
+    },
+    "Nur vs Rezhiar": {
+      "cohens_kappa": 0.5,
+      "percent_agreement": 0.7143,
+      "n_overlap": 7
+    },
+    "Nur vs Shaho2": {
+      "cohens_kappa": 0.0667,
+      "percent_agreement": 0.4286,
+      "n_overlap": 7
+    },
+    "Nur vs Shajwan96": {
+      "cohens_kappa": 0.25,
+      "percent_agreement": 0.5714,
+      "n_overlap": 7
+    },
+    "Nur vs Username": {
+      "cohens_kappa": 0.25,
+      "percent_agreement": 0.5714,
+      "n_overlap": 7
+    },
+    "Nur vs Zhala1": {
+      "cohens_kappa": -0.0909,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Nur vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Nur vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 7
+    },
+    "Nur vs ahmad": {
+      "cohens_kappa": 0.0541,
+      "percent_agreement": 0.2857,
+      "n_overlap": 7
+    },
+    "Nur vs amaya": {
+      "cohens_kappa": 0.0968,
+      "percent_agreement": 0.4286,
+      "n_overlap": 7
+    },
+    "Nur vs frish1": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "Nur vs lazo21": {
+      "cohens_kappa": -0.2353,
+      "percent_agreement": 0.1429,
+      "n_overlap": 7
+    },
+    "Nur vs mommy": {
+      "cohens_kappa": 0.25,
+      "percent_agreement": 0.5714,
+      "n_overlap": 7
+    },
+    "Nur vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.4286,
+      "n_overlap": 7
+    },
+    "Nur vs p8": {
+      "cohens_kappa": -0.25,
+      "percent_agreement": 0.2857,
+      "n_overlap": 7
+    },
+    "Nur vs shaho97": {
+      "cohens_kappa": -0.05,
+      "percent_agreement": 0.1429,
+      "n_overlap": 7
+    },
+    "Nur vs username2": {
+      "cohens_kappa": 0.0667,
+      "percent_agreement": 0.4286,
+      "n_overlap": 7
+    },
+    "Nur vs vana7": {
+      "cohens_kappa": -0.2,
+      "percent_agreement": 0.3333,
+      "n_overlap": 3
+    },
+    "R1 vs Ramyar77": {
+      "cohens_kappa": -0.012,
+      "percent_agreement": 0.4167,
+      "n_overlap": 36
+    },
+    "R1 vs Rezhiar": {
+      "cohens_kappa": 0.0906,
+      "percent_agreement": 0.5278,
+      "n_overlap": 36
+    },
+    "R1 vs Shaho2": {
+      "cohens_kappa": 0.1074,
+      "percent_agreement": 0.5833,
+      "n_overlap": 36
+    },
+    "R1 vs Shajwan96": {
+      "cohens_kappa": -0.0066,
+      "percent_agreement": 0.6286,
+      "n_overlap": 35
+    },
+    "R1 vs Username": {
+      "cohens_kappa": 0.0343,
+      "percent_agreement": 0.5,
+      "n_overlap": 36
+    },
+    "R1 vs Zhala1": {
+      "cohens_kappa": -0.1429,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "R1 vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "R1 vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "R1 vs ahmad": {
+      "cohens_kappa": 0.1194,
+      "percent_agreement": 0.5278,
+      "n_overlap": 36
+    },
+    "R1 vs amaya": {
+      "cohens_kappa": 0.0306,
+      "percent_agreement": 0.5862,
+      "n_overlap": 29
+    },
+    "R1 vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "R1 vs lazo21": {
+      "cohens_kappa": 0.199,
+      "percent_agreement": 0.5278,
+      "n_overlap": 36
+    },
+    "R1 vs mommy": {
+      "cohens_kappa": 0.5882,
+      "percent_agreement": 0.7857,
+      "n_overlap": 14
+    },
+    "R1 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.6207,
+      "n_overlap": 29
+    },
+    "R1 vs p8": {
+      "cohens_kappa": 0.0357,
+      "percent_agreement": 0.5,
+      "n_overlap": 36
+    },
+    "R1 vs shaho97": {
+      "cohens_kappa": 0.04,
+      "percent_agreement": 0.25,
+      "n_overlap": 8
+    },
+    "R1 vs username2": {
+      "cohens_kappa": 0.1182,
+      "percent_agreement": 0.5278,
+      "n_overlap": 36
+    },
+    "R1 vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.3333,
+      "n_overlap": 3
+    },
+    "Ramyar77 vs Rezhiar": {
+      "cohens_kappa": 0.1429,
+      "percent_agreement": 0.5,
+      "n_overlap": 60
+    },
+    "Ramyar77 vs Shaho2": {
+      "cohens_kappa": 0.2276,
+      "percent_agreement": 0.5778,
+      "n_overlap": 45
+    },
+    "Ramyar77 vs Shajwan96": {
+      "cohens_kappa": 0.0839,
+      "percent_agreement": 0.5763,
+      "n_overlap": 59
+    },
+    "Ramyar77 vs Username": {
+      "cohens_kappa": 0.2506,
+      "percent_agreement": 0.5167,
+      "n_overlap": 60
+    },
+    "Ramyar77 vs Zhala1": {
+      "cohens_kappa": 0.5,
+      "percent_agreement": 0.75,
+      "n_overlap": 4
+    },
+    "Ramyar77 vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Ramyar77 vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "Ramyar77 vs ahmad": {
+      "cohens_kappa": 0.0494,
+      "percent_agreement": 0.45,
+      "n_overlap": 60
+    },
+    "Ramyar77 vs amaya": {
+      "cohens_kappa": 0.1035,
+      "percent_agreement": 0.5263,
+      "n_overlap": 38
+    },
+    "Ramyar77 vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Ramyar77 vs lazo21": {
+      "cohens_kappa": 0.0242,
+      "percent_agreement": 0.4167,
+      "n_overlap": 60
+    },
+    "Ramyar77 vs mommy": {
+      "cohens_kappa": 0.2097,
+      "percent_agreement": 0.5,
+      "n_overlap": 14
+    },
+    "Ramyar77 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5106,
+      "n_overlap": 47
+    },
+    "Ramyar77 vs p8": {
+      "cohens_kappa": 0.2672,
+      "percent_agreement": 0.5833,
+      "n_overlap": 60
+    },
+    "Ramyar77 vs shaho97": {
+      "cohens_kappa": 0.0943,
+      "percent_agreement": 0.25,
+      "n_overlap": 8
+    },
+    "Ramyar77 vs username2": {
+      "cohens_kappa": 0.3364,
+      "percent_agreement": 0.6,
+      "n_overlap": 60
+    },
+    "Ramyar77 vs vana7": {
+      "cohens_kappa": 1.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 3
+    },
+    "Rezhiar vs Shaho2": {
+      "cohens_kappa": 0.0678,
+      "percent_agreement": 0.5111,
+      "n_overlap": 45
+    },
+    "Rezhiar vs Shajwan96": {
+      "cohens_kappa": 0.2091,
+      "percent_agreement": 0.661,
+      "n_overlap": 59
+    },
+    "Rezhiar vs Username": {
+      "cohens_kappa": 0.1594,
+      "percent_agreement": 0.4667,
+      "n_overlap": 60
+    },
+    "Rezhiar vs Zhala1": {
+      "cohens_kappa": 0.2,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Rezhiar vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Rezhiar vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "Rezhiar vs ahmad": {
+      "cohens_kappa": 0.0024,
+      "percent_agreement": 0.4333,
+      "n_overlap": 60
+    },
+    "Rezhiar vs amaya": {
+      "cohens_kappa": 0.3467,
+      "percent_agreement": 0.6842,
+      "n_overlap": 38
+    },
+    "Rezhiar vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Rezhiar vs lazo21": {
+      "cohens_kappa": -0.0033,
+      "percent_agreement": 0.4167,
+      "n_overlap": 60
+    },
+    "Rezhiar vs mommy": {
+      "cohens_kappa": 0.087,
+      "percent_agreement": 0.5714,
+      "n_overlap": 14
+    },
+    "Rezhiar vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5745,
+      "n_overlap": 47
+    },
+    "Rezhiar vs p8": {
+      "cohens_kappa": 0.2952,
+      "percent_agreement": 0.6167,
+      "n_overlap": 60
+    },
+    "Rezhiar vs shaho97": {
+      "cohens_kappa": -0.037,
+      "percent_agreement": 0.125,
+      "n_overlap": 8
+    },
+    "Rezhiar vs username2": {
+      "cohens_kappa": 0.0104,
+      "percent_agreement": 0.4167,
+      "n_overlap": 60
+    },
+    "Rezhiar vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.6667,
+      "n_overlap": 3
+    },
+    "Shaho2 vs Shajwan96": {
+      "cohens_kappa": 0.2024,
+      "percent_agreement": 0.7273,
+      "n_overlap": 44
+    },
+    "Shaho2 vs Username": {
+      "cohens_kappa": 0.1826,
+      "percent_agreement": 0.5556,
+      "n_overlap": 45
+    },
+    "Shaho2 vs Zhala1": {
+      "cohens_kappa": 0.2,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Shaho2 vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Shaho2 vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "Shaho2 vs ahmad": {
+      "cohens_kappa": 0.1036,
+      "percent_agreement": 0.5556,
+      "n_overlap": 45
+    },
+    "Shaho2 vs amaya": {
+      "cohens_kappa": 0.2416,
+      "percent_agreement": 0.7419,
+      "n_overlap": 31
+    },
+    "Shaho2 vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Shaho2 vs lazo21": {
+      "cohens_kappa": -0.0474,
+      "percent_agreement": 0.4222,
+      "n_overlap": 45
+    },
+    "Shaho2 vs mommy": {
+      "cohens_kappa": 0.0577,
+      "percent_agreement": 0.5,
+      "n_overlap": 14
+    },
+    "Shaho2 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.7222,
+      "n_overlap": 36
+    },
+    "Shaho2 vs p8": {
+      "cohens_kappa": 0.1818,
+      "percent_agreement": 0.5778,
+      "n_overlap": 45
+    },
+    "Shaho2 vs shaho97": {
+      "cohens_kappa": -0.0566,
+      "percent_agreement": 0.125,
+      "n_overlap": 8
+    },
+    "Shaho2 vs username2": {
+      "cohens_kappa": 0.329,
+      "percent_agreement": 0.6444,
+      "n_overlap": 45
+    },
+    "Shaho2 vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.6667,
+      "n_overlap": 3
+    },
+    "Shajwan96 vs Username": {
+      "cohens_kappa": 0.1608,
+      "percent_agreement": 0.6,
+      "n_overlap": 60
+    },
+    "Shajwan96 vs Zhala1": {
+      "cohens_kappa": 0.2,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Shajwan96 vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Shajwan96 vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "Shajwan96 vs ahmad": {
+      "cohens_kappa": 0.0149,
+      "percent_agreement": 0.6333,
+      "n_overlap": 60
+    },
+    "Shajwan96 vs amaya": {
+      "cohens_kappa": 0.3372,
+      "percent_agreement": 0.8421,
+      "n_overlap": 38
+    },
+    "Shajwan96 vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Shajwan96 vs lazo21": {
+      "cohens_kappa": 0.0146,
+      "percent_agreement": 0.55,
+      "n_overlap": 60
+    },
+    "Shajwan96 vs mommy": {
+      "cohens_kappa": 0.0455,
+      "percent_agreement": 0.5714,
+      "n_overlap": 14
+    },
+    "Shajwan96 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.9149,
+      "n_overlap": 47
+    },
+    "Shajwan96 vs p8": {
+      "cohens_kappa": 0.1736,
+      "percent_agreement": 0.6667,
+      "n_overlap": 60
+    },
+    "Shajwan96 vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.2222,
+      "n_overlap": 9
+    },
+    "Shajwan96 vs username2": {
+      "cohens_kappa": 0.1062,
+      "percent_agreement": 0.6167,
+      "n_overlap": 60
+    },
+    "Shajwan96 vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.6667,
+      "n_overlap": 3
+    },
+    "Username vs Zhala1": {
+      "cohens_kappa": 0.2,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Username vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "Username vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "Username vs ahmad": {
+      "cohens_kappa": -0.0215,
+      "percent_agreement": 0.3667,
+      "n_overlap": 60
+    },
+    "Username vs amaya": {
+      "cohens_kappa": 0.1,
+      "percent_agreement": 0.5263,
+      "n_overlap": 38
+    },
+    "Username vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Username vs lazo21": {
+      "cohens_kappa": 0.0277,
+      "percent_agreement": 0.3667,
+      "n_overlap": 60
+    },
+    "Username vs mommy": {
+      "cohens_kappa": 0.087,
+      "percent_agreement": 0.5714,
+      "n_overlap": 14
+    },
+    "Username vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5532,
+      "n_overlap": 47
+    },
+    "Username vs p8": {
+      "cohens_kappa": 0.2367,
+      "percent_agreement": 0.5333,
+      "n_overlap": 60
+    },
+    "Username vs shaho97": {
+      "cohens_kappa": -0.0182,
+      "percent_agreement": 0.125,
+      "n_overlap": 8
+    },
+    "Username vs username2": {
+      "cohens_kappa": 0.226,
+      "percent_agreement": 0.5167,
+      "n_overlap": 60
+    },
+    "Username vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.6667,
+      "n_overlap": 3
+    },
+    "Zhala1 vs a2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Zhala1 vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Zhala1 vs ahmad": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Zhala1 vs amaya": {
+      "cohens_kappa": 0.2,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Zhala1 vs frish1": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "Zhala1 vs lazo21": {
+      "cohens_kappa": -0.2,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Zhala1 vs mommy": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 4
+    },
+    "Zhala1 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Zhala1 vs p8": {
+      "cohens_kappa": 0.5,
+      "percent_agreement": 0.75,
+      "n_overlap": 4
+    },
+    "Zhala1 vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 4
+    },
+    "Zhala1 vs username2": {
+      "cohens_kappa": 0.0769,
+      "percent_agreement": 0.25,
+      "n_overlap": 4
+    },
+    "Zhala1 vs vana7": {
+      "cohens_kappa": 0.4,
+      "percent_agreement": 0.6667,
+      "n_overlap": 3
+    },
+    "a2 vs aa": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "a2 vs ahmad": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "a2 vs amaya": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "a2 vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "a2 vs lazo21": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "a2 vs mommy": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "a2 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "a2 vs p8": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "a2 vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "a2 vs username2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "a2 vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 1.0,
+      "n_overlap": 2
+    },
+    "aa vs ahmad": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "aa vs amaya": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "aa vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "aa vs lazo21": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "aa vs mommy": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "aa vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "aa vs p8": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "aa vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 8
+    },
+    "aa vs username2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 9
+    },
+    "aa vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 3
+    },
+    "ahmad vs amaya": {
+      "cohens_kappa": -0.027,
+      "percent_agreement": 0.5263,
+      "n_overlap": 38
+    },
+    "ahmad vs frish1": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "ahmad vs lazo21": {
+      "cohens_kappa": 0.1262,
+      "percent_agreement": 0.5,
+      "n_overlap": 60
+    },
+    "ahmad vs mommy": {
+      "cohens_kappa": 0.2794,
+      "percent_agreement": 0.5,
+      "n_overlap": 14
+    },
+    "ahmad vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5957,
+      "n_overlap": 47
+    },
+    "ahmad vs p8": {
+      "cohens_kappa": 0.013,
+      "percent_agreement": 0.45,
+      "n_overlap": 60
+    },
+    "ahmad vs shaho97": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 8
+    },
+    "ahmad vs username2": {
+      "cohens_kappa": 0.1237,
+      "percent_agreement": 0.5,
+      "n_overlap": 60
+    },
+    "ahmad vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.3333,
+      "n_overlap": 3
+    },
+    "amaya vs frish1": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "amaya vs lazo21": {
+      "cohens_kappa": -0.0909,
+      "percent_agreement": 0.5,
+      "n_overlap": 60
+    },
+    "amaya vs mommy": {
+      "cohens_kappa": 0.1064,
+      "percent_agreement": 0.5714,
+      "n_overlap": 14
+    },
+    "amaya vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.8837,
+      "n_overlap": 43
+    },
+    "amaya vs p8": {
+      "cohens_kappa": 0.2174,
+      "percent_agreement": 0.55,
+      "n_overlap": 60
+    },
+    "amaya vs shaho97": {
+      "cohens_kappa": -0.037,
+      "percent_agreement": 0.125,
+      "n_overlap": 8
+    },
+    "amaya vs username2": {
+      "cohens_kappa": -0.0982,
+      "percent_agreement": 0.45,
+      "n_overlap": 60
+    },
+    "amaya vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.6667,
+      "n_overlap": 3
+    },
+    "frish1 vs lazo21": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "frish1 vs mommy": {
+      "cohens_kappa": -0.3333,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "frish1 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "frish1 vs p8": {
+      "cohens_kappa": 0.3333,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "frish1 vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 2
+    },
+    "frish1 vs username2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "frish1 vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5,
+      "n_overlap": 2
+    },
+    "lazo21 vs mommy": {
+      "cohens_kappa": 0.5172,
+      "percent_agreement": 0.7143,
+      "n_overlap": 14
+    },
+    "lazo21 vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5106,
+      "n_overlap": 47
+    },
+    "lazo21 vs p8": {
+      "cohens_kappa": 0.0087,
+      "percent_agreement": 0.4333,
+      "n_overlap": 60
+    },
+    "lazo21 vs shaho97": {
+      "cohens_kappa": -0.0213,
+      "percent_agreement": 0.25,
+      "n_overlap": 8
+    },
+    "lazo21 vs username2": {
+      "cohens_kappa": -0.023,
+      "percent_agreement": 0.3833,
+      "n_overlap": 60
+    },
+    "lazo21 vs vana7": {
+      "cohens_kappa": 0.1429,
+      "percent_agreement": 0.3333,
+      "n_overlap": 3
+    },
+    "mommy vs okay2": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.5625,
+      "n_overlap": 16
+    },
+    "mommy vs p8": {
+      "cohens_kappa": -0.2403,
+      "percent_agreement": 0.375,
+      "n_overlap": 16
+    },
+    "mommy vs shaho97": {
+      "cohens_kappa": -0.0769,
+      "percent_agreement": 0.125,
+      "n_overlap": 8
+    },
+    "mommy vs username2": {
+      "cohens_kappa": -0.0526,
+      "percent_agreement": 0.375,
+      "n_overlap": 16
+    },
+    "mommy vs vana7": {
+      "cohens_kappa": 0.4,
+      "percent_agreement": 0.6667,
+      "n_overlap": 3
+    },
+    "okay2 vs p8": {
+      "cohens_kappa": 0.066,
+      "percent_agreement": 0.5455,
+      "n_overlap": 66
+    },
+    "okay2 vs shaho97": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.125,
+      "n_overlap": 8
+    },
+    "okay2 vs username2": {
+      "cohens_kappa": -0.0563,
+      "percent_agreement": 0.5,
+      "n_overlap": 66
+    },
+    "okay2 vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.6667,
+      "n_overlap": 3
+    },
+    "p8 vs shaho97": {
+      "cohens_kappa": 0.0943,
+      "percent_agreement": 0.25,
+      "n_overlap": 8
+    },
+    "p8 vs username2": {
+      "cohens_kappa": 0.1537,
+      "percent_agreement": 0.5167,
+      "n_overlap": 60
+    },
+    "p8 vs vana7": {
+      "cohens_kappa": -0.5,
+      "percent_agreement": 0.3333,
+      "n_overlap": 3
+    },
+    "shaho97 vs username2": {
+      "cohens_kappa": 0.1111,
+      "percent_agreement": 0.25,
+      "n_overlap": 8
+    },
+    "shaho97 vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.0,
+      "n_overlap": 3
+    },
+    "username2 vs vana7": {
+      "cohens_kappa": 0.0,
+      "percent_agreement": 0.6667,
+      "n_overlap": 3
+    }
+  },
+  "metric_validation_R15": {
+    "kendall_tau_b_humanordinal_vs_metricaccuracy": 0.0,
+    "tau_n_pairs": 60,
+    "cohens_kappa_humanbinary_vs_metricpass": 0.0,
+    "percent_agreement_humanbinary_vs_metricpass": 0.8167,
+    "n_binary_pairs": 60
+  },
+  "human_grammaticality_by_system": {
+    "baseline": 2.529,
+    "both": 2.6128,
+    "morphaware": 2.6162
+  },
+  "includes_automated_proxy": false,
+  "ordinal_scale": "1=هەڵە (wrong), 2=بەشێکی دروست (partial), 3=دروست (correct)"
+}

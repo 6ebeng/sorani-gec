@@ -1,0 +1,162 @@
+{
+  "no_morphology": {
+    "precision": 0.004419775927639018,
+    "recall": 0.04756637168141593,
+    "f05": 0.0053992968357609245,
+    "tp": 43,
+    "fp": 9686,
+    "fn": 861,
+    "agreement_accuracy": 0.2143569292123629,
+    "agreement_correct": 215,
+    "agreement_total": 1003,
+    "experiment": "no_morphology"
+  },
+  "individual_features": [
+    {
+      "precision": 0.0018301216492625687,
+      "recall": 0.05641592920353982,
+      "f05": 0.002269248567258748,
+      "tp": 51,
+      "fp": 27816,
+      "fn": 853,
+      "agreement_accuracy": 1.0,
+      "agreement_correct": 1003,
+      "agreement_total": 1003,
+      "experiment": "individual_features",
+      "feature": "person"
+    },
+    {
+      "precision": 0.0034825094859400178,
+      "recall": 0.07411504424778761,
+      "f05": 0.004302594400205497,
+      "tp": 67,
+      "fp": 19172,
+      "fn": 837,
+      "agreement_accuracy": 1.0,
+      "agreement_correct": 1003,
+      "agreement_total": 1003,
+      "experiment": "individual_features",
+      "feature": "number"
+    },
+    {
+      "precision": 0.00321843853820598,
+      "recall": 0.06858407079646017,
+      "f05": 0.003976398152898923,
+      "tp": 62,
+      "fp": 19202,
+      "fn": 842,
+      "agreement_accuracy": 0.9820538384845464,
+      "agreement_correct": 985,
+      "agreement_total": 1003,
+      "experiment": "individual_features",
+      "feature": "tense"
+    }
+  ],
+  "data_size_variation": [
+    {
+      "precision": 0.0035054674828650656,
+      "recall": 0.07411504424778761,
+      "f05": 0.004330627229949841,
+      "tp": 67,
+      "fp": 19046,
+      "fn": 837,
+      "agreement_accuracy": 0.9980059820538385,
+      "agreement_correct": 1001,
+      "agreement_total": 1003,
+      "experiment": "data_size_variation",
+      "data_size": 2000
+    },
+    {
+      "precision": 0.0035054674828650656,
+      "recall": 0.07411504424778761,
+      "f05": 0.004330627229949841,
+      "tp": 67,
+      "fp": 19046,
+      "fn": 837,
+      "agreement_accuracy": 1.0,
+      "agreement_correct": 1003,
+      "agreement_total": 1003,
+      "experiment": "data_size_variation",
+      "data_size": 4000
+    },
+    {
+      "precision": 0.0035054674828650656,
+      "recall": 0.07411504424778761,
+      "f05": 0.004330627229949841,
+      "tp": 67,
+      "fp": 19046,
+      "fn": 837,
+      "agreement_accuracy": 1.0,
+      "agreement_correct": 1003,
+      "agreement_total": 1003,
+      "experiment": "data_size_variation",
+      "data_size": 7998
+    }
+  ],
+  "agreement_loss_weight": [
+    {
+      "precision": 0.0035054674828650656,
+      "recall": 0.07411504424778761,
+      "f05": 0.004330627229949841,
+      "tp": 67,
+      "fp": 19046,
+      "fn": 837,
+      "agreement_accuracy": 1.0,
+      "agreement_correct": 1003,
+      "agreement_total": 1003,
+      "experiment": "agreement_loss_weight",
+      "agreement_loss_weight": 0.0
+    },
+    {
+      "precision": 0.002653287664624439,
+      "recall": 0.06084070796460177,
+      "f05": 0.0032808398950131237,
+      "tp": 55,
+      "fp": 20674,
+      "fn": 849,
+      "agreement_accuracy": 0.9990029910269193,
+      "agreement_correct": 1002,
+      "agreement_total": 1003,
+      "experiment": "agreement_loss_weight",
+      "agreement_loss_weight": 0.05
+    },
+    {
+      "precision": 0.0035054674828650656,
+      "recall": 0.07411504424778761,
+      "f05": 0.004330627229949841,
+      "tp": 67,
+      "fp": 19046,
+      "fn": 837,
+      "agreement_accuracy": 1.0,
+      "agreement_correct": 1003,
+      "agreement_total": 1003,
+      "experiment": "agreement_loss_weight",
+      "agreement_loss_weight": 0.1
+    },
+    {
+      "precision": 0.00045600674889988374,
+      "recall": 0.022123893805309734,
+      "f05": 0.0005670863105364637,
+      "tp": 20,
+      "fp": 43839,
+      "fn": 884,
+      "agreement_accuracy": 0.8673978065802592,
+      "agreement_correct": 870,
+      "agreement_total": 1003,
+      "experiment": "agreement_loss_weight",
+      "agreement_loss_weight": 0.3
+    }
+  ],
+  "curriculum_learning": {
+    "precision": 0.0025096274501319716,
+    "recall": 0.06415929203539823,
+    "f05": 0.0031066546685520847,
+    "tp": 58,
+    "fp": 23053,
+    "fn": 846,
+    "agreement_accuracy": 0.9680957128614157,
+    "agreement_correct": 971,
+    "agreement_total": 1003,
+    "experiment": "curriculum_learning"
+  }
+}

@@ -1,0 +1,46 @@
+[
+  {
+    "system": "copy",
+    "f05": 0.0,
+    "precision": 0.0,
+    "recall": 0.0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 459,
+    "elapsed_sec": 0.0,
+    "n_sentences": 647
+  },
+  {
+    "system": "hunspell",
+    "f05": 0.009487666034155599,
+    "precision": 0.058823529411764705,
+    "recall": 0.002178649237472767,
+    "tp": 1,
+    "fp": 16,
+    "fn": 458,
+    "elapsed_sec": 3.59,
+    "n_sentences": 647
+  },
+  {
+    "system": "reverse_rule",
+    "f05": 0.08487269096355467,
+    "precision": 0.08808290155440414,
+    "recall": 0.07407407407407407,
+    "tp": 34,
+    "fp": 352,
+    "fn": 425,
+    "elapsed_sec": 14.45,
+    "n_sentences": 647
+  },
+  {
+    "system": "ngram_lm",
+    "f05": 0.1394422310756972,
+    "precision": 0.17587939698492464,
+    "recall": 0.07625272331154684,
+    "tp": 35,
+    "fp": 164,
+    "fn": 424,
+    "elapsed_sec": 15.38,
+    "n_sentences": 647
+  }
+]

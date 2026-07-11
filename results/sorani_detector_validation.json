@@ -1,0 +1,117 @@
+{
+  "gold_set": "data/language_id_eval/multilingual_gold.jsonl",
+  "n_sentences": 200,
+  "gold_distribution": {
+    "ckb": 70,
+    "arb": 50,
+    "fas": 50,
+    "kmr": 30
+  },
+  "threshold_0.55": {
+    "tp": 54,
+    "fp": 24,
+    "fn": 16,
+    "tn": 106,
+    "precision": 0.6923,
+    "recall": 0.7714,
+    "f1": 0.7297,
+    "accuracy": 0.8
+  },
+  "per_language": {
+    "ckb": {
+      "recall": 0.7714,
+      "mean_confidence": 0.6114
+    },
+    "arb": {
+      "fp_rate": 0.0,
+      "mean_confidence": 0.1013
+    },
+    "fas": {
+      "fp_rate": 0.0,
+      "mean_confidence": 0.1415
+    },
+    "kmr": {
+      "fp_rate": 0.8,
+      "mean_confidence": 0.5883
+    }
+  },
+  "threshold_sweep": {
+    "0.30": {
+      "precision": 0.6842,
+      "recall": 0.9286,
+      "f1": 0.7879,
+      "tp": 65,
+      "fp": 30,
+      "fn": 5
+    },
+    "0.40": {
+      "precision": 0.6842,
+      "recall": 0.9286,
+      "f1": 0.7879,
+      "tp": 65,
+      "fp": 30,
+      "fn": 5
+    },
+    "0.45": {
+      "precision": 0.6842,
+      "recall": 0.9286,
+      "f1": 0.7879,
+      "tp": 65,
+      "fp": 30,
+      "fn": 5
+    },
+    "0.50": {
+      "precision": 0.6915,
+      "recall": 0.9286,
+      "f1": 0.7927,
+      "tp": 65,
+      "fp": 29,
+      "fn": 5
+    },
+    "0.55": {
+      "precision": 0.6923,
+      "recall": 0.7714,
+      "f1": 0.7297,
+      "tp": 54,
+      "fp": 24,
+      "fn": 16
+    },
+    "0.60": {
+      "precision": 0.8036,
+      "recall": 0.6429,
+      "f1": 0.7143,
+      "tp": 45,
+      "fp": 11,
+      "fn": 25
+    },
+    "0.65": {
+      "precision": 0.8286,
+      "recall": 0.4143,
+      "f1": 0.5524,
+      "tp": 29,
+      "fp": 6,
+      "fn": 41
+    },
+    "0.70": {
+      "precision": 0.9444,
+      "recall": 0.2429,
+      "f1": 0.3864,
+      "tp": 17,
+      "fp": 1,
+      "fn": 53
+    },
+    "0.80": {
+      "precision": 1.0,
+      "recall": 0.0571,
+      "f1": 0.1081,
+      "tp": 4,
+      "fp": 0,
+      "fn": 66
+    }
+  },
+  "signal_weights": {
+    "script": 0.35,
+    "function_words": 0.4,
+    "morphology": 0.25
+  }
+}
