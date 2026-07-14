@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Campaign 2 — multiseed training (formerly "Phase D")
+# Campaign 2 — multiseed training
 # R2 (gated-residual morphaware) + R32 (≥3 seeds)
 # =============================================================================
 # Trains the ByT5-small baseline and the gated-residual morphology-aware model

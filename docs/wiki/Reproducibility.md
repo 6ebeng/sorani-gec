@@ -55,16 +55,18 @@ Checkpoints are raw `torch.save` state dicts:
 
 ```python
 from transformers import AutoTokenizer, T5ForConditionalGeneration
+from pathlib import Path
 import torch
 
 tokenizer = AutoTokenizer.from_pretrained("google/byt5-small")
 model = T5ForConditionalGeneration.from_pretrained("google/byt5-small")
-state = torch.load("hf_models/phase_d/baseline_seed42/best_model.pt", map_location="cpu")  # HF keeps the legacy phase_d/ prefix
+checkpoint = next(Path("hf_models").glob("*/baseline_seed42/best_model.pt"))
+state = torch.load(checkpoint, map_location="cpu")
 model.load_state_dict(state.get("model_state_dict", state), strict=False)
 model.eval()
 ```
 
-Note the campaign distinction: the HF checkpoints are **campaign 2 — multiseed** (span F₀.₅ ≈ 0.17), published under the legacy `phase_d/` prefix. The campaign-3 clean-final checkpoints (F₀.₅ ≈ 0.51) live in `results/campaign_3_clean_final/*/best_model.pt`; upload is managed by `upload_to_hf.py`.
+Note the campaign distinction: the HF checkpoints are **campaign 2 — multiseed** (span F₀.₅ ≈ 0.17). The uploader targets `campaign_2_multiseed/`; the glob above also accepts snapshots created before the rename. The campaign-3 clean-final checkpoints (F₀.₅ ≈ 0.51) live in `results/campaign_3_clean_final/*/best_model.pt`; upload is managed by `upload_to_hf.py`.
 
 ## Environment freeze
 

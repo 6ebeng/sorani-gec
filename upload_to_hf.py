@@ -2,12 +2,8 @@
 """
 Upload Sorani GEC model checkpoints and results to Hugging Face Hub.
 
-Uploads the campaign-2 (multiseed, formerly "Phase D") best_model.pt files
-(3 seeds x 2 models) plus eval_summary.json and a model card README.
-
-NOTE ON NAMING: the local directory is results/campaign_2_multiseed/ but the
-remote HF layout keeps the historical phase_d/ prefix because those paths are
-already published (download scripts in the wild reference them).
+Uploads the campaign-2 multiseed best_model.pt files (3 seeds x 2 models),
+eval_summary.json, and a model card README under campaign_2_multiseed/.
 
 Usage:
     1. huggingface-cli login          # enter your write token once
@@ -31,11 +27,10 @@ HERE     = Path(__file__).parent
 RESULTS  = HERE / "results"
 
 # ---- Files to upload -------------------------------------------------------
-# Campaign 2 (multiseed) — the 3-seed campaign on splits_v2. Local dir:
-# results/campaign_2_multiseed/. Remote layout keeps the legacy phase_d/ prefix.
+# Campaign 2 (multiseed) — the 3-seed campaign on splits_v2.
 LOCAL_CAMPAIGN_DIR = "campaign_2_multiseed"
-REMOTE_PREFIX = "phase_d"  # published HF layout; do not change
-PHASE_D_SEEDS = [
+REMOTE_PREFIX = "campaign_2_multiseed"
+CAMPAIGN_2_RUNS = [
     ("baseline",   "seed42"),
     ("baseline",   "seed123"),
     ("baseline",   "seed777"),
@@ -76,7 +71,7 @@ Code and evaluation results: [github.com/6ebeng/sorani-gec](https://github.com/6
 ## Models
 
 Two variants, both fine-tuned from [google/byt5-small](https://huggingface.co/google/byt5-small)
-on a synthetic Central Kurdish (Sorani) GEC corpus (~27 000 training pairs).
+on the 5,253-pair splits_v2 synthetic Central Kurdish (Sorani) GEC training set.
 
 | Variant | Description |
 |---------|-------------|
@@ -100,12 +95,12 @@ not yet published here.
 Paired bootstrap p = 0.08 (not significant at α = 0.05).
 
 Full results, ablations, human evaluation (37 native raters), and discussion
-are in the thesis and in `phase_d/eval_summary.json` (word-level metrics).
+are in the thesis and in `campaign_2_multiseed/eval_summary.json` (word-level metrics).
 
 ## File layout
 
 ```
-phase_d/
+campaign_2_multiseed/
   baseline_seed42/best_model.pt
   baseline_seed123/best_model.pt
   baseline_seed777/best_model.pt
@@ -128,7 +123,7 @@ model_path = "Tishko/sorani-gec"  # or a local path to best_model.pt
 tokenizer = AutoTokenizer.from_pretrained("google/byt5-small")
 
 model = T5ForConditionalGeneration.from_pretrained("google/byt5-small")
-state = torch.load("phase_d/baseline_seed42/best_model.pt", map_location="cpu")
+state = torch.load("campaign_2_multiseed/baseline_seed42/best_model.pt", map_location="cpu")
 # State dict may be nested under a key — unwrap if needed:
 sd = state.get("model_state_dict", state)
 model.load_state_dict(sd, strict=False)
@@ -200,7 +195,7 @@ def main():
 
     # 4. Upload checkpoints one by one (each is ~3-4 GB)
     # Reuse the existing-files set built above to skip already-uploaded files.
-    for variant, seed in PHASE_D_SEEDS:
+    for variant, seed in CAMPAIGN_2_RUNS:
         local_path = RESULTS / LOCAL_CAMPAIGN_DIR / f"{variant}_{seed}" / "best_model.pt"
         remote_path = f"{REMOTE_PREFIX}/{variant}_{seed}/best_model.pt"
 

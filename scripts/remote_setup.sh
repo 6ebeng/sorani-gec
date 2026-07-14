@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # remote_setup.sh — run on vast.ai GPU instance to install deps and launch the
-# campaign-2 multiseed training (formerly "Phase D")
+# campaign-2 multiseed training
 set -e
 
 REPO=/workspace/sorani-gec

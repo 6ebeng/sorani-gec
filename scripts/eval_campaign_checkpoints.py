@@ -1,7 +1,7 @@
 """Batch evaluation of a campaign's checkpoints on the test split.
 
-Defaults to campaign 2 (multiseed, formerly "Phase D"); point it at another
-campaign with CAMPAIGN_RESULTS_DIR / CAMPAIGN_DATA_DIR.
+Defaults to campaign 2 (multiseed); point it at another campaign with
+CAMPAIGN_RESULTS_DIR / CAMPAIGN_DATA_DIR.
 
 Mirrors the training setup exactly:
   - MorphologicalAnalyzer(use_klpt=False, ahmadi_lexicon=SoraniLexicon())
@@ -39,8 +39,8 @@ from src.morphology.analyzer import MorphologicalAnalyzer
 from src.morphology.features import FeatureExtractor
 from src.morphology.lexicon import SoraniLexicon
 
-DATA_DIR = os.environ.get("CAMPAIGN_DATA_DIR", os.environ.get("PHASE_DATA_DIR", "data/splits_v2"))
-RESULTS_DIR = os.environ.get("CAMPAIGN_RESULTS_DIR", os.environ.get("PHASE_RESULTS_DIR", "results/campaign_2_multiseed"))
+DATA_DIR = os.environ.get("CAMPAIGN_DATA_DIR", "data/splits_v2")
+RESULTS_DIR = os.environ.get("CAMPAIGN_RESULTS_DIR", "results/campaign_2_multiseed")
 MAX_LENGTH = 256
 BATCH_SIZE = 16
 NUM_BEAMS = 4

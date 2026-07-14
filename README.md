@@ -37,7 +37,7 @@ The first neural grammatical error correction system for Central Kurdish (Sorani
 
 ## Pre-trained Models
 
-The multiseed-campaign checkpoints (3 seeds × 2 variants, trained on splits_v2) are on Hugging Face under the legacy `phase_d/` prefix. The clean-campaign checkpoints (the 0.51 F₀.₅ models) are managed via [upload_to_hf.py](upload_to_hf.py).
+The multiseed-campaign checkpoints (3 seeds × 2 variants, trained on splits_v2) are on Hugging Face. [upload_to_hf.py](upload_to_hf.py) targets the renamed `campaign_2_multiseed/` layout; the loading example also accepts snapshots published before the rename. The clean-campaign checkpoints (the 0.51 F₀.₅ models) remain local under `results/campaign_3_clean_final/` and are not part of the current HF release.
 
 ```bash
 pip install huggingface_hub
@@ -51,12 +51,14 @@ Or load directly:
 
 ```python
 from transformers import AutoTokenizer, T5ForConditionalGeneration
+from pathlib import Path
 import torch
 
 tokenizer = AutoTokenizer.from_pretrained("google/byt5-small")
 model = T5ForConditionalGeneration.from_pretrained("google/byt5-small")
 
-state = torch.load("hf_models/phase_d/baseline_seed42/best_model.pt", map_location="cpu")
+checkpoint = next(Path("hf_models").glob("*/baseline_seed42/best_model.pt"))
+state = torch.load(checkpoint, map_location="cpu")
 sd = state.get("model_state_dict", state)
 model.load_state_dict(sd, strict=False)
 model.eval()

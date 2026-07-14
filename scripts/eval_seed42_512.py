@@ -28,8 +28,8 @@ from src.morphology.analyzer import MorphologicalAnalyzer
 from src.morphology.features import FeatureExtractor
 from src.morphology.lexicon import SoraniLexicon
 
-DATA_DIR     = os.environ.get("CAMPAIGN_DATA_DIR", os.environ.get("PHASE_DATA_DIR", "data/splits_scaled"))
-RESULTS_DIR  = os.environ.get("CAMPAIGN_RESULTS_DIR", os.environ.get("PHASE_RESULTS_DIR", "results/campaign_3_clean_final"))
+DATA_DIR     = os.environ.get("CAMPAIGN_DATA_DIR", "data/splits_scaled")
+RESULTS_DIR  = os.environ.get("CAMPAIGN_RESULTS_DIR", "results/campaign_3_clean_final")
 MAX_LENGTH   = 512
 BATCH_SIZE   = 8
 NUM_BEAMS    = 4

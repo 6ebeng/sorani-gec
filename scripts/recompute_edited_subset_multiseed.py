@@ -1,12 +1,10 @@
 """Recompute edited-subset metrics from the released multiseed-campaign hypotheses.
 
-The released campaign-2 (multiseed, formerly "Phase D") runs are the
-gated-residual variant. The stored
-hypotheses.jsonl files already contain source/hypothesis/reference per
-test sentence, so the edited-subset numbers can be recomputed without a
-GPU. Methodology mirrors the retired phase3_evaluate_all.py:evaluate_one
-(F0.5 via evaluate_corpus, GLEU via compute_gleu, agreement via
-evaluate_agreement_accuracy, CER-floor gate at 0.5).
+The released campaign-2 multiseed runs are the gated-residual variant. The
+stored hypotheses.jsonl files already contain source/hypothesis/reference per
+test sentence, so the edited-subset numbers can be recomputed without a GPU.
+The metrics match the retired campaign evaluator: F0.5, GLEU, agreement
+accuracy, and a CER-floor gate at 0.5.
 
 Edited subset = pairs where source != reference.
 """
@@ -22,7 +20,7 @@ from src.evaluation.f05_scorer import evaluate_corpus
 from src.evaluation.gleu_scorer import compute_gleu
 from src.evaluation.agreement_accuracy import evaluate_agreement_accuracy
 
-PHASE_D = Path("results/campaign_2_multiseed")
+MULTISEED_RESULTS = Path("results/campaign_2_multiseed")
 RUNS = [
     "baseline_seed42", "baseline_seed123", "baseline_seed777",
     "morphaware_seed42", "morphaware_seed123", "morphaware_seed777",
@@ -62,7 +60,7 @@ def avg_cer_vs_src(srcs, hyps) -> float:
 
 def load_edited(run: str):
     srcs, hyps, refs = [], [], []
-    with open(PHASE_D / run / "hypotheses.jsonl", encoding="utf-8") as f:
+    with open(MULTISEED_RESULTS / run / "hypotheses.jsonl", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -116,7 +114,7 @@ def main():
               f"CER_ref={mean(keys,'cer_ref'):.4f}  CER_src={mean(keys,'cer_src'):.4f}  "
               f"Agr_raw={mean(keys,'agr_raw'):.4f}  Agr_flr={mean(keys,'agr_floor'):.4f}")
 
-    out = PHASE_D / "edited_subset_recomputed.json"
+    out = MULTISEED_RESULTS / "edited_subset_recomputed.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(rows, f, indent=2, ensure_ascii=False)
     print(f"\nSaved -> {out}")

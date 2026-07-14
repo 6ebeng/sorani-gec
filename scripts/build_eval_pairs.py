@@ -35,7 +35,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.evaluation.agreement_accuracy import AgreementChecker
 
-PHASE_D = ROOT / "results" / "campaign_2_multiseed"
+MULTISEED_RESULTS = ROOT / "results" / "campaign_2_multiseed"
 EVAL_DIR = ROOT / "results" / "human_eval"
 PAIRS_OUT = EVAL_DIR / "evaluation_pairs.jsonl"
 MANIFEST_OUT = EVAL_DIR / "evaluation_pairs_manifest.jsonl"
@@ -43,8 +43,8 @@ MANIFEST_OUT = EVAL_DIR / "evaluation_pairs_manifest.jsonl"
 # Seed-42 runs are the per-system representatives used everywhere else in the
 # thesis, so the human study rates the same checkpoints the F0.5 table reports.
 SYSTEMS = {
-    "baseline": PHASE_D / "baseline_seed42" / "hypotheses.jsonl",
-    "morphaware": PHASE_D / "morphaware_seed42" / "hypotheses.jsonl",
+    "baseline": MULTISEED_RESULTS / "baseline_seed42" / "hypotheses.jsonl",
+    "morphaware": MULTISEED_RESULTS / "morphaware_seed42" / "hypotheses.jsonl",
 }
 
 

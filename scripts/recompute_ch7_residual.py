@@ -24,7 +24,7 @@ from src.evaluation.agreement_accuracy import (
     evaluate_agreement_by_check,
 )
 
-PHASE_D = Path("results/campaign_2_multiseed")
+MULTISEED_RESULTS = Path("results/campaign_2_multiseed")
 TEST = Path("data/splits_v2/test.jsonl")
 
 
@@ -43,7 +43,7 @@ def levenshtein(a, b):
 
 def load(run):
     rows = []
-    with open(PHASE_D / run / "hypotheses.jsonl", encoding="utf-8") as f:
+    with open(MULTISEED_RESULTS / run / "hypotheses.jsonl", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:

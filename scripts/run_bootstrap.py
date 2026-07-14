@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.evaluation.bootstrap import paired_bootstrap_f05
 
-PHASE_D = os.environ.get("CAMPAIGN_DIR", os.environ.get("PHASE_D_DIR", "results/campaign_2_multiseed"))
+CAMPAIGN_DIR = os.environ.get("CAMPAIGN_DIR", "results/campaign_2_multiseed")
 BASELINES = os.environ.get("BASELINES_DIR", "results/baselines")
 N_RESAMPLES = 2000
 SEED = 42
@@ -44,7 +44,7 @@ def main():
     # neural
     for run in ["baseline_seed42", "baseline_seed123", "baseline_seed777",
                 "morphaware_seed42", "morphaware_seed123", "morphaware_seed777"]:
-        p = f"{PHASE_D}/{run}/hypotheses.jsonl"
+        p = f"{CAMPAIGN_DIR}/{run}/hypotheses.jsonl"
         if os.path.exists(p):
             systems[run] = load_hyp(p)
 

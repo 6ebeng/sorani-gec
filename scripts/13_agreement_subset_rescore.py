@@ -44,7 +44,7 @@ from src.evaluation.f05_scorer import evaluate_corpus  # noqa: E402
 # --- configuration ---------------------------------------------------------
 
 SEEDS = (42, 123, 777)
-PHASE_D = _REPO / "results" / "campaign_2_multiseed"
+MULTISEED_RESULTS = _REPO / "results" / "campaign_2_multiseed"
 TEST_JSONL = _REPO / "data" / "splits_v2" / "test.jsonl"
 
 # Surface-noise generators the morphological pathway was never meant to fix.
@@ -100,7 +100,7 @@ def primary_error_type(row: dict) -> str | None:
 
 
 def load_run(run: str) -> list[dict]:
-    path = PHASE_D / run / "hypotheses.jsonl"
+    path = MULTISEED_RESULTS / run / "hypotheses.jsonl"
     return load_jsonl(path)
 
 
@@ -159,7 +159,9 @@ def sanity_check_full_set(test_rows: list[dict]) -> None:
             hyp = [r["hypothesis"] for r in rows]
             ref = [r["reference"] for r in rows]
             m = evaluate_corpus(src, hyp, ref)
-            published = json.loads((PHASE_D / run / "eval_test.json").read_text(encoding="utf-8"))
+            published = json.loads(
+                (MULTISEED_RESULTS / run / "eval_test.json").read_text(encoding="utf-8")
+            )
             delta = abs(m.f05 - published["f05"])
             flag = "OK" if delta < 5e-3 else "MISMATCH"
             print(f"  {run:22s} recomputed F0.5={m.f05:.4f}  "

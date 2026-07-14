@@ -15,7 +15,7 @@ Test: full 647-pair splits_v2-compatible test set, span F₀.₅, `max_length=51
 
 ## Prior campaign: campaign 2 — multiseed (3 seeds, splits_v2, 5,253 train pairs)
 
-Source: `results/campaign_2_multiseed/eval_summary.json` (word-level), `results/campaigns_span_metrics.json` (span recompute; JSON keys use the legacy labels `phase1`/`phase_d`).
+Source: `results/campaign_2_multiseed/eval_summary.json` (word-level), `results/campaigns_span_metrics.json` (span recompute).
 
 | Model            | Span F₀.₅ (mean ± std, 3 seeds) | Word F₀.₅    |
 | ---------------- | ------------------------------- | ------------ |

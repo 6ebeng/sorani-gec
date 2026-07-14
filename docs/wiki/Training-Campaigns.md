@@ -10,10 +10,10 @@ Campaign directories are numbered chronologically. Historical project docs (and 
 | --- | --------------------------------------------------------------------------------- | -------------------------- | ---------- | ------------------------------------------------------ | ---------------------------- | ------------------------------------------ |
 | 1   | Early remote runs                                                                 | splits v1                  | 42         | `results/metrics_remote/`                              | —                            | Historical                                 |
 | 2   | Campaign 1 — audit retrain (warmup scaling, val-F₀.₅ selection, λ=0)              | splits_v2 (5,253)          | 42/123/777 | `results/campaign_1_audit_retrain/` (`phase1`)         | ≈0.157 / ≈0.169              | Historical                                 |
-| 3   | Campaign 2 — multiseed (checkpoints on HF)                                        | splits_v2 (5,253)          | 42/123/777 | `results/campaign_2_multiseed/` (`phase_d`)            | 0.165 / 0.177 (p=0.08)       | Prior campaign — dissected in thesis Ch. 7 |
+| 3   | Campaign 2 — multiseed (checkpoints on HF)                                        | splits_v2 (5,253)          | 42/123/777 | `results/campaign_2_multiseed/`                        | 0.165 / 0.177 (p=0.08)       | Prior campaign — dissected in thesis Ch. 7 |
 | 4   | **Campaign 3 — clean final** (contamination + truncation bugs fixed, scaled data) | **splits_scaled (26,841)** | **42**     | **`results/campaign_3_clean_final/`** (`phase2_clean`) | **0.5057 / 0.5105** (p=0.39) | **Definitive**                             |
 
-Word-level F₀.₅ for campaign 2 sits near 0.08 (`results/campaign_2_multiseed/eval_summary.json`); the span-aware recompute is in `results/campaigns_span_metrics.json` (JSON keys keep the legacy `phase1`/`phase_d` labels).
+Word-level F₀.₅ for campaign 2 sits near 0.08 (`results/campaign_2_multiseed/eval_summary.json`); the span-aware recompute is in `results/campaigns_span_metrics.json`.
 
 ## The three bugs the clean campaign fixed
 

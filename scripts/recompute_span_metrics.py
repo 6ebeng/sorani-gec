@@ -18,8 +18,6 @@ accuracy on hypotheses with both the legacy sentence-pass denominator and the
 applicable-checks denominator.
 
 Output: results/campaigns_span_metrics.json
-(JSON keys keep the historical campaign labels "phase1" and "phase_d" so the
-tracked artifact stays byte-comparable with earlier runs.)
 """
 
 import json
@@ -37,9 +35,8 @@ from src.evaluation.bootstrap import paired_bootstrap_f05
 
 ROOT = Path(__file__).resolve().parents[1]
 CAMPAIGNS = {
-    # legacy JSON keys -> renamed result directories
-    "phase1": ROOT / "results" / "campaign_1_audit_retrain",
-    "phase_d": ROOT / "results" / "campaign_2_multiseed",
+    "campaign_1_audit_retrain": ROOT / "results" / "campaign_1_audit_retrain",
+    "campaign_2_multiseed": ROOT / "results" / "campaign_2_multiseed",
 }
 BASE_SEEDS = ["baseline_seed42", "baseline_seed123", "baseline_seed777"]
 MORPH_SEEDS = ["morphaware_seed42", "morphaware_seed123", "morphaware_seed777"]
