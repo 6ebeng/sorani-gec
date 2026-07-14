@@ -41,3 +41,12 @@ results/**/*.pt
 results/**/*.bin
 results/**/*.ckpt
 results/**/*.log
+results/**/eval_log.txt
+results/**/tensorboard/
+results/**/tb/
+
+# Local one-off console captures and transfer bundles
+/*.log
+/*.tgz
+/*.tar.gz
+/*.zip
