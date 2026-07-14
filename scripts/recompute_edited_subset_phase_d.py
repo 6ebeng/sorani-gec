@@ -3,7 +3,7 @@
 The released phase_d runs are the gated-residual variant. The stored
 hypotheses.jsonl files already contain source/hypothesis/reference per
 test sentence, so the edited-subset numbers can be recomputed without a
-GPU. Methodology mirrors scripts/phase3_evaluate_all.py:evaluate_one
+GPU. Methodology mirrors the retired phase3_evaluate_all.py:evaluate_one
 (F0.5 via evaluate_corpus, GLEU via compute_gleu, agreement via
 evaluate_agreement_accuracy, CER-floor gate at 0.5).
 
