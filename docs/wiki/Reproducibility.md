@@ -22,14 +22,16 @@ python scripts/15_clean_corpus.py
 python scripts/14_build_scaled_train.py     # → data/splits_scaled (26,841 train)
 
 # 3. Definitive training run (RTX 5090-class GPU, FP32)
-bash scripts/phase2_retrain.sh --skip-build --batch 8 --accum 16 \
-     --max-len 512 --results-dir results/phase2_clean --seeds 42
+bash scripts/train_campaign_3_clean_final.sh --skip-build --batch 8 --accum 16 \
+     --max-len 512 --results-dir results/campaign_3_clean_final --seeds 42
 
 # 4. Definitive evaluation
 python scripts/eval_seed42_512.py           # → eval_summary_512.json
 ```
 
-Seeds: 42 (clean campaign); 42/123/777 (Phase D). Every random path seeds `random`, `numpy`, and `torch`.
+Seeds: 42 (campaign 3, clean final); 42/123/777 (campaign 2, multiseed). Every random path seeds `random`, `numpy`, and `torch`.
+
+(The thesis PDF cites the definitive run by the historical names `scripts/phase2_retrain.sh` and `results/phase2_clean`; see [results/README.md](https://github.com/6ebeng/sorani-gec/blob/main/results/README.md) for the campaign name mapping.)
 
 ## Data integrity
 
@@ -42,7 +44,7 @@ python scripts/diagnose_data.py   # leakage / trivial-pair / distribution audit
 
 ## Pre-trained checkpoints
 
-Phase D checkpoints (3 seeds × 2 variants) are on Hugging Face:
+Campaign-2 (multiseed) checkpoints (3 seeds × 2 variants) are on Hugging Face:
 
 ```python
 from huggingface_hub import snapshot_download
@@ -57,12 +59,12 @@ import torch
 
 tokenizer = AutoTokenizer.from_pretrained("google/byt5-small")
 model = T5ForConditionalGeneration.from_pretrained("google/byt5-small")
-state = torch.load("hf_models/phase_d/baseline_seed42/best_model.pt", map_location="cpu")
+state = torch.load("hf_models/phase_d/baseline_seed42/best_model.pt", map_location="cpu")  # HF keeps the legacy phase_d/ prefix
 model.load_state_dict(state.get("model_state_dict", state), strict=False)
 model.eval()
 ```
 
-Note the campaign distinction: the HF checkpoints are **Phase D** (span F₀.₅ ≈ 0.17). The clean-campaign checkpoints (F₀.₅ ≈ 0.51) live in `results/phase2_clean/*/best_model.pt`; upload is managed by `upload_to_hf.py`.
+Note the campaign distinction: the HF checkpoints are **campaign 2 — multiseed** (span F₀.₅ ≈ 0.17), published under the legacy `phase_d/` prefix. The campaign-3 clean-final checkpoints (F₀.₅ ≈ 0.51) live in `results/campaign_3_clean_final/*/best_model.pt`; upload is managed by `upload_to_hf.py`.
 
 ## Environment freeze
 

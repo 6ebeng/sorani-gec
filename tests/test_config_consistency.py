@@ -9,7 +9,7 @@ making the drift immediately visible in CI.
 Expected values are taken directly from the Chapter 7 prose:
   "learning rate 5×10⁻⁵, batch size 16, cosine annealing with 5-epoch
    linear warmup, gradient accumulation over 8 steps, and early stopping
-   with patience 5 ... selection_metric val_loss (Phase D fix)."
+   with patience 5 ... selection_metric val_loss (campaign-2 fix)."
 """
 
 import os
@@ -68,7 +68,7 @@ def test_config_value(cfg: dict, keys: tuple, expected_value):
 
 
 def test_selection_metric_is_val_loss(cfg: dict):
-    """Explicit guard: selection_metric must be 'val_loss' (R4 fix, Phase D)."""
+    """Explicit guard: selection_metric must be 'val_loss' (R4 fix, campaign 2)."""
     actual = cfg.get("training", {}).get("selection_metric")
     assert actual == "val_loss", (
         f"selection_metric is '{actual}', should be 'val_loss'.\n"

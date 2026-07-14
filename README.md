@@ -20,7 +20,7 @@ The first neural grammatical error correction system for Central Kurdish (Sorani
 
 ## Results
 
-**Definitive — clean training campaign** (26,841 train pairs, fixed 647-sentence test set, span F₀.₅ at `max_length=512`, seed 42; `results/phase2_clean/`):
+**Definitive — clean training campaign** (26,841 train pairs, fixed 647-sentence test set, span F₀.₅ at `max_length=512`, seed 42; `results/campaign_3_clean_final/`):
 
 | Model | F₀.₅ | Precision | Recall |
 |-------|------|-----------|--------|
@@ -29,7 +29,7 @@ The first neural grammatical error correction system for Central Kurdish (Sorani
 
 Δ F₀.₅ = +0.0048; paired bootstrap p = 0.39 (not significant at this scale and data size).
 
-**Prior campaign — Phase D** (3 seeds × 2 models on the 5,253-pair splits_v2; checkpoints on HF; `results/phase_d/`): span F₀.₅ 0.165 (baseline) vs 0.177 (morphology), p = 0.08. The clean campaign fixed three data/eval bugs (category-label contamination, 128-byte eval truncation, 256-byte target truncation) and retrained at scale — see the [Training-Campaigns wiki page](https://github.com/6ebeng/sorani-gec/wiki/Training-Campaigns).
+**Prior campaign — multiseed** (3 seeds × 2 models on the 5,253-pair splits_v2; checkpoints on HF; `results/campaign_2_multiseed/`): span F₀.₅ 0.165 (baseline) vs 0.177 (morphology), p = 0.08. The clean campaign fixed three data/eval bugs (category-label contamination, 128-byte eval truncation, 256-byte target truncation) and retrained at scale — see the [Training-Campaigns wiki page](https://github.com/6ebeng/sorani-gec/wiki/Training-Campaigns) and the campaign mapping in [results/README.md](results/README.md).
 
 **Human evaluation:** 37 native Sorani raters, 60 blind pairs; morphology-aware edits scored 2.616 vs 2.529 mean grammaticality (1–3 scale); max pairwise Cohen's κ = 0.7073.
 
@@ -37,7 +37,7 @@ The first neural grammatical error correction system for Central Kurdish (Sorani
 
 ## Pre-trained Models
 
-The Phase D checkpoints (3 seeds × 2 variants, trained on splits_v2) are on Hugging Face. The clean-campaign checkpoints (the 0.51 F₀.₅ models) are managed via [upload_to_hf.py](upload_to_hf.py).
+The multiseed-campaign checkpoints (3 seeds × 2 variants, trained on splits_v2) are on Hugging Face under the legacy `phase_d/` prefix. The clean-campaign checkpoints (the 0.51 F₀.₅ models) are managed via [upload_to_hf.py](upload_to_hf.py).
 
 ```bash
 pip install huggingface_hub
@@ -144,18 +144,18 @@ sorani-gec/
 │   ├── 11_hash_data.py          # SHA-256 data integrity check
 │   ├── create_splits_v2.py      # Canonical splits (single-edit, dedup, manifest)
 │   ├── 14_build_scaled_train.py # Scaled 26,841-pair training pool
-│   ├── phase2_retrain.sh        # Clean-campaign training (definitive)
+│   ├── train_campaign_3_clean_final.sh  # Clean-campaign training (definitive)
+│   ├── train_campaign_2_multiseed.sh    # Multiseed campaign training driver
 │   ├── eval_seed42_512.py       # Clean-campaign span scorer
 │   └── analyze_human_eval.py    # 37-rater study analysis (κ, τ-b)
 ├── docs/wiki/                   # Wiki sources (published to GitHub wiki)
 ├── tests/                       # 626 tests (+42 in ../web/tests)
-├── results/
-│   ├── phase2_clean/            # Definitive clean campaign (seed 42)
-│   ├── phase_d/                 # Prior 3-seed campaign (checkpoints on HF)
+├── results/                     # See results/README.md for the campaign map
+│   ├── campaign_3_clean_final/  # Definitive clean campaign (seed 42)
+│   ├── campaign_2_multiseed/    # Prior 3-seed campaign (checkpoints on HF)
 │   ├── baselines/               # Non-neural baseline results
 │   ├── human_eval/              # 37-rater evaluation data
 │   └── ablation/                # Ablation metrics
-├── run_phase_d_seeds.sh         # Phase D training driver
 ├── upload_to_hf.py              # Checkpoint upload to Hugging Face
 ├── Dockerfile
 ├── pyproject.toml

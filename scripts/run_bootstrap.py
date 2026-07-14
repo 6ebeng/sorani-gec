@@ -2,9 +2,9 @@
 
 Reviewer item R9: report p-values and reframe overlapping confidence
 intervals. This loads the per-sentence hypotheses dumped for the neural
-checkpoints (results/phase_d/<run>/hypotheses.jsonl) and the non-neural
-baselines (results/baselines/<system>_hypotheses.jsonl), then runs the
-sentence-level paired bootstrap for the comparisons that matter:
+checkpoints (results/campaign_2_multiseed/<run>/hypotheses.jsonl) and the
+non-neural baselines (results/baselines/<system>_hypotheses.jsonl), then runs
+the sentence-level paired bootstrap for the comparisons that matter:
 
   - ByT5 baseline (seed 42) vs morphology-aware (seed 42)   [the headline gap]
   - best n-gram LM vs ByT5 baseline                          [non-neural beats neural?]
@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.evaluation.bootstrap import paired_bootstrap_f05
 
-PHASE_D = os.environ.get("PHASE_D_DIR", "results/phase_d")
+PHASE_D = os.environ.get("CAMPAIGN_DIR", os.environ.get("PHASE_D_DIR", "results/campaign_2_multiseed"))
 BASELINES = os.environ.get("BASELINES_DIR", "results/baselines")
 N_RESAMPLES = 2000
 SEED = 42

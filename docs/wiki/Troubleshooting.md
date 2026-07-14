@@ -40,7 +40,7 @@ python scripts/01a_download_ahmadi_lexicon.py
 
 ## Evaluation
 
-**My F₀.₅ does not match the published number.** Check three things: word-level vs span-level scorer (the thesis reports span), `max_length` at generation time (512 for the clean campaign; 256 clips long test sentences), and which campaign/checkpoint you loaded (HF hosts Phase D, not the clean campaign — see [[Reproducibility]]).
+**My F₀.₅ does not match the published number.** Check three things: word-level vs span-level scorer (the thesis reports span), `max_length` at generation time (512 for campaign 3; 256 clips long test sentences), and which campaign/checkpoint you loaded (HF hosts campaign 2 — multiseed — under the legacy `phase_d/` prefix, not the clean-final models — see [[Reproducibility]]).
 
 **Bootstrap p-values differ slightly between runs.** Resampling is seeded but any change to hypothesis files changes the resample universe; 10,000 resamples give ±0.01 stability.
 

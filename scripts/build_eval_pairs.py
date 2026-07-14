@@ -6,8 +6,8 @@ The reviewer report asks for two things that this script prepares:
   R15 — validation of the 14-check agreement metric against native-speaker
         grammaticality judgement (Kendall tau / Cohen kappa).
 
-This script samples real Phase-D test predictions (baseline + morphology-aware,
-seed 42) and writes a *blind* rating set. Annotators only ever see the source
+This script samples real campaign-2 (multiseed) test predictions (baseline +
+morphology-aware, seed 42) and writes a *blind* rating set. Annotators only ever see the source
 sentence and one model correction; they never learn which system produced it.
 Provenance and the metric verdict are stored in a separate manifest that the
 web app does not read, so the human ratings stay uncontaminated.
@@ -35,7 +35,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.evaluation.agreement_accuracy import AgreementChecker
 
-PHASE_D = ROOT / "results" / "phase_d"
+PHASE_D = ROOT / "results" / "campaign_2_multiseed"
 EVAL_DIR = ROOT / "results" / "human_eval"
 PAIRS_OUT = EVAL_DIR / "evaluation_pairs.jsonl"
 MANIFEST_OUT = EVAL_DIR / "evaluation_pairs_manifest.jsonl"

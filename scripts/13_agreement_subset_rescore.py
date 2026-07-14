@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-"""Re-score existing Phase-D checkpoints on an agreement-only test subset.
+"""Re-score existing multiseed-campaign checkpoints on an agreement-only test subset.
 
 No training, no GPU, no API. This reads the already-decoded hypotheses
-(``results/phase_d/<run>/hypotheses.jsonl``) and the test split with its
+(``results/campaign_2_multiseed/<run>/hypotheses.jsonl``) and the test split with its
 per-pair error-type labels (``data/splits_v2/test.jsonl``), then asks a
 narrower question than the headline tables: on the test pairs whose injected
 error is a *structural agreement* phenomenon, does the morphology-aware model
@@ -44,7 +44,7 @@ from src.evaluation.f05_scorer import evaluate_corpus  # noqa: E402
 # --- configuration ---------------------------------------------------------
 
 SEEDS = (42, 123, 777)
-PHASE_D = _REPO / "results" / "phase_d"
+PHASE_D = _REPO / "results" / "campaign_2_multiseed"
 TEST_JSONL = _REPO / "data" / "splits_v2" / "test.jsonl"
 
 # Surface-noise generators the morphological pathway was never meant to fix.
@@ -76,7 +76,7 @@ CORE_AGREEMENT_TYPES = {
     "ergative",
 }
 
-OUT_JSON = _REPO / "results" / "phase_d" / "agreement_subset_rescore.json"
+OUT_JSON = _REPO / "results" / "campaign_2_multiseed" / "agreement_subset_rescore.json"
 
 
 # --- loading ---------------------------------------------------------------

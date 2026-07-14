@@ -15,7 +15,7 @@ Plain `google/byt5-small` fine-tuned as seq2seq: corrupted sentence in, correcte
 Same backbone plus three additions:
 
 1. **`MorphologicalEmbedding`** — 9 separate `nn.Embedding` layers (64-dim each), one per morphological feature, concatenated and projected to 64-dim. Word-level features are aligned to byte positions before injection.
-2. **Gated residual injection** — the projected morphology vector enters the encoder representation through a learnable gate. Later campaigns initialize `gate=0.5` and residual weights at 0.02 so morphology contributes from step 1 (a zero-initialized gate trains as an inert identity for many epochs — a real convergence issue found during Phase 1).
+2. **Gated residual injection** — the projected morphology vector enters the encoder representation through a learnable gate. Later campaigns initialize `gate=0.5` and residual weights at 0.02 so morphology contributes from step 1 (a zero-initialized gate trains as an inert identity for many epochs — a real convergence issue found during the campaign-1 audit retrain).
 3. **`AgreementPredictor`** — Linear → ReLU → Dropout(0.1) → Linear head over 34 classes (33 agreement-edge types + "correct"), trained with an auxiliary loss.
 
 Combined objective: `L = L_GEC + λ · L_agreement`. The base config uses λ=0.3 with a 5-epoch warmup 0→0.3; the ablation sweep found **λ=0.0 optimal** on dev, so the final campaigns train with the agreement head deconfounded (λ=0).

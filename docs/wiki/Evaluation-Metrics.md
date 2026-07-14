@@ -11,7 +11,7 @@ $$F_{0.5} = \frac{1.25 \cdot P \cdot R}{0.25 \cdot P + R}$$
 Two variants exist and the distinction matters when reading older results:
 
 - **Word-level F₀.₅** — position-agnostic bag-of-edits match.
-- **Span F₀.₅** — position-aware: an edit counts only if the span offsets line up. Stricter and the one reported in the thesis. Implemented in `evaluate_corpus_span`; the clean campaign scores with `scripts/eval_seed42_512.py`, and `scripts/phase3_recompute.py` back-fills span scores for earlier campaigns into `results/phase3_metrics.json`.
+- **Span F₀.₅** — position-aware: an edit counts only if the span offsets line up. Stricter and the one reported in the thesis. Implemented in `evaluate_corpus_span`; the clean campaign scores with `scripts/eval_seed42_512.py`, and `scripts/recompute_span_metrics.py` back-fills span scores for earlier campaigns into `results/campaigns_span_metrics.json`.
 
 ## Agreement accuracy (`agreement_accuracy.py`)
 

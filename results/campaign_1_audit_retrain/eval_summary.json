@@ -1,0 +1,68 @@
+[
+  {
+    "run": "baseline_seed42",
+    "f05": 0.07913318724129534,
+    "precision": 0.0712719298245614,
+    "recall": 0.14161220043572983,
+    "tp": 65,
+    "fp": 847,
+    "fn": 394,
+    "elapsed_sec": 71.6,
+    "n_sentences": 647
+  },
+  {
+    "run": "baseline_seed123",
+    "f05": 0.08170339192869522,
+    "precision": 0.07374301675977654,
+    "recall": 0.1437908496732026,
+    "tp": 66,
+    "fp": 829,
+    "fn": 393,
+    "elapsed_sec": 72.9,
+    "n_sentences": 647
+  },
+  {
+    "run": "baseline_seed777",
+    "f05": 0.08756993432254925,
+    "precision": 0.07886089813800658,
+    "recall": 0.1568627450980392,
+    "tp": 72,
+    "fp": 841,
+    "fn": 387,
+    "elapsed_sec": 72.6,
+    "n_sentences": 647
+  },
+  {
+    "run": "morphaware_seed42",
+    "f05": 0.09229633275904506,
+    "precision": 0.08324084350721421,
+    "recall": 0.16339869281045752,
+    "tp": 75,
+    "fp": 826,
+    "fn": 384,
+    "elapsed_sec": 71.5,
+    "n_sentences": 647
+  },
+  {
+    "run": "morphaware_seed123",
+    "f05": 0.08335376317724934,
+    "precision": 0.07513812154696133,
+    "recall": 0.14814814814814814,
+    "tp": 68,
+    "fp": 837,
+    "fn": 391,
+    "elapsed_sec": 69.1,
+    "n_sentences": 647
+  },
+  {
+    "run": "morphaware_seed777",
+    "f05": 0.08825692571708751,
+    "precision": 0.07955801104972375,
+    "recall": 0.1568627450980392,
+    "tp": 72,
+    "fp": 833,
+    "fn": 387,
+    "elapsed_sec": 75.4,
+    "n_sentences": 647
+  }
+]

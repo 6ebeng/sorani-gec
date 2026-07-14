@@ -14,7 +14,7 @@
 # Performance impact: per-epoch wall-time rises from ~8 min (RTX 5090 FP32)
 # to ~25 min (RTX 3080 Ti BF16); final model quality is equivalent.
 #
-# Documented in Chapter 7 §7.1 (R22 — low-resource fallback, Phase D).
+# Documented in Chapter 7 §7.1 (R22 — low-resource fallback).
 
 project:
   name: "sorani-gec-lowres"

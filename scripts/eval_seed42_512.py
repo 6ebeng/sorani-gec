@@ -1,8 +1,9 @@
 """Evaluate baseline_seed42 and morphaware_seed42 at max_length=512.
 
-Used for the phase2_clean results where models were trained at --max-length 512.
+Used for the clean-campaign results (results/campaign_3_clean_final, formerly
+results/phase2_clean) where models were trained at --max-length 512.
 Run from the repo root:
-  PHASE_RESULTS_DIR=results/phase2_clean PHASE_DATA_DIR=data/splits_scaled \
+  CAMPAIGN_RESULTS_DIR=results/campaign_3_clean_final CAMPAIGN_DATA_DIR=data/splits_scaled \
       python3 scripts/eval_seed42_512.py
 """
 import json
@@ -27,8 +28,8 @@ from src.morphology.analyzer import MorphologicalAnalyzer
 from src.morphology.features import FeatureExtractor
 from src.morphology.lexicon import SoraniLexicon
 
-DATA_DIR     = os.environ.get("PHASE_DATA_DIR",    "data/splits_scaled")
-RESULTS_DIR  = os.environ.get("PHASE_RESULTS_DIR", "results/phase2_clean")
+DATA_DIR     = os.environ.get("CAMPAIGN_DATA_DIR", os.environ.get("PHASE_DATA_DIR", "data/splits_scaled"))
+RESULTS_DIR  = os.environ.get("CAMPAIGN_RESULTS_DIR", os.environ.get("PHASE_RESULTS_DIR", "results/campaign_3_clean_final"))
 MAX_LENGTH   = 512
 BATCH_SIZE   = 8
 NUM_BEAMS    = 4

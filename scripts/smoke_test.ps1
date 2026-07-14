@@ -1,5 +1,5 @@
 # =============================================================================
-# Local CPU smoke test for the Phase 2 retrain pipeline (Windows / PowerShell).
+# Local CPU smoke test for the scaled-retrain (campaign 3) pipeline (Windows / PowerShell).
 # Verifies the WHOLE path runs end-to-end before you rent the RTX 5090:
 #   1. build a tiny scaled split,
 #   2. train the baseline for 1 epoch,

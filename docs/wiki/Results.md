@@ -1,21 +1,21 @@
 # Results
 
-Every number here is regenerable from tracked JSONs in `results/`. The definitive campaign is the **clean campaign** (`results/phase2_clean/`); everything else is context.
+Every number here is regenerable from tracked JSONs in `results/`. The definitive campaign is **campaign 3 — clean final** (`results/campaign_3_clean_final/`); everything else is context. Campaign naming history: [results/README.md](https://github.com/6ebeng/sorani-gec/blob/main/results/README.md).
 
-## Definitive: clean campaign (June 2026)
+## Definitive: campaign 3 — clean final (June 2026)
 
-Test: full 647-pair splits_v2-compatible test set, span F₀.₅, `max_length=512`, seed 42. Source: `results/phase2_clean/eval_summary_512.json`.
+Test: full 647-pair splits_v2-compatible test set, span F₀.₅, `max_length=512`, seed 42. Source: `results/campaign_3_clean_final/eval_summary_512.json`.
 
 | Model | F₀.₅ | P | R | TP | FP | FN |
 |---|---|---|---|---|---|---|
 | ByT5-small baseline | 0.5057 | 0.6215 | 0.2898 | 133 | 81 | 326 |
 | ByT5-small + morphology | **0.5105** | **0.6359** | 0.2854 | 131 | 75 | 328 |
 
-Δ F₀.₅ = +0.0048 in favour of morphology; paired bootstrap (10,000 resamples) p = 0.39 — the margin does not clear significance. The honest headline: after all data bugs are fixed, morphology injection no longer *hurts* (it did in Phase D), and trends slightly ahead on precision.
+Δ F₀.₅ = +0.0048 in favour of morphology; paired bootstrap (10,000 resamples) p = 0.39 — the margin does not clear significance. The honest headline: after all data bugs are fixed, morphology injection no longer *hurts* (it did in campaign 2), and trends slightly ahead on precision.
 
-## Prior campaign: Phase D (3 seeds, splits_v2, 5,253 train pairs)
+## Prior campaign: campaign 2 — multiseed (3 seeds, splits_v2, 5,253 train pairs)
 
-Source: `results/phase_d/eval_summary.json` (word-level), `results/phase3_metrics.json` (span recompute).
+Source: `results/campaign_2_multiseed/eval_summary.json` (word-level), `results/campaigns_span_metrics.json` (span recompute; JSON keys use the legacy labels `phase1`/`phase_d`).
 
 | Model | Span F₀.₅ (mean ± std, 3 seeds) | Word F₀.₅ |
 |---|---|---|
@@ -62,8 +62,8 @@ Run on the early (pre-cleanup) data, so absolute values are tiny; the *relative*
 
 | Artifact | Produced by |
 |---|---|
-| `results/phase_d/agreement_subset_rescore.json` | `13_agreement_subset_rescore.py` — agreement-error-only rescore |
-| `results/phase_d/edited_subset_recomputed.json` | `recompute_edited_subset_phase_d.py` — 397-pair edited subset |
+| `results/campaign_2_multiseed/agreement_subset_rescore.json` | `13_agreement_subset_rescore.py` — agreement-error-only rescore |
+| `results/campaign_2_multiseed/edited_subset_recomputed.json` | `recompute_edited_subset_multiseed.py` — 397-pair edited subset |
 | `results/oov_rate.json` | `measure_oov_rate.py` — OOV rate vs lexicon |
 | `results/ocr_audit/` | `ocr_audit.py` — CER/WER of the OCR sources per university |
 | `results/data_diagnosis/` | `diagnose_data.py` — leakage/trivial-pair audit |

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# remote_setup.sh — run on vast.ai GPU instance to install deps and launch Phase D
+# remote_setup.sh — run on vast.ai GPU instance to install deps and launch the
+# campaign-2 multiseed training (formerly "Phase D")
 set -e
 
 REPO=/workspace/sorani-gec
-LOG=$REPO/results/phase_d/setup.log
+LOG=$REPO/results/campaign_2_multiseed/setup.log
 
-mkdir -p $REPO/results/phase_d
+mkdir -p $REPO/results/campaign_2_multiseed
 exec > >(tee -a $LOG) 2>&1
 
 echo "=== $(date) === Starting remote setup ==="
@@ -39,10 +40,10 @@ wc -l data/splits_v2/*.jsonl
 echo "--- Config consistency tests ---"
 python3 -m pytest tests/test_config_consistency.py -v --tb=short
 
-echo "=== $(date) === Setup complete — launching Phase D training ==="
+echo "=== $(date) === Setup complete — launching campaign-2 multiseed training ==="
 
 # 7. Launch training (all 3 seeds × 2 models)
-bash scripts/run_phase_d_seeds.sh \
-  2>&1 | tee results/phase_d/phase_d_train.log
+bash scripts/train_campaign_2_multiseed.sh \
+  2>&1 | tee results/campaign_2_multiseed/train.log
 
 echo "=== $(date) === All training runs complete ==="

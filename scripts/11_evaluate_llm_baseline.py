@@ -1,5 +1,5 @@
 """
-Phase 3 — R3: Aya-Expanse-8B Zero-Shot GEC Evaluation
+R3: Aya-Expanse-8B Zero-Shot GEC Evaluation
 
 Runs the Aya-Expanse-8B model (CohereForAI/aya-expanse-8b) on the
 287-pair edited test subset (source != target pairs) and computes

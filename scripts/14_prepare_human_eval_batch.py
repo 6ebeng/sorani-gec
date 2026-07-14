@@ -1,6 +1,6 @@
 """Prepare a 60-pair human evaluation batch for inter-rater agreement study (R8).
 
-Reads model prediction files from Phase 3 evaluation runs (or falls back to
+Reads model prediction files from earlier evaluation runs (or falls back to
 the test split reference corrections when model hypotheses are unavailable
 locally) and produces `results/human_eval/evaluation_pairs.jsonl` consumed by
 the Gradio web interface (`web/evaluation.py`).

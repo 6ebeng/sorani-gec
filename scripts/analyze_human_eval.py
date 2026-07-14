@@ -190,13 +190,14 @@ def main() -> None:
         matched += 1
         mean_ord = sum(scores) / len(scores)
         human_ord.append(mean_ord)
-        metric_acc.append(float(rec["agreement_accuracy"]))
-        per_system_ord[rec["system"]].append(mean_ord)
+        metric_acc.append(float(rec.get("agreement_accuracy", 0.0)))
+        sys_key = rec.get("system", rec.get("model", "unknown"))
+        per_system_ord[sys_key].append(mean_ord)
         bins = pair_binaries.get(k, [])
         if bins:
             maj = 1 if sum(bins) >= len(bins) / 2 else 0
             human_bin.append(maj)
-            metric_pass.append(1 if rec["agreement_pass"] else 0)
+            metric_pass.append(1 if rec.get("agreement_pass", True) else 0)
 
     tau, tau_n = _kendall_tau_b(human_ord, metric_acc)
     kappa_metric = cohens_kappa([str(x) for x in human_bin], [str(x) for x in metric_pass]) if human_bin else 0.0

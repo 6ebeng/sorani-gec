@@ -81,11 +81,11 @@ training:
   batch_size: 16              # effective batch = batch_size * gradient_accumulation_steps = 128
   learning_rate: 5.0e-5       # follows ByT5 fine-tuning recipe (Xue et al. 2022)
   weight_decay: 0.01
-  warmup_steps: 1000          # As-reported value for the Phase-D runs in Chapter 7. NOTE (L8-01):
+  warmup_steps: 1000          # As-reported value for the campaign-2 (multiseed) runs in Chapter 7. NOTE (L8-01):
                               # 1000 was sized for an 8k-50k corpus; on the 5,253-pair splits_v2
                               # it covers ~81%% of the 1,260-step schedule (peak LR near epoch 24/30),
                               # which left both models undertrained. The Phase-1 retrain corrects
-                              # this to ~60 via --warmup-steps (see scripts/phase1_retrain.sh).
+                              # this to ~60 via --warmup-steps (see scripts/train_campaign_1_audit_retrain.sh).
   max_epochs: 30
   early_stopping_patience: 5  # NOTE: patience never triggers when selection_metric=val_f05
                                # because F0.5 peaks at epoch 1 and early stopping fires at epoch 6.
@@ -93,7 +93,7 @@ training:
   gradient_accumulation_steps: 8
   fp16: false  # ByT5 byte-level embeddings produce NaN loss with FP16 on CUDA 12.x (R21 fix)
 
-  # Checkpoint selection (R4) — default switched from val_f05 to val_loss (Phase D fix).
+  # Checkpoint selection (R4) — default switched from val_f05 to val_loss (campaign-2 fix).
   # val_f05 trapped both Phase A runs at epoch-1 near-pretrained checkpoints because F0.5
   # peaks at epoch 1 and decays; val_loss continues to fall monotonically.
   selection_metric: "val_loss"  # choices: val_f05 | val_loss

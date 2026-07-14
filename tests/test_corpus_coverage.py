@@ -1,7 +1,7 @@
 """
 Error-type coverage regression tests for the released splits_v2 corpus.
 
-These guard the Phase 2 data-integrity findings (audit rows 2.2/2.4):
+These guard the splits_v2 data-integrity findings (audit rows 2.2/2.4):
   * the error labels in the data never drift away from the declared generators;
   * the documented coverage gaps stay documented (no silent regeneration);
   * the trivial/edited pair counts match the SHA-256 manifest the thesis numbers

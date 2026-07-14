@@ -1,11 +1,12 @@
-"""Dump per-sentence hypotheses for every Phase D checkpoint.
+"""Dump per-sentence hypotheses for every checkpoint of a campaign.
 
 Reviewer item R9: the sentence-level paired bootstrap needs each model's
 output on every test sentence, not just the aggregate F0.5. This script
-mirrors eval_phase_d.py exactly (same analyzer, max_length, beams) but writes
-results/phase_d/<run>/hypotheses.jsonl with {source, hypothesis, reference}
-per line. Those files are small and can be downloaded for local significance
-testing.
+mirrors eval_campaign_checkpoints.py exactly (same analyzer, max_length,
+beams) but writes <results_dir>/<run>/hypotheses.jsonl with
+{source, hypothesis, reference} per line. Those files are small and can be
+downloaded for local significance testing. Defaults to campaign 2
+(multiseed); override with CAMPAIGN_RESULTS_DIR / CAMPAIGN_DATA_DIR.
 """
 
 import json
@@ -23,8 +24,8 @@ from src.morphology.analyzer import MorphologicalAnalyzer
 from src.morphology.features import FeatureExtractor
 from src.morphology.lexicon import SoraniLexicon
 
-DATA_DIR = os.environ.get("PHASE_DATA_DIR", "data/splits_v2")
-RESULTS_DIR = os.environ.get("PHASE_RESULTS_DIR", "results/phase_d")
+DATA_DIR = os.environ.get("CAMPAIGN_DATA_DIR", os.environ.get("PHASE_DATA_DIR", "data/splits_v2"))
+RESULTS_DIR = os.environ.get("CAMPAIGN_RESULTS_DIR", os.environ.get("PHASE_RESULTS_DIR", "results/campaign_2_multiseed"))
 MAX_LENGTH = 256
 BATCH_SIZE = 16
 NUM_BEAMS = 4
