@@ -22,14 +22,14 @@ The thesis (Ch. 6) cites the definitive run as `scripts/phase2_retrain.sh --resu
 
 ## Supporting directories
 
-| Directory                                            | Contents                                                                            |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `baselines/`                                         | Non-neural baselines (copy, hunspell, reverse-rule, n-gram LM) + bootstrap p-values |
-| `human_eval/`                                        | 37-rater blind study: ratings, manifest, κ/τ analysis                               |
-| `ablation/`, `ablation_partial/`                     | Consolidated ablation summary + retained per-run metrics                           |
-| `data_diagnosis/`                                    | Data leakage / trivial-pair audit                                                   |
-| `ocr_audit/`                                         | OCR quality (CER/WER) of dissertation sources                                       |
-| `figures/`                                           | Corpus statistics plots                                                             |
-| `models/`, `metrics/`                                | Default output dirs for fresh training/eval runs                                    |
+| Directory                        | Contents                                                                            |
+| -------------------------------- | ----------------------------------------------------------------------------------- |
+| `baselines/`                     | Non-neural baselines (copy, hunspell, reverse-rule, n-gram LM) + bootstrap p-values |
+| `human_eval/`                    | 37-rater blind study: ratings, manifest, κ/τ analysis                               |
+| `ablation/`, `ablation_partial/` | Consolidated ablation summary + retained per-run metrics                            |
+| `data_diagnosis/`                | Data leakage / trivial-pair audit                                                   |
+| `ocr_audit/`                     | OCR quality (CER/WER) of dissertation sources                                       |
+| `figures/`                       | Corpus statistics plots                                                             |
+| `models/`, `metrics/`            | Default output dirs for fresh training/eval runs                                    |
 
 Checkpoints (`*.pt`) and raw logs (`*.log`) are gitignored; metrics JSONs are tracked.
