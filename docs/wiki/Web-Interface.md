@@ -22,14 +22,14 @@ Six tabs:
 
 ## REST API (`web/app.py`)
 
-| Endpoint | Method | Purpose |
-|---|---|---|
-| `/health` | GET | Liveness |
-| `/status` | GET | Model/checkpoint status |
-| `/correct` | POST | Correct one sentence |
-| `/batch` | POST | Correct many sentences |
-| `/models` | GET | Available model list |
-| `/metrics` | GET | Service metrics |
+| Endpoint   | Method | Purpose                 |
+| ---------- | ------ | ----------------------- |
+| `/health`  | GET    | Liveness                |
+| `/status`  | GET    | Model/checkpoint status |
+| `/correct` | POST   | Correct one sentence    |
+| `/batch`   | POST   | Correct many sentences  |
+| `/models`  | GET    | Available model list    |
+| `/metrics` | GET    | Service metrics         |
 
 Configuration in `web/config.py` (checkpoint paths, device, generation params).
 

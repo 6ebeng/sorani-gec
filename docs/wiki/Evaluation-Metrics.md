@@ -35,13 +35,13 @@ Paired bootstrap (10,000 resamples) over per-sentence hypotheses (`hypotheses.js
 
 ## Reference systems
 
-| System | Script | Span F₀.₅ (splits_v2 test) |
-|---|---|---|
-| Copy (do nothing) | `eval_baselines.py` | 0.000 |
-| Hunspell spell-correct | `eval_baselines.py` | 0.009 |
-| Reverse-rule (invert generators) | `eval_baselines.py` | 0.085 |
-| KenLM-style n-gram reranker | `eval_baselines.py` | 0.139 |
-| Aya-Expanse-8B zero-shot | `11_evaluate_llm_baseline.py` | see thesis Ch. 6 |
+| System                           | Script                        | Span F₀.₅ (splits_v2 test) |
+| -------------------------------- | ----------------------------- | -------------------------- |
+| Copy (do nothing)                | `eval_baselines.py`           | 0.000                      |
+| Hunspell spell-correct           | `eval_baselines.py`           | 0.009                      |
+| Reverse-rule (invert generators) | `eval_baselines.py`           | 0.085                      |
+| KenLM-style n-gram reranker      | `eval_baselines.py`           | 0.139                      |
+| Aya-Expanse-8B zero-shot         | `11_evaluate_llm_baseline.py` | see thesis Ch. 6           |
 
 Both neural models clear every non-neural baseline by a wide margin in the clean campaign (0.51 vs ≤0.14).
 

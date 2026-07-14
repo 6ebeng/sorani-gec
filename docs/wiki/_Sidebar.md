@@ -1,6 +1,7 @@
 **[[Home]]**
 
 **Guide**
+
 - [[Getting-Started]]
 - [[Data-Pipeline]]
 - [[Error-Generation]]
@@ -15,5 +16,6 @@
 - [[Troubleshooting]]
 
 **Links**
+
 - [Code](https://github.com/6ebeng/sorani-gec)
 - [Models (HF)](https://huggingface.co/Tishko/sorani-gec)

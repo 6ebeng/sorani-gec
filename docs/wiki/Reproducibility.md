@@ -10,7 +10,7 @@ Chains collect → sanitize → normalize → generate → split → stats → t
 
 ## Reproducing the published campaigns exactly
 
-The generic pipeline reproduces the *approach*; the published numbers came from specific campaign scripts (see [[Training-Campaigns]] for context):
+The generic pipeline reproduces the _approach_; the published numbers came from specific campaign scripts (see [[Training-Campaigns]] for context):
 
 ```bash
 # 1. Canonical splits (dev/test are frozen; SHA-256 manifest written)

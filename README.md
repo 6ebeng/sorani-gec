@@ -22,9 +22,9 @@ The first neural grammatical error correction system for Central Kurdish (Sorani
 
 **Definitive — clean training campaign** (26,841 train pairs, fixed 647-sentence test set, span F₀.₅ at `max_length=512`, seed 42; `results/campaign_3_clean_final/`):
 
-| Model | F₀.₅ | Precision | Recall |
-|-------|------|-----------|--------|
-| ByT5-small baseline | 0.5057 | 0.6215 | 0.2898 |
+| Model                   | F₀.₅       | Precision  | Recall |
+| ----------------------- | ---------- | ---------- | ------ |
+| ByT5-small baseline     | 0.5057     | 0.6215     | 0.2898 |
 | ByT5-small + morphology | **0.5105** | **0.6359** | 0.2854 |
 
 Δ F₀.₅ = +0.0048; paired bootstrap p = 0.39 (not significant at this scale and data size).
@@ -218,12 +218,12 @@ pytest tests/test_evaluation.py -v           # metrics
 
 ## Repository Layout
 
-| Resource | Link |
-|----------|------|
-| Code (this repo) | https://github.com/6ebeng/sorani-gec |
+| Resource           | Link                                      |
+| ------------------ | ----------------------------------------- |
+| Code (this repo)   | https://github.com/6ebeng/sorani-gec      |
 | Documentation wiki | https://github.com/6ebeng/sorani-gec/wiki |
-| Pre-trained models | https://huggingface.co/Tishko/sorani-gec |
-| Thesis document | https://github.com/6ebeng/research_thesis |
+| Pre-trained models | https://huggingface.co/Tishko/sorani-gec  |
+| Thesis document    | https://github.com/6ebeng/research_thesis |
 
 ---
 

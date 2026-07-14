@@ -26,14 +26,14 @@ Combines baseline + morphology-aware outputs by `majority_vote` or `best_score`.
 
 ## Training configuration (`configs/default.yaml`)
 
-| Setting | Value |
-|---|---|
-| Optimizer | AdamW, lr 5e-5, cosine schedule with 3 restarts |
-| Batch | 16 × grad-accum 8 = effective 128 (clean campaign: 8 × 16 at max_length=512) |
-| Precision | **FP32** — FP16 gives NaN loss with ByT5 on this corpus |
-| Epochs | 30 max, early stopping patience 5–8 |
-| Selection | `val_f05` (validation span F₀.₅) — val-loss selection was tried and abandoned |
-| Gradient clip | 1.0 |
+| Setting       | Value                                                                         |
+| ------------- | ----------------------------------------------------------------------------- |
+| Optimizer     | AdamW, lr 5e-5, cosine schedule with 3 restarts                               |
+| Batch         | 16 × grad-accum 8 = effective 128 (clean campaign: 8 × 16 at max_length=512)  |
+| Precision     | **FP32** — FP16 gives NaN loss with ByT5 on this corpus                       |
+| Epochs        | 30 max, early stopping patience 5–8                                           |
+| Selection     | `val_f05` (validation span F₀.₅) — val-loss selection was tried and abandoned |
+| Gradient clip | 1.0                                                                           |
 
 CLI flags override YAML; YAML overrides argparse defaults when `--config` is passed.
 

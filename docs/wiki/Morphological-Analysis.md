@@ -4,15 +4,15 @@ The morphology layer turns a raw Sorani sentence into per-word feature vectors a
 
 ## Modules (`src/morphology/`)
 
-| Module | Role |
-|---|---|
-| `constants.py` | Linguistic constants: clitic inventories, verb affixes, case roles, demonstratives — the codified findings |
-| `analyzer.py` | `MorphologicalAnalyzer` — segment + analyze each word (KLPT is an optional dependency; the analyzer degrades gracefully without it) |
-| `features.py` | `FeatureExtractor` — 9 features per word |
-| `graph.py` | `AgreementEdge`, `AgreementGraph` — 33 typed edge kinds (`EDGE_TYPE_ORDER`) |
-| `builder.py` | Builds the graph from an analyzed sentence |
-| `lexicon.py` | `SoraniLexicon` — Hunspell-backed lookup (33,856 entries, 6,387 affix rules from `data/hunspell/ckb-Arab.{dic,aff}`) |
-| `agreement.py`, `lexicon_parser.py` | Thin backward-compatibility shims re-exporting the above |
+| Module                              | Role                                                                                                                                |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `constants.py`                      | Linguistic constants: clitic inventories, verb affixes, case roles, demonstratives — the codified findings                          |
+| `analyzer.py`                       | `MorphologicalAnalyzer` — segment + analyze each word (KLPT is an optional dependency; the analyzer degrades gracefully without it) |
+| `features.py`                       | `FeatureExtractor` — 9 features per word                                                                                            |
+| `graph.py`                          | `AgreementEdge`, `AgreementGraph` — 33 typed edge kinds (`EDGE_TYPE_ORDER`)                                                         |
+| `builder.py`                        | Builds the graph from an analyzed sentence                                                                                          |
+| `lexicon.py`                        | `SoraniLexicon` — Hunspell-backed lookup (33,856 entries, 6,387 affix rules from `data/hunspell/ckb-Arab.{dic,aff}`)                |
+| `agreement.py`, `lexicon_parser.py` | Thin backward-compatibility shims re-exporting the above                                                                            |
 
 Import order is acyclic: `constants → analyzer → graph → builder → agreement`.
 

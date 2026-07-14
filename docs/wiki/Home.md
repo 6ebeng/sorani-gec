@@ -14,10 +14,10 @@ Sorani Kurdish has a split-ergative agreement system: person/number marking move
 
 ## Headline result (clean campaign, June 2026)
 
-| Model | Span F₀.₅ | P | R | TP | FP | FN |
-|---|---|---|---|---|---|---|
-| ByT5-small baseline | 0.5057 | 0.6215 | 0.2898 | 133 | 81 | 326 |
-| ByT5-small + morphology | **0.5105** | **0.6359** | 0.2854 | 131 | 75 | 328 |
+| Model                   | Span F₀.₅  | P          | R      | TP  | FP  | FN  |
+| ----------------------- | ---------- | ---------- | ------ | --- | --- | --- |
+| ByT5-small baseline     | 0.5057     | 0.6215     | 0.2898 | 133 | 81  | 326 |
+| ByT5-small + morphology | **0.5105** | **0.6359** | 0.2854 | 131 | 75  | 328 |
 
 Trained on 26,841 pairs (`splits_scaled`), evaluated on the fixed 647-sentence test set at `max_length=512`, seed 42. Δ F₀.₅ = +0.0048, paired bootstrap p = 0.39 (not significant). Human raters scored morphology-aware edits 2.616 vs 2.529 for the baseline on a 1–3 grammaticality scale (37 raters, 60 blind pairs, max pairwise κ = 0.7073).
 
@@ -25,20 +25,20 @@ See [[Results]] for all campaigns, ablations, and baselines.
 
 ## Pages
 
-| Page | Contents |
-|---|---|
-| [[Getting-Started]] | Install, environment, smoke test, Docker |
-| [[Data-Pipeline]] | Corpus sources, sanitization, normalization, splits chronology |
-| [[Error-Generation]] | The 25 rule-based error generators and the synthesis pipeline |
-| [[Morphological-Analysis]] | Analyzer, 9 features, agreement graph, lexicon |
-| [[Model-Architecture]] | ByT5 baseline, morphology-aware variant, ensemble |
-| [[Training-Campaigns]] | All training campaigns in order, with exact commands |
-| [[Evaluation-Metrics]] | Span F₀.₅, GLEU, M², agreement accuracy, bootstrap |
-| [[Results]] | Definitive numbers, prior campaigns, ablations, human eval |
-| [[Web-Interface]] | Gradio demo, REST API, annotation server |
-| [[Testing]] | The 668-test suite and how to run it |
-| [[Reproducibility]] | One-command reproduction, data hashes, HF checkpoints |
-| [[Troubleshooting]] | FP16 NaN, Windows encoding, Hunspell, CUDA issues |
+| Page                       | Contents                                                       |
+| -------------------------- | -------------------------------------------------------------- |
+| [[Getting-Started]]        | Install, environment, smoke test, Docker                       |
+| [[Data-Pipeline]]          | Corpus sources, sanitization, normalization, splits chronology |
+| [[Error-Generation]]       | The 25 rule-based error generators and the synthesis pipeline  |
+| [[Morphological-Analysis]] | Analyzer, 9 features, agreement graph, lexicon                 |
+| [[Model-Architecture]]     | ByT5 baseline, morphology-aware variant, ensemble              |
+| [[Training-Campaigns]]     | All training campaigns in order, with exact commands           |
+| [[Evaluation-Metrics]]     | Span F₀.₅, GLEU, M², agreement accuracy, bootstrap             |
+| [[Results]]                | Definitive numbers, prior campaigns, ablations, human eval     |
+| [[Web-Interface]]          | Gradio demo, REST API, annotation server                       |
+| [[Testing]]                | The 668-test suite and how to run it                           |
+| [[Reproducibility]]        | One-command reproduction, data hashes, HF checkpoints          |
+| [[Troubleshooting]]        | FP16 NaN, Windows encoding, Hunspell, CUDA issues              |
 
 ## Links
 

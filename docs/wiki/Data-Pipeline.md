@@ -4,12 +4,12 @@ From raw Kurdish text to train/dev/test splits. All data directories are gitigno
 
 ## Sources
 
-| Source | Script | Notes |
-|---|---|---|
-| OCR'd Kurdish dissertations & linguistics books | `01_collect_data.py`, `ingest_dissertations.py` | Proofread academic prose; OCR quality audited (`ocr_audit.py` → `results/ocr_audit/`) |
-| Kurdish Textbooks Corpus (KTC) | `01a_download_ktc.py`, `ingest_ktc.py` | Per-subject categories mapped via `src/data/corpus_catalog.py` |
-| Ahmadi Hunspell lexicon (ckb-Arab) | `01a_download_ahmadi_lexicon.py` | 33,856 entries + 6,387 affix rules; used by the spell checker and morphology lexicon (`data/hunspell/`) |
-| Natural test sentences | `13_collect_natural_test_sentences.py` → `export_natural_csv.py` → manual review → `csv_to_natural_jsonl.py` | 200+ real-world sentences in `data/natural_test/` |
+| Source                                          | Script                                                                                                       | Notes                                                                                                   |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| OCR'd Kurdish dissertations & linguistics books | `01_collect_data.py`, `ingest_dissertations.py`                                                              | Proofread academic prose; OCR quality audited (`ocr_audit.py` → `results/ocr_audit/`)                   |
+| Kurdish Textbooks Corpus (KTC)                  | `01a_download_ktc.py`, `ingest_ktc.py`                                                                       | Per-subject categories mapped via `src/data/corpus_catalog.py`                                          |
+| Ahmadi Hunspell lexicon (ckb-Arab)              | `01a_download_ahmadi_lexicon.py`                                                                             | 33,856 entries + 6,387 affix rules; used by the spell checker and morphology lexicon (`data/hunspell/`) |
+| Natural test sentences                          | `13_collect_natural_test_sentences.py` → `export_natural_csv.py` → manual review → `csv_to_natural_jsonl.py` | 200+ real-world sentences in `data/natural_test/`                                                       |
 
 ## Steps
 
@@ -40,11 +40,11 @@ The scaled corpus originally carried `category\tsentence` prefixes. An early cam
 
 ## Splits chronology
 
-| Splits | Built by | Size (train/dev/test) | Role |
-|---|---|---|---|
-| `splits` (v1) | `04_split_data.py` | ~superseded | First cut; deleted locally |
-| **`splits_v2`** | `create_splits_v2.py` (+ `augment_test_v2.py`) | 5,253 / 465 / 647 | **Canonical dev/test.** Single-edit filter, Jaccard-0.90 cross-split dedup, SHA-256 manifest. Eleven thin error types augmented to n=20 test pairs each |
-| **`splits_scaled`** | `14_build_scaled_train.py` | 26,841 / 465 / 647 | **Clean-campaign training set.** Train pool scaled ~5–7×; dev/test byte-identical to splits_v2 |
+| Splits              | Built by                                       | Size (train/dev/test) | Role                                                                                                                                                    |
+| ------------------- | ---------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `splits` (v1)       | `04_split_data.py`                             | ~superseded           | First cut; deleted locally                                                                                                                              |
+| **`splits_v2`**     | `create_splits_v2.py` (+ `augment_test_v2.py`) | 5,253 / 465 / 647     | **Canonical dev/test.** Single-edit filter, Jaccard-0.90 cross-split dedup, SHA-256 manifest. Eleven thin error types augmented to n=20 test pairs each |
+| **`splits_scaled`** | `14_build_scaled_train.py`                     | 26,841 / 465 / 647    | **Clean-campaign training set.** Train pool scaled ~5–7×; dev/test byte-identical to splits_v2                                                          |
 
 Test-set composition: 647 pairs total, of which 397 contain an injected error (the "edited subset") and 250 are copy-through pairs. Headline metrics use all 647; per-type analysis uses the 397.
 
