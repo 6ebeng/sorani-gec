@@ -1,0 +1,65 @@
+# Training Campaigns
+
+Training happened in several campaigns as data and evaluation bugs were found and fixed. Read this page to know which numbers are current and which are historical. All remote runs used a rented RTX 5090 (vast.ai), FP32.
+
+## Chronology
+
+| # | Campaign | Data (train) | Seeds | Results dir | Span F₀.₅ (b / m) | Status |
+|---|---|---|---|---|---|---|
+| 1 | Early remote runs | splits v1 | 42 | `results/metrics_remote/` | — | Historical |
+| 2 | Phase 1 retrain (audit fixes: warmup scaling, val-F₀.₅ selection, λ=0) | splits_v2 (5,253) | 42/123/777 | `results/phase1/` | ≈0.157 / ≈0.169 | Historical |
+| 3 | Phase D (3-seed campaign; checkpoints on HF) | splits_v2 (5,253) | 42/123/777 | `results/phase_d/` | 0.165 / 0.177 (p=0.08) | Prior campaign — dissected in thesis Ch. 7 |
+| 4 | **Clean campaign** (contamination + truncation bugs fixed, scaled data) | **splits_scaled (26,841)** | **42** | **`results/phase2_clean/`** | **0.5057 / 0.5105** (p=0.39) | **Definitive** |
+
+Word-level F₀.₅ for Phase D sits near 0.08 (`results/phase_d/eval_summary.json`); the span-aware recompute is in `results/phase3_metrics.json`.
+
+## The three bugs the clean campaign fixed
+
+1. **Category-label contamination** — domain tags (`linguistics\t`…) leaked into training targets; FP counts ≈830 per model. Fixed by `15_clean_corpus.py`.
+2. **Baseline eval truncation at 128 bytes** — clipped generations scored as false positives.
+3. **Target tail-truncation at 256 bytes** — training targets lost their tails at the old max_length.
+
+After the fixes, FP dropped from ≈830 to 75–81 and F₀.₅ rose from ≈0.08 to ≈0.51 for both models.
+
+## Exact commands
+
+### Phase D (3 seeds × 2 models, splits_v2)
+
+```bash
+bash run_phase_d_seeds.sh            # trains all 6 runs → results/phase_d/
+python scripts/eval_phase_d.py       # per-seed eval_test.json
+python scripts/dump_hypotheses.py    # hypotheses.jsonl for bootstrap
+python scripts/run_bootstrap.py      # paired significance tests
+```
+
+### Clean campaign (definitive)
+
+```bash
+python scripts/14_build_scaled_train.py         # build splits_scaled (26,841 pairs)
+bash scripts/phase2_retrain.sh --skip-build \
+     --batch 8 --accum 16 --max-len 512 \
+     --results-dir results/phase2_clean --seeds 42
+python scripts/eval_seed42_512.py               # span scorer at max_length=512
+```
+
+GPU memory settles at ~20.7 GiB with `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`.
+
+### Single-model training (generic)
+
+```bash
+python scripts/05_train_baseline.py   --config configs/default.yaml
+python scripts/06_train_morphaware.py --config configs/default.yaml
+```
+
+Useful flags on `06_train_morphaware.py`: `--agreement-loss-weight`, `--morph-gate-init`, `--morph-residual-init`, `--curriculum`, `--data-dir`, `--seed`.
+
+### Hyperparameter search / ablations
+
+```bash
+make hpsearch     # scripts/12_hyperparam_search.py
+make ablation     # scripts/08_ablation.py → results/ablation/
+```
+
+Remote-instance helpers (`scripts/remote_setup.sh`, `scripts/setup_remote.sh`) document the vast.ai environment setup for Phase D and the clean campaign respectively.
+
+Next: [[Evaluation-Metrics]]

@@ -9,27 +9,35 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Models on HF](https://img.shields.io/badge/🤗%20Models-Tishko%2Fsorani--gec-yellow)](https://huggingface.co/Tishko/sorani-gec)
-[![Tests](https://img.shields.io/badge/tests-626%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-668%20passing-brightgreen)]()
+[![Wiki](https://img.shields.io/badge/docs-wiki-blue)](https://github.com/6ebeng/sorani-gec/wiki)
 
-The first neural grammatical error correction system for Central Kurdish (Sorani). Trained on a fully synthetic corpus of ~27,000 sentence pairs built from proofread Kurdish dissertations and textbooks, targeting agreement errors that arise from the split-ergative morphosyntax of Sorani.
+The first neural grammatical error correction system for Central Kurdish (Sorani). Trained on a fully synthetic corpus built from proofread Kurdish dissertations and textbooks (26,841 training pairs in the final campaign), targeting agreement errors that arise from the split-ergative morphosyntax of Sorani.
+
+**Full documentation lives in the [project wiki](https://github.com/6ebeng/sorani-gec/wiki)** — pipeline, architecture, training campaigns, metrics, and troubleshooting. Wiki sources are versioned in [docs/wiki/](docs/wiki/).
 
 ---
 
-## Results (Phase D — clean campaign, span F₀.₅)
+## Results
 
-| Model | F₀.₅ | Precision | Recall | Seeds |
-|-------|------|-----------|--------|-------|
-| ByT5-small baseline | 0.5057 | 0.6215 | 0.2898 | 3 |
-| ByT5-small + morphology | **0.5105** | **0.6359** | 0.2854 | 3 |
+**Definitive — clean training campaign** (26,841 train pairs, fixed 647-sentence test set, span F₀.₅ at `max_length=512`, seed 42; `results/phase2_clean/`):
+
+| Model | F₀.₅ | Precision | Recall |
+|-------|------|-----------|--------|
+| ByT5-small baseline | 0.5057 | 0.6215 | 0.2898 |
+| ByT5-small + morphology | **0.5105** | **0.6359** | 0.2854 |
 
 Δ F₀.₅ = +0.0048; paired bootstrap p = 0.39 (not significant at this scale and data size).
-Human evaluation: 37 native Sorani raters; morphology-aware edits scored 2.62 vs 2.53 grammaticality (blind, 1–3 scale); inter-rater κ = 0.71.
+
+**Prior campaign — Phase D** (3 seeds × 2 models on the 5,253-pair splits_v2; checkpoints on HF; `results/phase_d/`): span F₀.₅ 0.165 (baseline) vs 0.177 (morphology), p = 0.08. The clean campaign fixed three data/eval bugs (category-label contamination, 128-byte eval truncation, 256-byte target truncation) and retrained at scale — see the [Training-Campaigns wiki page](https://github.com/6ebeng/sorani-gec/wiki/Training-Campaigns).
+
+**Human evaluation:** 37 native Sorani raters, 60 blind pairs; morphology-aware edits scored 2.616 vs 2.529 mean grammaticality (1–3 scale); max pairwise Cohen's κ = 0.7073.
 
 ---
 
 ## Pre-trained Models
 
-Download the Phase D checkpoints (3 seeds × 2 variants) from Hugging Face:
+The Phase D checkpoints (3 seeds × 2 variants, trained on splits_v2) are on Hugging Face. The clean-campaign checkpoints (the 0.51 F₀.₅ models) are managed via [upload_to_hf.py](upload_to_hf.py).
 
 ```bash
 pip install huggingface_hub
@@ -133,15 +141,23 @@ sorani-gec/
 │   ├── 07_evaluate.py           # Step 7 — evaluate (F₀.₅, GLEU, M², agr.)
 │   ├── 08_ablation.py           # Step 8 — ablation studies
 │   ├── 10_infer.py              # CLI inference on a sentence
-│   └── 11_hash_data.py          # SHA-256 data integrity check
-├── tests/                       # 626 tests across 28 files
+│   ├── 11_hash_data.py          # SHA-256 data integrity check
+│   ├── create_splits_v2.py      # Canonical splits (single-edit, dedup, manifest)
+│   ├── 14_build_scaled_train.py # Scaled 26,841-pair training pool
+│   ├── phase2_retrain.sh        # Clean-campaign training (definitive)
+│   ├── eval_seed42_512.py       # Clean-campaign span scorer
+│   └── analyze_human_eval.py    # 37-rater study analysis (κ, τ-b)
+├── docs/wiki/                   # Wiki sources (published to GitHub wiki)
+├── tests/                       # 626 tests (+42 in ../web/tests)
 ├── results/
-│   ├── phase_d/                 # Definitive campaign — 3 seeds × 2 models
-│   ├── baselines/               # Rule-based and n-gram baseline results
+│   ├── phase2_clean/            # Definitive clean campaign (seed 42)
+│   ├── phase_d/                 # Prior 3-seed campaign (checkpoints on HF)
+│   ├── baselines/               # Non-neural baseline results
 │   ├── human_eval/              # 37-rater evaluation data
-│   └── ablation/                # Per-feature ablation metrics
+│   └── ablation/                # Ablation metrics
+├── run_phase_d_seeds.sh         # Phase D training driver
+├── upload_to_hf.py              # Checkpoint upload to Hugging Face
 ├── Dockerfile
-├── docker-compose.yml
 ├── pyproject.toml
 └── Makefile
 ```
@@ -156,7 +172,7 @@ sorani-gec/
 python scripts/01_collect_data.py
 python scripts/01b_sanitize.py
 python scripts/02_normalize.py
-python scripts/03_generate_errors.py   # produces ~27,000 pairs
+python scripts/03_generate_errors.py
 python scripts/04_split_data.py
 python scripts/05_train_baseline.py    # requires GPU
 python scripts/06_train_morphaware.py  # requires GPU
@@ -168,6 +184,8 @@ All steps can also be run via:
 ```bash
 make reproduce
 ```
+
+To reproduce the published campaigns exactly (canonical splits, scaled pool, clean-campaign training), follow the [Reproducibility wiki page](https://github.com/6ebeng/sorani-gec/wiki/Reproducibility).
 
 Key training hyperparameters are in `configs/default.yaml`. GPU training was done on an RTX 5090 (vast.ai) in FP32; FP16 produced NaN loss on this dataset.
 
@@ -189,7 +207,8 @@ docker run --gpus all -p 7860:7860 sorani-gec
 ## Testing
 
 ```bash
-pytest tests/ -v                              # all 626 tests
+make test-all                                 # all 668 tests (626 core + 42 web)
+pytest tests/ -v                              # core suite
 pytest tests/test_error_generators.py -v     # error generators only
 pytest tests/test_morphology.py -v           # morphological analyzer
 pytest tests/test_evaluation.py -v           # metrics
@@ -202,6 +221,7 @@ pytest tests/test_evaluation.py -v           # metrics
 | Resource | Link |
 |----------|------|
 | Code (this repo) | https://github.com/6ebeng/sorani-gec |
+| Documentation wiki | https://github.com/6ebeng/sorani-gec/wiki |
 | Pre-trained models | https://huggingface.co/Tishko/sorani-gec |
 | Thesis document | https://github.com/6ebeng/research_thesis |
 
