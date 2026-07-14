@@ -233,7 +233,7 @@ pytest tests/test_evaluation.py -v           # metrics
 
 ```bibtex
 @mastersthesis{hawez2026soranigec,
-  author  = {Tishko Salah Hawez},
+  author  = {Tishko Salah Hawez and Hossein Hassani},
   title   = {Agreement-Aware Grammatical Error Correction for Central Kurdish
              (Sorani): A Morphology-Driven Neural Approach},
   school  = {University of Kurdistan Hewl\^{e}r},
