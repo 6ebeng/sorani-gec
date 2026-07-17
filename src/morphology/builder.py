@@ -516,6 +516,42 @@ def build_agreement_graph(
     tokens = analyzer.tokenize(sentence)
     features = [analyzer.analyze_token(tok) for tok in tokens]
 
+    # ------------------------------------------------------------------
+    # Step 0: Infinitive → finite past 3pl disambiguation (in context)
+    # ------------------------------------------------------------------
+    # چوون / هاتن / کردن are homographs: the verbal-noun (infinitive)
+    # form is identical to the finite past 3rd-plural (past stem + ن).
+    # analyze_token() defaults to the infinitive reading because it has
+    # no clause context. Here, with the full sentence available, an
+    # infinitive is reinterpreted as the finite past 3pl verb when it
+    # occupies verb position: a preceding subject NP exists and no other
+    # finite verb competes for the predicate slot. The standalone
+    # verbal-noun reading (e.g. «چوون قورسە», with no preceding subject)
+    # is left untouched.
+    _FINITE_TENSES = ("present", "past", "future", "imperative")
+    _NOMINAL_POS = ("NOUN", "PROPN", "PRON")
+    for i, feat in enumerate(features):
+        if feat.pos != "VERB" or feat.tense != "infinitive":
+            continue
+        has_other_finite = any(
+            j != i and features[j].pos == "VERB"
+            and features[j].tense in _FINITE_TENSES
+            for j in range(len(features))
+        )
+        if has_other_finite:
+            continue
+        has_preceding_subject = any(
+            features[j].pos in _NOMINAL_POS for j in range(i)
+        )
+        if not has_preceding_subject:
+            continue
+        feat.tense = "past"
+        feat.person = "3"
+        feat.number = "pl"
+        if not feat.aspect:
+            feat.aspect = "perfective"
+        feat.raw_analysis["infinitive_as_finite_past3pl"] = True
+
     graph = AgreementGraph(tokens=tokens, features=features)
 
     # ------------------------------------------------------------------
@@ -702,6 +738,19 @@ def build_agreement_graph(
                     "PIPE-17: Inferred person=%s number=%s for verb '%s' "
                     "at %d via suffix fallback",
                     _inferred[0], _inferred[1], tok, vi,
+                )
+            elif vinfo.get("tense") == "past":
+                # Zero-morpheme default: a bare past stem with no overt
+                # person suffix is 3rd-person singular (چوو "went", هات
+                # "came"). Assigning it lets the pro-drop recovery below
+                # build the implicit-subject agreement edge and lets
+                # subject-verb number checks see the verb's number.
+                # Source: Amin (2016), p. 51 — past 3sg is the null-suffix form.
+                features[vi].person, features[vi].number = "3", "sg"
+                features[vi].raw_analysis["zero_morpheme_past_3sg"] = True
+                logger.debug(
+                    "Zero-morpheme past 3sg default for verb '%s' at %d",
+                    tok, vi,
                 )
             else:
                 logger.warning(

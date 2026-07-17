@@ -21,6 +21,7 @@ from ..morphology.constants import SUBJECT_PRONOUNS, TRANSITIVE_PAST_STEMS
 from ..morphology.builder import (
     _is_present_verb,
     _is_transitive_past,
+    build_agreement_graph,
 )
 
 logger = logging.getLogger(__name__)
@@ -56,7 +57,7 @@ _IMPERATIVE_PREFIX = "ب"
 class AgreementResult:
     """Result of agreement checking on a single sentence.
 
-    ``checks_total`` is the number of checks run (always 14). ``checks_applicable``
+    ``checks_total`` is the number of checks run (always 15). ``checks_applicable``
     is how many of those checks had their trigger structure present in the
     sentence — the denominator that matters. A check that never fired (no
     pronoun, no quantifier, no relative clause, …) is neither a pass nor a
@@ -71,7 +72,7 @@ class AgreementResult:
 
     @property
     def accuracy(self) -> float:
-        # Denominator = applicable checks, not all 14. A sentence that
+        # Denominator = applicable checks, not all 15. A sentence that
         # triggered no check is undefined for this metric; callers should
         # gate on is_applicable. To keep the property total we return 1.0
         # when nothing applied.
@@ -138,6 +139,7 @@ class AgreementChecker:
             self._check_adverb_verb_tense,
             self._check_compound_subject,
             self._check_bare_noun_agreement,
+            self._check_noun_subject_verb_number,
         ]
 
         for check in checks:
@@ -958,6 +960,59 @@ class AgreementChecker:
         return applicable, violations
 
 
+    def _check_noun_subject_verb_number(self, sentence: str) -> tuple[bool, list[str]]:
+        """Check number agreement between a non-pronominal subject and its verb (Law 1).
+
+        Complements ``_check_subject_verb`` (pronoun + present-tense verb) and
+        ``_check_bare_noun_agreement`` (bare noun, person-only) by covering
+        definite/proper-noun subjects whose verb must match them in number
+        under Law 1 (Slevanayi 2001, pp. 60, 89). Works across tenses,
+        including past intransitives such as the چوون/چوو homograph, which the
+        agreement graph disambiguates to a finite past form in verb position.
+
+        Applicable only when the graph builds a subject-verb (Law 1) edge whose
+        non-pronominal subject and verb both carry an explicit number.
+        """
+        violations: list[str] = []
+        applicable = False
+        try:
+            graph = build_agreement_graph(sentence, self._analyzer)
+        except (KeyError, AttributeError, TypeError, IndexError) as exc:
+            logger.debug("noun-subject number check skipped: %s", exc)
+            return False, []
+
+        _SUBJ_VERB_LAW1 = {
+            "subject_verb", "passive_subject_verb", "backward_subject_verb",
+        }
+        for e in graph.edges:
+            if e.agreement_type not in _SUBJ_VERB_LAW1:
+                continue
+            if e.source_idx >= len(graph.features) or e.target_idx >= len(graph.features):
+                continue
+            subj = graph.features[e.source_idx]
+            verb = graph.features[e.target_idx]
+            # Pronoun subjects are handled by _check_subject_verb; skip to
+            # avoid double-counting the same relation.
+            if subj.pos == "PRON":
+                continue
+            # Infinitives (verbal nouns) are not finite verbs and take no
+            # subject-verb number agreement (e.g. «چوون قورسە» = "going is
+            # hard"). Only the finite past reading, disambiguated by the
+            # builder in verb position, is checked.
+            if verb.tense == "infinitive":
+                continue
+            if not subj.number or not verb.number:
+                continue
+            applicable = True
+            if subj.number != verb.number:
+                violations.append(
+                    f"Subject-verb number mismatch: "
+                    f"'{graph.tokens[e.source_idx]}' ({subj.number}) with verb "
+                    f"'{graph.tokens[e.target_idx]}' ({verb.number})"
+                )
+        return applicable, violations
+
+
 def evaluate_agreement_accuracy(
     sentences: list[str],
     checker: Optional[AgreementChecker] = None,
@@ -1018,6 +1073,7 @@ _CHECK_LABELS: list[tuple[str, str]] = [
     ("adverb_verb_tense", ""),      # Check 12
     ("compound_subject", ""),       # Check 13
     ("bare_noun", ""),              # Check 14
+    ("noun_subject_verb_number", "Law 1"),  # Check 15
 ]
 
 
@@ -1025,7 +1081,7 @@ def evaluate_agreement_by_check(
     sentences: list[str],
     checker: Optional[AgreementChecker] = None,
 ) -> dict[str, dict]:
-    """Per-check accuracy breakdown, returning stats for each of the 14 checks.
+    """Per-check accuracy breakdown, returning stats for each of the 15 checks.
 
     Also aggregates Law 1 (subject-verb) and Law 2 (object-verb ergative)
     separately — the two agreement laws central to this thesis.
@@ -1052,6 +1108,7 @@ def evaluate_agreement_by_check(
         "_check_adverb_verb_tense",
         "_check_compound_subject",
         "_check_bare_noun_agreement",
+        "_check_noun_subject_verb_number",
     ]
 
     for sent in sentences:
