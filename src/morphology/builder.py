@@ -1049,14 +1049,39 @@ def build_agreement_graph(
                 tokens[obj['indices'][0]], obj['indices'][0], vi,
             )
         elif np_internal_filtered:
-            # Only the object NP remained after dropping its izafa head —
-            # the agent is a dropped Set-1 clitic (pro-drop). Link the
-            # object; build no agent edge.
-            graph.add_edge(
-                candidates[0]["indices"][0], vi,
-                "object_verb_ergative", ["person", "number"],
-                law="law2",
-            )
+            # Only the object NP remained after dropping its izafa head.
+            # F#94 refinement: the ezafe HEAD (سەردانی) is the object-NP
+            # head that controls Law-2 agreement; the Set-1 clitic hosted
+            # on the complement (خزمانم) is the AGENT of the light verb
+            # (haplology: possessor م and agent م merge into one surface م).
+            obj_first = candidates[0]["indices"][0]
+            _raw_o = getattr(features[obj_first], "raw_analysis", None) or {}
+            _hosted_o = _raw_o.get("hosted_clitic", "")
+            if (_hosted_o and obj_first > 0
+                    and features[obj_first - 1].pos == "NOUN"
+                    and getattr(features[obj_first - 1], "case", "") == "ez"):
+                graph.add_edge(
+                    obj_first, vi,
+                    "clitic_agent", ["person", "number"],
+                    law="law2",
+                )
+                graph.add_edge(
+                    obj_first - 1, vi,
+                    "object_verb_ergative", ["person", "number"],
+                    law="law2",
+                )
+                logger.debug(
+                    "Law 2: ezafe head '%s' at %d is object of verb at %d; "
+                    "clitic host '%s' carries the agent",
+                    tokens[obj_first - 1], obj_first - 1, vi,
+                    tokens[obj_first],
+                )
+            else:
+                graph.add_edge(
+                    obj_first, vi,
+                    "object_verb_ergative", ["person", "number"],
+                    law="law2",
+                )
         else:
             # Single span — agent; object detected in Step 3a
             graph.add_edge(
@@ -1184,12 +1209,39 @@ def build_agreement_graph(
                 )
                 break
             else:
-                # Non-bare noun object → standard ergative agreement
-                graph.add_edge(
-                    j, vi,
-                    "object_verb_ergative", ["person", "number"],
-                    law="law2",
-                )
+                # F#94 refinement: when the clitic-hosting noun is the ezafe
+                # complement of a preceding verbal-noun head (سەردانی
+                # خزمانم کرد), the ezafe HEAD is the object-NP head that
+                # controls Law-2 agreement, while the hosted Set 1 clitic is
+                # the AGENT of the light verb (haplology: possessor م and
+                # agent م merge into one surface م).
+                _raw_j = getattr(features[j], "raw_analysis", None) or {}
+                _hosted_j = _raw_j.get("hosted_clitic", "")
+                if (_hosted_j and j > 0
+                        and features[j - 1].pos == "NOUN"
+                        and getattr(features[j - 1], "case", "") == "ez"):
+                    graph.add_edge(
+                        j, vi,
+                        "clitic_agent", ["person", "number"],
+                        law="law2",
+                    )
+                    graph.add_edge(
+                        j - 1, vi,
+                        "object_verb_ergative", ["person", "number"],
+                        law="law2",
+                    )
+                    logger.debug(
+                        "Law 2: ezafe head '%s' at %d is object of verb at "
+                        "%d; clitic host '%s' carries the agent",
+                        tokens[j - 1], j - 1, vi, tokens[j],
+                    )
+                else:
+                    # Non-bare noun object → standard ergative agreement
+                    graph.add_edge(
+                        j, vi,
+                        "object_verb_ergative", ["person", "number"],
+                        law="law2",
+                    )
                 break
 
     # ------------------------------------------------------------------
