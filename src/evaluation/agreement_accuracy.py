@@ -17,10 +17,16 @@ from ..morphology.analyzer import (
     MorphologicalAnalyzer,
     CLITIC_PERSON_MAP,
 )
-from ..morphology.constants import SUBJECT_PRONOUNS, TRANSITIVE_PAST_STEMS
+from ..morphology.constants import (
+    SUBJECT_PRONOUNS,
+    TRANSITIVE_PAST_STEMS,
+    CLITIC_BARRED_PRONOUNS,
+    RECIPROCAL_VARIANTS,
+)
 from ..morphology.builder import (
     _is_present_verb,
     _is_transitive_past,
+    _is_past_verb,
     build_agreement_graph,
 )
 
@@ -210,7 +216,36 @@ class AgreementChecker:
         applicable = False
         words = self._analyzer.tokenize(sentence)
         clause_bounds = set(self._clause_boundary_indices(words))
-        
+
+        # F#128 (Haji Marf 2014, pp. 296-297): reciprocal یەکتر requires a
+        # plural subject. A singular subject pronoun in the same clause as a
+        # reciprocal (bare or clitic-hosting, e.g. یەکترم) is an agreement
+        # error: *من یەکترم بینی.
+        def _is_reciprocal_token(tok: str) -> bool:
+            for base in RECIPROCAL_VARIANTS:
+                if tok == base:
+                    return True
+                if tok.startswith(base) and tok[len(base):] in CLITIC_PERSON_MAP:
+                    return True
+            return False
+
+        for i, word in enumerate(words):
+            if word not in _PRONOUN_AGREEMENT:
+                continue
+            p_person, p_number = _PRONOUN_AGREEMENT[word]
+            if p_number != "sg":
+                continue
+            for j in range(i + 1, len(words)):
+                if j in clause_bounds:
+                    break
+                if _is_reciprocal_token(words[j]):
+                    applicable = True
+                    violations.append(
+                        f"Reciprocal with singular subject: '{word}' "
+                        f"with '{words[j]}' (F#128)"
+                    )
+                    break
+
         for i, word in enumerate(words):
             if word not in _PRONOUN_AGREEMENT:
                 continue
@@ -271,6 +306,28 @@ class AgreementChecker:
         words = self._analyzer.tokenize(sentence)
         found_clitics: list[tuple[str, str, str]] = []  # (clitic, person, number)
 
+        # F#124 (Haji Marf 2014, pp. 291-293): the possessive pronoun هی/ئی
+        # can NEVER host a clitic — *هیم, *هیتان are ungrammatical. The
+        # correct form is هی + independent pronoun (هی من).
+        for word in words:
+            if word in CLITIC_BARRED_PRONOUNS:
+                applicable = True     # correct usage present — check applied
+                continue
+            for base in CLITIC_BARRED_PRONOUNS:
+                if not word.startswith(base) or word == base:
+                    continue
+                rest = word[len(base):]
+                # Allow a final copular ە after the clitic (هیمە "it's mine")
+                if rest.endswith("ە") and rest[:-1] in CLITIC_PERSON_MAP:
+                    rest = rest[:-1]
+                if rest in CLITIC_PERSON_MAP:
+                    applicable = True
+                    violations.append(
+                        f"Clitic-barred pronoun: '{base}' cannot host "
+                        f"clitic '{rest}' (F#124)"
+                    )
+                    break
+
         for word in words:
             # Set 2 verb suffixes (م/ت/ی on دەکەم etc.) are NOT
             # Set 1 clitics. Skip present-tense verbs entirely.
@@ -280,19 +337,29 @@ class AgreementChecker:
             # not Set 1 clitics (EVAL-5 fix: prevents Set 2 leak).
             if _is_transitive_past(word):
                 continue
+            # Any word the analyzer reads as a verb carries agreement suffixes
+            # (Set 2 subject on چووم, or the ergative slot), never a mobile
+            # Set 1 clitic. Skipping verbs stops the false F#133 flag on
+            # correct sentences like «چووم … خزمانم کرد».
+            wf = self._analyzer.analyze_token(word)
+            if wf.pos == "VERB":
+                continue
             for cl, (person, number) in CLITIC_PERSON_MAP.items():
                 if word.endswith(cl) and len(word) > len(cl) + 1:
-                    stem = word[: -len(cl)]
                     # Use analyzer's morphological features to detect
-                    # possessive (Set 3) constructions. The old bare
+                    # possessive / ezafe (Set 3) constructions. The old bare
                     # endswith("ی") check was ambiguous (EVAL-5 fix).
-                    feats = self._analyzer.analyze_token(stem + "ی") if cl != "ی" else self._analyzer.analyze_token(word)
-                    if cl != "ی" and feats.case == "ez":
-                        # Stem has ezafe case → this is possessive, not Set 1
-                        continue
-                    if cl == "ی" and feats.raw_analysis.get("yi_ambiguous"):
-                        # Analyzer flagged ی as ambiguous (likely ezafe/possessive)
-                        continue
+                    if cl == "ی":
+                        # ezafe / ambiguous ی (سەردانی خزمانم) is a linker,
+                        # not a Set 1 clitic.
+                        if wf.raw_analysis.get("yi_ambiguous") or wf.case == "ez":
+                            continue
+                    else:
+                        stem = word[: -len(cl)]
+                        feats = self._analyzer.analyze_token(stem + "ی")
+                        if feats.case == "ez":
+                            # Stem has ezafe case → possessive, not Set 1
+                            continue
                     found_clitics.append((cl, person, number))
                     break
 
@@ -310,6 +377,66 @@ class AgreementChecker:
                     f"with {len(distinct_clitics)} distinct forms and "
                     f"{len(persons_seen)} person(s) in one clause (F#133)"
                 )
+
+        # Cross-clause covert-subject consistency (F#22, Amin 2016; Rasul
+        # 2005 pp. 13-14): و-coordinated clauses sharing a DROPPED subject
+        # must mark it consistently — the Set-2 subject suffix of an
+        # intransitive/present clause (چووین → 1pl) and the Set-1 agent
+        # clitic of a past-transitive clause (سەردانی خزمانم کرد → م 1sg)
+        # must agree in person and number. *چووین … خزمانم کرد mixes ئێمە
+        # with من; correct: خزمانمان کرد or چووم.
+        bounds = sorted(self._clause_boundary_indices(words))
+        if bounds:
+            try:
+                graph = build_agreement_graph(sentence, self._analyzer)
+            except (KeyError, AttributeError, TypeError, IndexError):
+                graph = None
+            if graph is not None and len(graph.tokens) == len(words):
+                def _clause_of(idx: int) -> int:
+                    return sum(1 for b in bounds if idx > b)
+
+                feats = graph.features
+                overt_subj_verbs = {
+                    e.target_idx for e in graph.edges
+                    if e.agreement_type in (
+                        "subject_verb", "passive_subject_verb",
+                        "backward_subject_verb", "agent_non_agreeing",
+                    )
+                }
+                signatures: list[tuple[str, str, str]] = []  # (person, number, marker)
+                for vi, f in enumerate(feats):
+                    if f.pos != "VERB" or vi in overt_subj_verbs:
+                        continue
+                    if getattr(f, "voice", "") == "passive":
+                        continue          # passive demotes the agent
+                    # Transitivity: analyzer/lexicon first, heuristic stem
+                    # list as fallback (lexicon-less analyzers leave it '').
+                    is_past_trans = f.tense == "past" and (
+                        f.transitivity == "trans"
+                        or (not f.transitivity and _is_transitive_past(words[vi]))
+                    )
+                    if is_past_trans:
+                        # Dropped agent: its Set-1 clitic lodges on a host
+                        # earlier in the same clause (F#126/F#129).
+                        for j in range(vi - 1, -1, -1):
+                            if _clause_of(j) != _clause_of(vi):
+                                break
+                            fj = feats[j]
+                            hosted = (getattr(fj, "raw_analysis", None) or {}).get("hosted_clitic", "")
+                            if getattr(fj, "is_clitic", False) and hosted in CLITIC_PERSON_MAP:
+                                p, nnum = CLITIC_PERSON_MAP[hosted]
+                                signatures.append((p, nnum, f"{hosted} ({words[vi]})"))
+                                break
+                    elif f.person and f.number:
+                        signatures.append((f.person, f.number, words[vi]))
+                if len(signatures) >= 2:
+                    applicable = True
+                    if len({(p, nnum) for p, nnum, _ in signatures}) > 1:
+                        a, b = signatures[0], signatures[1]
+                        violations.append(
+                            f"Cross-clause covert-subject mismatch: '{a[2]}' "
+                            f"({a[0]}{a[1]}) with '{b[2]}' ({b[0]}{b[1]}) (F#22)"
+                        )
 
         return applicable, violations
     
@@ -377,9 +504,20 @@ class AgreementChecker:
             base = word[:-1]
             if not base:
                 continue
+            # F#49/R20 (Haji Marf 2014, p. 107): pronouns take single ی-ezafe
+            # regardless of their final vowel (تۆی باش is correct, never *تۆیی).
+            # The یی allomorph rule applies to nouns only.
+            if base in SUBJECT_PRONOUNS:
+                continue
             # Only check when next word looks like a modifier (not a verb)
             next_word = words[i + 1]
             if next_word.startswith(("دە", "بی", "نا", "نە", "مە")):
+                continue
+            # Ezafe links a noun to a following modifier, never to a verb:
+            # in «نامەکەی نووسی» the ی is the 3sg possessive/agent clitic,
+            # not ezafe, so the allomorph rule does not apply.
+            nf = self._analyzer.analyze_token(next_word)
+            if nf.pos == "VERB" or _is_past_verb(next_word, nf):
                 continue
             final_char = base[-1]
             if final_char in _vowels and not word.endswith("یی"):
@@ -388,7 +526,27 @@ class AgreementChecker:
                     f"Ezafe allomorph: vowel-final '{base}' should take یی "
                     f"not single ی (F#165)"
                 )
-        
+
+        # F#49/R20 (Haji Marf 2014, p. 107): pronouns NEVER take ە-ezafe.
+        # *تۆە باش is always wrong; the correct linker is ی (تۆی باش).
+        # Only flagged before a modifier — a clause-final pronoun+ە is the
+        # 3sg copula (ئەوە تۆە "that's you"), which is grammatical (F#50).
+        for i, word in enumerate(words):
+            if i + 1 >= len(words) or len(word) < 2 or not word.endswith("ە"):
+                continue
+            base = word[:-1]
+            if base not in SUBJECT_PRONOUNS or word in SUBJECT_PRONOUNS:
+                continue
+            next_word = words[i + 1]
+            if next_word in {"و", "،", ".", "؟", "!"}:
+                continue
+            if next_word.startswith(("دە", "بی", "نا", "نە", "مە")):
+                continue
+            applicable = True
+            violations.append(
+                f"Pronoun ezafe: '{base}' takes ی-ezafe, never ە (F#49)"
+            )
+
         return applicable, violations
     
     def _check_tense_consistency(self, sentence: str) -> tuple[bool, list[str]]:
@@ -876,6 +1034,45 @@ class AgreementChecker:
         violations = []
         words = self._analyzer.tokenize(sentence)
 
+        # F#88 (Slevanayi 2001, p. 61): compound NOUN subjects (X و Y) always
+        # force a plural verb — کچ و کوڕ هاتن, never *کچ و کوڕ هات.
+        # Conservative pattern: sentence-initial N و N immediately followed by
+        # an intransitive/present verb. Past transitives are excluded (Law 2:
+        # the verb agrees with the object there), and a clitic-hosting second
+        # noun is excluded (the pair is then an object, e.g. کتێب و قەڵەمم کڕی).
+        noun_coord_applicable = False
+        if len(words) >= 4 and words[1] == "و":
+            f0 = self._analyzer.analyze_token(words[0])
+            f2 = self._analyzer.analyze_token(words[2])
+            verb_tok = words[3]
+            fv = self._analyzer.analyze_token(verb_tok)
+            second_hosts_clitic = bool(getattr(f2, "is_clitic", False))
+            both_nominal = (
+                f0.pos in ("NOUN", "PROPN") and f2.pos in ("NOUN", "PROPN")
+            )
+            # Isolated tokens like هات analyze as NOUN; use the builder's
+            # past-verb detector (same one the graph builder relies on).
+            is_verb = (
+                fv.pos == "VERB"
+                or _is_present_verb(verb_tok)
+                or _is_past_verb(verb_tok, fv)
+            )
+            if (both_nominal and not second_hosts_clitic and is_verb
+                    and not _is_transitive_past(verb_tok)):
+                noun_coord_applicable = True
+                # Plural if overt 3pl marking (ن-final finite or infinitive
+                # homograph like هاتن reinterpreted as past 3pl); else singular.
+                is_plural = (
+                    fv.number == "pl"
+                    or fv.tense == "infinitive"
+                    or verb_tok.endswith("ن")
+                )
+                if not is_plural:
+                    violations.append(
+                        f"Compound noun subject: '{words[0]} و {words[2]}' "
+                        f"requires plural verb but '{verb_tok}' is singular (F#88)"
+                    )
+
         # Find coordinated pronoun subjects: pronoun + و + pronoun
         pronouns_found = []
         for i, word in enumerate(words):
@@ -883,7 +1080,7 @@ class AgreementChecker:
                 pronouns_found.append((i, word))
 
         if len(pronouns_found) < 2:
-            return False, violations
+            return noun_coord_applicable, violations
 
         # Check if pronouns are coordinated with و
         coordinated_pronouns = []
@@ -896,7 +1093,7 @@ class AgreementChecker:
                 coordinated_pronouns.append(pronouns_found[idx + 1][1])
 
         if len(coordinated_pronouns) < 2:
-            return False, violations
+            return noun_coord_applicable, violations
 
         applicable = True
         # Determine expected person: highest in hierarchy

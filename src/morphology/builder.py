@@ -514,7 +514,15 @@ def build_agreement_graph(
       - Existential three-way [F#72]: بوون/هەبوون classified by use.
     """
     tokens = analyzer.tokenize(sentence)
-    features = [analyzer.analyze_token(tok) for tok in tokens]
+    # Sentence-level analysis (not per-token): applies positional
+    # post-processing — oblique case on preposition complements (بۆ
+    # هەولێر → هەولێر case=obl) and cardinal-forced singular — so the
+    # subject-detection guards below can see PP-governed nouns and skip
+    # them (Slevanayi 2001, pp. 55-56: oblique nouns never control
+    # verb agreement).
+    features = analyzer.analyze_sentence(sentence)
+    if len(features) != len(tokens):   # defensive: keep alignment
+        features = [analyzer.analyze_token(tok) for tok in tokens]
 
     # ------------------------------------------------------------------
     # Step 0: Infinitive → finite past 3pl disambiguation (in context)
@@ -739,18 +747,27 @@ def build_agreement_graph(
                     "at %d via suffix fallback",
                     _inferred[0], _inferred[1], tok, vi,
                 )
-            elif vinfo.get("tense") == "past":
-                # Zero-morpheme default: a bare past stem with no overt
-                # person suffix is 3rd-person singular (چوو "went", هات
-                # "came"). Assigning it lets the pro-drop recovery below
-                # build the implicit-subject agreement edge and lets
-                # subject-verb number checks see the verb's number.
+            elif vinfo.get("tense") == "past" and not vinfo.get("transitive"):
+                # Zero-morpheme default: a bare *intransitive* past stem with
+                # no overt person suffix is 3rd-person singular (چوو "went",
+                # هات "came"). Assigning it lets the pro-drop recovery below
+                # build the implicit-subject agreement edge. Past *transitive*
+                # verbs are excluded: their bare ending is ergative object
+                # agreement (Law 2), and the agent is a Set-1 clitic — not a
+                # null 3sg subject — so they must not get a pro-drop subject.
                 # Source: Amin (2016), p. 51 — past 3sg is the null-suffix form.
                 features[vi].person, features[vi].number = "3", "sg"
                 features[vi].raw_analysis["zero_morpheme_past_3sg"] = True
                 logger.debug(
                     "Zero-morpheme past 3sg default for verb '%s' at %d",
                     tok, vi,
+                )
+            elif vinfo.get("tense") == "past" and vinfo.get("transitive"):
+                # Past transitive with no overt agent clitic: the agent is a
+                # dropped Set-1 clitic and the bare ending is ergative object
+                # agreement. No subject person to assign — expected, not an error.
+                logger.debug(
+                    "Past transitive '%s' at %d has no overt agent clitic", tok, vi,
                 )
             else:
                 logger.warning(
@@ -840,11 +857,15 @@ def build_agreement_graph(
         already_captured = any(i in s["indices"] for s in subject_spans)
         if (not already_captured
                 and features[i].pos == "NOUN"
+                and getattr(features[i], "case", "") != "obl"
                 and not _is_interrogative(tok)
                 and not _is_reciprocal(tok)):
             # Check for coordination: NOUN (ADJ)* و NOUN (ADJ)* ...
             # Skip adjective modifiers between head nouns and و,
             # since Sorani adjectives follow their head noun.
+            # An oblique-cased noun (preposition complement, e.g. هەولێر in
+            # «چووم بۆ هەولێر و ...») can never head a compound subject:
+            # that و coordinates clauses, not NPs.
             coord_indices = [i]
             j = i + 1
             # Skip adjective modifiers after the head noun
@@ -929,6 +950,9 @@ def build_agreement_graph(
     for i, tok in enumerate(tokens):
         if not _is_eligible_noun_subject(tok, features[i]):
             continue
+        # Oblique-cased nouns (preposition complements) are not subjects.
+        if getattr(features[i], "case", "") == "obl":
+            continue
         already_subject = any(i in s["indices"] for s in subject_spans)
         if already_subject:
             continue
@@ -986,6 +1010,21 @@ def build_agreement_graph(
         if not candidates:
             continue
         candidates.sort(key=lambda s: s["last_idx"])
+        # Filter out pseudo-agents that are izafa heads of the object NP:
+        # in «سەردانی خزمانم کرد» the ez-linked سەردانی belongs to the object
+        # NP [سەردانی خزمانم]; the real agent is the (dropped) Set-1 clitic
+        # referent. An ez-cased candidate immediately preceding the object
+        # candidate is NP-internal, not an agent.
+        np_internal_filtered = False
+        if len(candidates) >= 2:
+            obj_first = candidates[-1]["indices"][0]
+            kept = [
+                s for s in candidates[:-1]
+                if not (getattr(features[s["last_idx"]], "case", "") == "ez"
+                        and s["last_idx"] + 1 == obj_first)
+            ]
+            np_internal_filtered = len(kept) < len(candidates) - 1
+            candidates = kept + [candidates[-1]]
         if len(candidates) >= 2:
             # SOV: all but the closest to verb are agents
             for subj in candidates[:-1]:
@@ -1008,6 +1047,15 @@ def build_agreement_graph(
             logger.debug(
                 "Law 2: Object '%s' at %d → verb at %d (ergative agreement)",
                 tokens[obj['indices'][0]], obj['indices'][0], vi,
+            )
+        elif np_internal_filtered:
+            # Only the object NP remained after dropping its izafa head —
+            # the agent is a dropped Set-1 clitic (pro-drop). Link the
+            # object; build no agent edge.
+            graph.add_edge(
+                candidates[0]["indices"][0], vi,
+                "object_verb_ergative", ["person", "number"],
+                law="law2",
             )
         else:
             # Single span — agent; object detected in Step 3a
@@ -1143,6 +1191,49 @@ def build_agreement_graph(
                     law="law2",
                 )
                 break
+
+    # ------------------------------------------------------------------
+    # Step 3a2: Link PP complements (indirect objects) to their verb
+    # ------------------------------------------------------------------
+    # F#152 (Farhadi 2013, pp. 29-30): a preposition complement is the
+    # indirect object (بەرکاری ناڕاستەوخۆ) of its clause verb — «چووم بۆ
+    # هەولێر». It never controls agreement (Slevanayi 2001, pp. 55-56), so
+    # the edge carries no features; it exists so the noun is linked to the
+    # verb and surfaces with an object-type role instead of no role.
+    # Law-2 clauses already get this edge in Step 3a; this pass covers
+    # Law-1 (intransitive/present) clauses.
+    _obl_linked = {
+        e.source_idx for e in graph.edges
+        if e.agreement_type == "oblique_no_agreement"
+    }
+    for j, feat in enumerate(features):
+        if getattr(feat, "case", "") != "obl" or j in _obl_linked:
+            continue
+        if feat.pos not in ("NOUN", "PRON", ""):
+            continue
+        # Nearest verb in the same clause — prefer the preceding verb
+        # (V + PP order is the norm for goal PPs), else the following one.
+        target_vi = None
+        for vi in sorted(verb_info, reverse=True):
+            if vi < j and not _has_clause_boundary_between(tokens, features, vi, j):
+                target_vi = vi
+                break
+        if target_vi is None:
+            for vi in sorted(verb_info):
+                if vi > j and not _has_clause_boundary_between(tokens, features, j, vi):
+                    target_vi = vi
+                    break
+        if target_vi is not None:
+            graph.add_edge(
+                j, target_vi,
+                "oblique_no_agreement", [],
+                law=verb_info[target_vi]["law"],
+            )
+            logger.debug(
+                "F#152: PP complement '%s' at %d → verb '%s' at %d "
+                "(indirect object, no agreement)",
+                tokens[j], j, tokens[target_vi], target_vi,
+            )
     # ------------------------------------------------------------------
     # Step 3b: Pro-drop recovery (Finding #75 — subject omission)
     # ------------------------------------------------------------------

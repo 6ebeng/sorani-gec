@@ -396,6 +396,84 @@ def test_agreement_checker_fourteen_checks_counted():
 
 
 # ============================================================================
+# Findings-based robustness rules (F#128, F#124, F#49, F#88, F#26)
+# ============================================================================
+
+def test_reciprocal_requires_plural_subject():
+    """F#128: singular subject + یەکتر is flagged; plural subject passes."""
+    checker = AgreementChecker()
+    bad = checker.check_sentence("من یەکترم بینی")
+    assert any("Reciprocal" in v for v in bad.violations), bad.violations
+    good = checker.check_sentence("ئەوان یەکتریان بینی")
+    assert not any("Reciprocal" in v for v in good.violations), good.violations
+    print("  Reciprocal plural-subject rule (F#128) enforced")
+
+
+def test_clitic_barred_pronoun_hi():
+    """F#124: *هیم/هیمە flagged; هی + independent pronoun passes."""
+    checker = AgreementChecker()
+    bad = checker.check_sentence("ئەو کتێبە هیمە")
+    assert any("Clitic-barred" in v for v in bad.violations), bad.violations
+    good = checker.check_sentence("ئەو کتێبە هی منە")
+    assert not any("Clitic-barred" in v for v in good.violations), good.violations
+    print("  Clitic-barred pronoun rule (F#124) enforced")
+
+
+def test_pronoun_ezafe_rules():
+    """F#49/R20: pronoun+ە before modifier flagged; pronoun+ی never flagged."""
+    checker = AgreementChecker()
+    bad = checker.check_sentence("تۆە باش")
+    assert any("Pronoun ezafe" in v for v in bad.violations), bad.violations
+    good = checker.check_sentence("تۆی باش")
+    assert not any("Ezafe allomorph" in v for v in good.violations), good.violations
+    assert not any("Pronoun ezafe" in v for v in good.violations), good.violations
+    print("  Pronoun ezafe rules (F#49/R20) enforced")
+
+
+def test_compound_noun_subject_plural_verb():
+    """F#88: N و N + singular intransitive verb flagged; plural passes."""
+    checker = AgreementChecker()
+    bad = checker.check_sentence("کچ و کوڕ هات")
+    assert any("Compound noun subject" in v for v in bad.violations), bad.violations
+    good = checker.check_sentence("کچ و کوڕ هاتن")
+    assert not any("Compound noun subject" in v for v in good.violations), good.violations
+    print("  Compound noun subject plural rule (F#88) enforced")
+
+
+def test_cross_clause_covert_subject_consistency():
+    """F#22: covert-subject markers must agree across و-coordinated clauses."""
+    checker = AgreementChecker()
+    bad = checker.check_sentence("چووین بۆ هەولێر و سەردانی خزمانم کرد")
+    assert any("Cross-clause" in v for v in bad.violations), bad.violations
+    for good_s in ("چووم بۆ هەولێر و سەردانی خزمانم کرد",
+                   "چووین بۆ هەولێر و سەردانی خزمانمان کرد"):
+        good = checker.check_sentence(good_s)
+        assert not any("Cross-clause" in v for v in good.violations), (
+            good_s, good.violations)
+    print("  Cross-clause covert-subject rule (F#22) enforced")
+
+
+def test_fused_preposition_clitic_analysis():
+    """F#26/R10: پێم/لێی/بۆمان analyze as ADP hosting a Set-1 clitic."""
+    from src.morphology.analyzer import MorphologicalAnalyzer
+    analyzer = MorphologicalAnalyzer(use_klpt=False)
+    for tok, person in [("پێم", "1"), ("لێی", "3"), ("پێت", "2"), ("بۆمان", "1")]:
+        feat = analyzer.analyze_token(tok)
+        assert feat.pos == "ADP", f"{tok}: expected ADP, got {feat.pos}"
+        assert feat.clitic_person == person, (
+            f"{tok}: expected clitic person {person}, got {feat.clitic_person}"
+        )
+        assert feat.raw_analysis.get("fused_preposition"), tok
+    # Non-clitic lookalikes stay untouched
+    for tok in ("پێش", "لێو", "بۆن", "پێست"):
+        feat = analyzer.analyze_token(tok)
+        assert not feat.raw_analysis.get("fused_preposition"), (
+            f"{tok} wrongly analyzed as fused preposition"
+        )
+    print("  Fused preposition+clitic analysis (F#26/R10) verified")
+
+
+# ============================================================================
 # Run all tests
 # ============================================================================
 

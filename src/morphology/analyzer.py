@@ -614,6 +614,26 @@ class MorphologicalAnalyzer:
             features.pos = "ADP"
             features.lemma = token
             return True
+
+        # --- Fused preposition + pronominal clitic (F#26, F#33, R10) ---
+        # بە→پێ, لە→لێ/تێ (and bare بۆ) host a Set-1 clitic directly:
+        # پێم "to me", لێی "from him/her", تێت "in you", بۆمان "for us".
+        # Without this branch such forms fall through to the noun path and
+        # get mistagged NOUN. Tagged ADP with hosted-clitic features so the
+        # agreement graph sees the fused pronoun.
+        # Source: Rasul (2004) fusion rules; Shwani (2003) F#245.
+        for _prep_base in ("پێ", "لێ", "تێ", "بۆ"):
+            if token.startswith(_prep_base) and len(token) > len(_prep_base):
+                _cl = token[len(_prep_base):]
+                _pn = CLITIC_PERSON_MAP.get(_cl)
+                if _pn is not None:
+                    features.pos = "ADP"
+                    features.lemma = _prep_base
+                    features.is_clitic = True
+                    features.clitic_person, features.clitic_number = _pn
+                    features.raw_analysis["hosted_clitic"] = _cl
+                    features.raw_analysis["fused_preposition"] = _prep_base
+                    return True
         
         # --- Coordinating conjunctions ---
         if token in SORANI_COORDINATING_CONJUNCTIONS:
@@ -928,12 +948,25 @@ class MorphologicalAnalyzer:
                         past_stem_len = len(past_stem)
                         break
         
-        # 4b. Ahmadi Lexical Data match for Transitivity and POS
-        if self._lexicon is not None and self._lexicon.available:
+        # 4b. Ahmadi Lexical Data match for Transitivity and POS.
+        # The lexicon only *enriches* a token the analyzer already reads as a
+        # verb (prefix/negation/known past stem set pos or tense earlier); it
+        # must never promote a noun. Without this gate, find_verb_stem() turns
+        # compound-verb nominals (verb_noun, e.g. سەردان کردن) and possessive
+        # nouns whose stem merely contains a verb substring (e.g. خزمانم →
+        # خزین) into spurious finite verbs.
+        _has_verb_evidence = (
+            features.pos == "VERB" or features.negated or bool(features.tense)
+        )
+        if _has_verb_evidence and self._lexicon is not None and self._lexicon.available:
             try:
                 match = self._lexicon.find_verb_stem(remaining)
             except Exception:
                 logger.warning("Lexicon find_verb_stem() failed for: %.50s", remaining)
+                match = None
+            # Reject compound-verb nominals: a verb_noun (وشەی کرداری-ناوی) is
+            # the nominal complement of a light-verb construction, not a verb.
+            if match is not None and "verb_noun" in getattr(match[1], "pos", ""):
                 match = None
             if match is not None:
                 matched_stem, entry = match
