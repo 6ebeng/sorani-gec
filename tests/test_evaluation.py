@@ -453,6 +453,340 @@ def test_cross_clause_covert_subject_consistency():
     print("  Cross-clause covert-subject rule (F#22) enforced")
 
 
+def test_category_rules_f60_f127_f122():
+    """F#60 allomorph, F#127 ەوە clitic position, F#122 ش/یش order."""
+    checker = AgreementChecker()
+    # F#60: consonant-final stem must take ەکە/ێک, not یەکە/یەک
+    assert any("Determiner allomorph" in v for v in
+               checker.check_sentence("کتێبیەکە باشە").violations)
+    assert not any("Determiner allomorph" in v for v in
+                   checker.check_sentence("قوتابییەکە باشە").violations)
+    # F#127: Set-1 clitic must precede -ەوە on past transitive verbs
+    assert any("Clitic position" in v for v in
+               checker.check_sentence("کردەوەمان").violations)
+    assert not any("Clitic position" in v for v in
+                   checker.check_sentence("کردمانەوە").violations)
+    assert not any("Clitic position" in v for v in
+                   checker.check_sentence("ماڵەوەم خۆشە").violations)
+    # F#122: ش/یش precedes the clitic on demonstratives; خۆ is exempt
+    assert any("ش/یش order" in v for v in
+               checker.check_sentence("ئەمەمیش باشە").violations)
+    assert not any("ش/یش order" in v for v in
+                   checker.check_sentence("خۆمیش هاتم").violations)
+    print("  Category rules F#60/F#127/F#122 enforced")
+
+
+def test_category_rules_f50_f155():
+    """F#50 copular clitic agreement, F#155 dialectal participle."""
+    checker = AgreementChecker()
+    # F#50: verbless-sentence copula must match the subject pronoun
+    assert any("Copular clitic mismatch" in v for v in
+               checker.check_sentence("من کوردە").violations)
+    assert any("Copular clitic mismatch" in v for v in
+               checker.check_sentence("ئێمە کوردن").violations)
+    for clean in ("من کوردم", "تۆ کوردی", "ئێمە کوردین", "ئەوان کوردن",
+                  "من دەچم", "ئێمە ماڵمان هەیە"):
+        assert not any("Copular clitic mismatch" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#155: dialectal ی/گ participle allomorphs on past stems
+    assert any("Dialectal participle" in v for v in
+               checker.check_sentence("ئەو هاتیە").violations)
+    assert any("Dialectal participle" in v for v in
+               checker.check_sentence("ئەو مردگە").violations)
+    for clean in ("ئەو هاتووە", "ئەمە بەڵگە نییە", "ئەوە کوردیە"):
+        assert not any("Dialectal participle" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    print("  Category rules F#50/F#155 enforced")
+
+
+def test_category_rules_f40_f123_f86():
+    """F#40 perfect ە, F#123 demonstrative contraction, F#86 proper nouns."""
+    checker = AgreementChecker()
+    # R17/F#40: transitive perfect requires final ە
+    assert any("Perfect missing copula" in v for v in
+               checker.check_sentence("ئەو کتێبی گرتووم").violations)
+    for clean in ("ئەو نامەکەی کردوویە", "من هاتووم", "ئێمە کەوتووین",
+                  "خانووم جوانە"):
+        assert not any("Perfect missing copula" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#123: بە/لە + demonstrative must contract
+    assert any("Demonstrative contraction" in v for v in
+               checker.check_sentence("بە ئەم پیاوە دەڵێم").violations)
+    for clean in ("بەم پیاوە دەڵێم", "بۆ ئەو ماڵە چووم"):
+        assert not any("Demonstrative contraction" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#86: proper nouns reject indefinite/plural markers
+    assert any("Proper noun morphology" in v for v in
+               checker.check_sentence("هەولێرێک بینیم").violations)
+    assert any("Proper noun morphology" in v for v in
+               checker.check_sentence("دهۆکان جوانن").violations)
+    for clean in ("هەولێر جوانە", "هەولێرم خۆشدەوێت", "هەولێرییەکان هاتن"):
+        assert not any("Proper noun morphology" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    print("  Category rules F#40/F#123/F#86 enforced")
+
+
+def test_mood_negation_rules_r14_f157_r15():
+    """R14 نە/مە+ب ban, F#157 مە person restriction, R15 imperative ە."""
+    checker = AgreementChecker()
+    # R14: نە/مە replace the subjunctive/imperative ب
+    assert any("Negation-ب" in v for v in
+               checker.check_sentence("نەبچم بۆ ماڵەوە").violations)
+    for clean in ("نەچم بۆ ماڵەوە", "ئەو نەبوو لێرە", "نەبم بە هاوڕێت",
+                  "نەبینم", "نەبەم بۆ ماڵ"):
+        assert not any("Negation-ب" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#157: prohibitive مە is 2nd-person only
+    assert any("Prohibitive person" in v for v in
+               checker.check_sentence("مەنووسم").violations)
+    for clean in ("مەنووسە", "مەکە", "مەگرن", "مەزنم و باشم"):
+        assert not any("Prohibitive person" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # R15/F#42: consonant-final imperative requires final ە
+    assert any("Imperative missing" in v for v in
+               checker.check_sentence("بنووس").violations)
+    assert any("Imperative missing" in v for v in
+               checker.check_sentence("مەگر").violations)
+    for clean in ("بنووسە", "بگرە", "بخۆ", "بکە", "بگرن"):
+        assert not any("Imperative missing" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    print("  Mood/negation rules R14/F#157/R15 enforced")
+
+
+def test_imperative_clitic_and_sh_zh_rules():
+    """F#125 intransitive-imperative clitic ban, R19 ش→ژ present stems."""
+    checker = AgreementChecker()
+    # F#125: intransitive imperatives never host Set 1 clitics
+    assert any("Imperative clitic" in v for v in
+               checker.check_sentence("بمکەوە").violations)
+    for clean in ("بمگرە", "بیخۆ", "بیخەوێنە", "بینووسە", "بتوانم"):
+        assert not any("Imperative clitic" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # R19: present stem of کوشتن/هاوێشتن uses ژ
+    assert any("Present stem" in v for v in
+               checker.check_sentence("دەکوشم").violations)
+    assert any("Present stem" in v for v in
+               checker.check_sentence("دەهاوێشم").violations)
+    for clean in ("دەکوژم", "دەیکوشت", "نەیکوشت", "کوشتی", "دەهاوێژم"):
+        assert not any("Present stem" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    print("  F#125 and R19 rules enforced")
+
+
+def test_hebun_and_optative_rules():
+    """F#72 possessed-noun هەبوون agreement, F#158 optative negation."""
+    checker = AgreementChecker()
+    # F#72: هەبوون agrees with the possessed noun
+    assert any("Possessed-noun" in v for v in
+               checker.check_sentence("کتێبەکانم هەیە").violations)
+    assert any("Possessed-noun" in v for v in
+               checker.check_sentence("کتێبەکەم هەن").violations)
+    for clean in ("کتێبەکانم هەن", "کتێبەکەم هەیە", "ماڵمان هەیە",
+                  "ئەو کارەکە نییە"):
+        assert not any("Possessed-noun" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#158: optative negates with نە, never مە
+    assert any("Optative negation" in v for v in
+               checker.check_sentence("مەچووبام").violations)
+    for clean in ("نەچووبام", "مەرحەبا", "مەکە"):
+        assert not any("Optative negation" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    print("  F#72 and F#158 rules enforced")
+
+
+def test_negative_progressive_and_3sg_allomorph():
+    """F#116 negative-progressive clitic shift, R12 3sg allomorphy."""
+    checker = AgreementChecker()
+    # F#116: agent clitic precedes دە under negation
+    assert any("Negative progressive" in v for v in
+               checker.check_sentence("نەدەمزانی").violations)
+    for clean in ("نەمدەزانی", "نەیاندەکرد", "نەدەچووم"):
+        assert not any("Negative progressive" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # R12: ە/ۆ-final stems take ات/وات in 3sg
+    assert any("3sg allomorph" in v for v in
+               checker.check_sentence("دەکەێت زۆر باش").violations)
+    assert any("3sg allomorph" in v for v in
+               checker.check_sentence("دەخۆێت").violations)
+    for clean in ("دەکات زۆر باش", "دەخوات", "دەچێت بۆ ماڵ", "دەکەوێت"):
+        assert not any("3sg allomorph" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    print("  F#116 and R12 rules enforced")
+
+
+def test_passive_and_clitic_stack_rules():
+    """R13 present-stem passive, F#52 clitic stacking, F#124 ش ban."""
+    checker = AgreementChecker()
+    # R13: passive is built on the present stem
+    assert any("Passive formation" in v for v in
+               checker.check_sentence("نامەکە نووسترا").violations)
+    assert any("Passive formation" in v for v in
+               checker.check_sentence("پیاوەکە کوشترا").violations)
+    for clean in ("نامەکە نووسرا", "پیاوەکە کوژرا", "دزەکە گیرا",
+                  "کتێبەکە بەسترا", "خسترا"):
+        assert not any("Passive formation" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#52: Set 2 clitics never stack
+    assert any("Double Set 2" in v for v in
+               checker.check_sentence("دەچمین بۆ شار").violations)
+    for clean in ("دەچم بۆ شار", "دەچین بۆ شار", "یەکەمین جار",
+                  "دووەمین ساڵ"):
+        assert not any("Double Set 2" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#124 extension: هی rejects ش/یش too
+    assert any("Clitic-barred" in v for v in
+               checker.check_sentence("هیش باشە").violations)
+    assert not any("Clitic-barred" in v for v in
+                   checker.check_sentence("هی من باشە").violations)
+    print("  R13, F#52 and F#124-ش rules enforced")
+
+
+def test_nus_spelling_and_micro_rules():
+    """F#164 نووس spelling, F#42 بچە exception, F#161 ئایا punctuation."""
+    checker = AgreementChecker()
+    # F#164: نووسین takes double وو
+    assert any("و/وو spelling" in v for v in
+               checker.check_sentence("دەنوسم").violations)
+    assert any("و/وو spelling" in v for v in
+               checker.check_sentence("نامەکە نوسراوە").violations)
+    for clean in ("دەنووسم", "نامەکەم نووسی", "نوسخەیەکم هەیە"):
+        assert not any("و/وو spelling" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#42 exception: imperative of چوون is بچۆ
+    assert any("Imperative of چوون" in v for v in
+               checker.check_sentence("بچە بۆ ماڵەوە").violations)
+    for clean in ("بچۆ بۆ ماڵەوە", "بڕۆ بۆ ماڵەوە"):
+        assert not any("Imperative of چوون" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#161: ئایا question closed with a period
+    assert any("Interrogative punctuation" in v for v in
+               checker.check_sentence("ئایا تۆ کوردیت.").violations)
+    for clean in ("ئایا تۆ کوردیت؟", "ئایا تۆ کوردیت", "تۆ کوردیت."):
+        assert not any("Interrogative punctuation" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    print("  F#164, F#42-بچۆ and F#161 rules enforced")
+
+
+def test_negated_clitic_position_and_dem_indef_frame():
+    """F#39 negated transitive clitic order, R4 frame-final ێکە coverage."""
+    checker = AgreementChecker()
+    # F#39: under negation the agent clitic precedes the stem
+    for bad in ("نەگرتم", "نەکردیان", "نامەکەم نەنووسیت"):
+        assert any("Negated transitive clitic" in v for v in
+                   checker.check_sentence(bad).violations), bad
+    for clean in ("نەمگرت", "نەیانکرد", "نەهاتم", "نەچووم بۆ شار",
+                  "نەگرتوومە", "نەگرتبام", "نەگرتن گرنگە", "نەمردم"):
+        assert not any("Negated transitive clitic" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # R4 extension: frame-final *ئەم کتێبێکە now caught
+    for bad in ("ئەم کتێبێکە", "ئەو کوڕێکە"):
+        assert any("Demonstrative+indefinite" in v for v in
+                   checker.check_sentence(bad).violations), bad
+    for clean in ("ئەم کتێبە", "ئەو یەکێکە", "کتێبێکە لەسەر مێزەکە"):
+        assert not any("Demonstrative+indefinite" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    print("  F#39 and R4-frame rules enforced")
+
+
+def test_past_agreement_and_np_frame_rules():
+    """F#39/F#27 past subject agreement, F#87 order, F#77 numerals,
+    F#10-frame, F#123-fused, F#90 double plural."""
+    checker = AgreementChecker()
+    # F#39/F#27: past intransitive Set 2 suffix matches the subject
+    for bad in ("من هات", "ئەو ڕۆیشتی", "تۆ فڕی", "ئێمە فڕین"):
+        assert any("Past subject-verb" in v for v in
+                   checker.check_sentence(bad).violations), bad
+    for clean in ("من هاتم", "ئەو هات", "تۆ هاتیت", "ئێمە هاتین",
+                  "ئەوان هاتن", "بۆ من هات", "براکەی من هات"):
+        assert not any("Past subject-verb" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#87 familiarity hierarchy in coordination
+    assert any("Familiarity" in v for v in
+               checker.check_sentence("ئازاد و من هاتین").violations)
+    for clean in ("من و ئازاد هاتین", "من و تۆ دەچین",
+                  "ئەو هات و من ڕۆیشتم"):
+        assert not any("Familiarity" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#77 numeral subjects force plural
+    assert any("Numeral subject" in v for v in
+               checker.check_sentence("دوو کوڕ هات").violations)
+    for clean in ("دوو کوڕ هاتن", "دوو ڕۆژ مایەوە", "دوو سێو دەخوات"):
+        assert not any("Numeral subject" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#10-frame closing ە + F#123 fused time words
+    for bad in ("لەم شار دەژیم", "ئەم کتێب باشە"):
+        assert any("Demonstrative frame" in v for v in
+                   checker.check_sentence(bad).violations), bad
+    for clean in ("لەم شارە دەژیم", "ئەو نان دەخوات", "لەم ساتەدا وەرە"):
+        assert not any("Demonstrative frame" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    assert any("Fused time" in v for v in
+               checker.check_sentence("ئەم ساڵ دەچم بۆ هەولێر").violations)
+    assert not any("Fused time" in v for v in
+                   checker.check_sentence("ئەم ساڵە باشە").violations)
+    # F#90 double plural-definite
+    assert any("Double plural-definite" in v for v in
+               checker.check_sentence("کتێبەکانەکان هاتن").violations)
+    assert not any("Double plural-definite" in v for v in
+                   checker.check_sentence("کتێبەکان هاتن").violations)
+    print("  Past agreement and NP-frame rules enforced")
+
+
+def test_mood_negation_and_stem_micro_rules():
+    """F#119, F#169, F#43, F#35, F#36, F#168, R18/F#46, F#76."""
+    checker = AgreementChecker()
+    # F#119: short wh-question closed with a period
+    for bad in ("کێ هات.", "بۆچی وا دەکەیت."):
+        assert any("F#119" in v for v in
+                   checker.check_sentence(bad).violations), bad
+    for clean in ("کێ هات؟", "کێ هات پێی بڵێ.", "نازانم کێ هات."):
+        assert not any("F#119" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#169 unfused نە+ئە and F#43 stacked negation
+    assert any("Unfused negation" in v for v in
+               checker.check_sentence("نەئەچم بۆ شار").violations)
+    assert not any("Unfused negation" in v for v in
+                   checker.check_sentence("ناچم بۆ شار").violations)
+    assert any("Double negation" in v for v in
+               checker.check_sentence("نەنادەچم").violations)
+    assert not any("Double negation" in v for v in
+                   checker.check_sentence("نادەچم").violations)
+    # F#35 happening verbs keep ێ
+    for bad in ("دەسووتم", "دەشکین"):
+        assert any("Happening-verb" in v for v in
+                   checker.check_sentence(bad).violations), bad
+    for clean in ("دەسووتێم", "دەشکێنم", "بشکێت"):
+        assert not any("Happening-verb" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#36 suppletive causatives
+    assert any("Causative formation" in v for v in
+               checker.check_sentence("هاتاندی بۆ ماڵ").violations)
+    for clean in ("هێنای بۆ ماڵ", "سووتاندی"):
+        assert not any("Causative formation" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#168 خواردن keeps خۆ/خوا
+    assert any("خواردن stem" in v for v in
+               checker.check_sentence("دەخوێم").violations)
+    for clean in ("دەخۆم", "دەخوێنم"):
+        assert not any("خواردن stem" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # R18/F#46 preverb clitic position
+    for bad in ("هەڵگرتمان", "داخستیان"):
+        assert any("Preverb clitic" in v for v in
+                   checker.check_sentence(bad).violations), bad
+    for clean in ("هەڵمانگرت", "پێویستمان بە یارمەتییە",
+                  "تێبینیمان کرد", "داگرتنمان"):
+        assert not any("Preverb clitic" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    # F#76 plural vocative demands plural imperative
+    assert any("Vocative-imperative" in v for v in
+               checker.check_sentence("کوڕینە بڕۆ").violations)
+    for clean in ("کوڕینە بڕۆن", "کوڕینە بەرەو ماڵ بڕۆن"):
+        assert not any("Vocative-imperative" in v for v in
+                       checker.check_sentence(clean).violations), clean
+    print("  Mood, negation and stem micro-rules enforced")
+
+
 def test_fused_preposition_clitic_analysis():
     """F#26/R10: پێم/لێی/بۆمان analyze as ADP hosting a Set-1 clitic."""
     from src.morphology.analyzer import MorphologicalAnalyzer

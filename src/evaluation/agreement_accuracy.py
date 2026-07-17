@@ -58,6 +58,128 @@ _NEGATION_PRESENT_PREFIX = "نا"
 _NEGATION_PAST_PREFIX = "نە"
 _IMPERATIVE_PREFIX = "ب"
 
+# Full demonstrative forms whose initial ئە drops after بە/لە (F#123)
+_DEM_FULL_FORMS = ("ئەمانە", "ئەوانە", "ئەمە", "ئەوە", "ئەم", "ئەو")
+
+# Proper place names for F#86 (Slevanayi 2001, pp. 43-44): proper nouns
+# never take indefinite/plural markers. Names whose gentilic coincides
+# with the bare name (سلێمانی) are excluded to avoid false positives.
+_PROPER_PLACE_NAMES = (
+    "هەولێر", "دهۆک", "کەرکووک", "زاخۆ", "هەڵەبجە", "کۆیە", "ڕانیە",
+    "بەغدا", "کوردستان", "عێراق",
+)
+
+# High-frequency present stems that do NOT begin with ب — safe anchors for
+# scanning after the نەب/مەب/مە prefixes (R14, F#157). ب-initial stems
+# (بین, بڕ, بەس) are excluded because نە+بینم is a legitimate negated
+# subjunctive, not a نە+ب co-occurrence error.
+_PRESENT_STEMS_NON_B = (
+    "نووس", "خوێن", "فرۆش", "کوژ", "نێر", "زان", "کڕ", "گر",
+    "کەو", "خۆ", "ڕۆ", "دە", "کە", "چ",
+)
+
+# Consonant-final present stems whose 2sg imperative requires final ە
+# (R15/F#42): بنووسە/بگرە, never bare *بنووس/*بگر. Patientive مر is
+# excluded — its imperative is impossible altogether (F#13).
+_IMPERATIVE_E_STEMS = ("نووس", "خوێن", "فرۆش", "کوژ", "نێر", "زان", "کڕ", "گر")
+
+# Intransitive present stems for F#125 (Haji Marf 2014, p. 192): an
+# intransitive imperative can never host a Set 1 clitic (*بمکەوە).
+# نوو (sleep) is excluded — it is a prefix of transitive نووس (write).
+_INTRANS_PRESENT_STEMS = ("کەو", "چ", "ڕۆ", "خەو")
+
+# Present stems with the ش→ژ alternation (R19, Academy Committee):
+# the infinitive's ش (کوشتن, هاوێشتن) becomes ژ in the present stem
+# (دەکوژم, دەهاوێژم) — *دەکوشم keeps the past-stem consonant.
+_SH_ZH_PAST_STEM_PREFIXES = ("کوش", "هاوێش")
+
+# Past intransitive full forms = stem + Set 2 suffix (Academy Committee,
+# pp. 144-156). وەستا is excluded (homograph of the noun "master"), ما
+# is too short (مام "uncle").
+_PAST_INTRANS_STEMS_CHECK = (
+    "ڕۆیشت", "گەیشت", "نووست", "هەستا", "دانیشت", "کەوت", "هات",
+    "چوو", "مرد", "فڕی", "گریا", "ترسا", "خەوت", "ژیا",
+)
+_PAST_SET2_SUFFIXES: dict[str, tuple[tuple[str, str], ...]] = {
+    "": (("3", "sg"),),
+    "م": (("1", "sg"),),
+    "ی": (("2", "sg"),),
+    "یت": (("2", "sg"),),
+    "ین": (("1", "pl"),),
+    "ن": (("2", "pl"), ("3", "pl")),
+}
+_PRONOUN_PAST_SUFFIX = {
+    ("1", "sg"): "م", ("2", "sg"): "یت", ("3", "sg"): "",
+    ("1", "pl"): "ین", ("2", "pl"): "ن", ("3", "pl"): "ن",
+}
+# Contexts that can legitimately precede a SUBJECT pronoun. Anything
+# else (prepositions, ezafe-linked possessors like براکەی من) blocks the
+# past agreement check to avoid false positives.
+_SUBJ_CONTEXT_OK = {
+    "بەڵام", "کە", "چونکە", "ئەگەر", "کاتێک", "پاشان", "ئینجا",
+    "دوێنێ", "ئەمڕۆ", "ئێستا", "بۆیە", "،", ".", "؟", "!",
+}
+
+# F#87 familiarity hierarchy (Slevanayi 2001, pp. 68-69): coordinated
+# subjects order 1st > 2nd > 3rd person.
+_FAMILIARITY_RANK = {
+    "من": 1, "ئێمە": 1, "منیش": 1, "ئێمەش": 1,
+    "تۆ": 2, "ئێوە": 2, "تۆش": 2, "تۆیش": 2, "ئێوەش": 2,
+    "ئەو": 3, "ئەوان": 3, "ئەویش": 3, "ئەوانیش": 3,
+}
+
+# F#35 (Academy Committee, pp. 80-106): happening (ڕوودان) verbs keep ێ
+# in ALL persons (دەسووتێم). ترسان is excluded — standard دەترسم has
+# no ێ in modern usage.
+_RUUDAN_PRESENT_STEMS_CHECK = ("سووت", "شک", "خنک", "پس", "ڕژ")
+
+# F#36 (Academy Committee, pp. 96-107): suppletive causative pairs — the
+# اندن template never applies to these bases.
+_SUPPLETIVE_CAUSATIVES = (
+    ("هاتاند", "هێنا"), ("چوواند", "برد"), ("ڕۆیشتاند", "نارد"),
+    ("کەوتاند", "خست"), ("نووستاند", "نواند"),
+)
+
+# F#168 (Rasul, p. 25): خواردن keeps خۆ/خوا in the present — the ا→ێ
+# alternation does not reach it (base form خوەردن).
+_XWARDIN_ERRORS = {
+    "دەخوێم": "دەخۆم", "دەخوێی": "دەخۆی", "دەخوێین": "دەخۆین",
+    "دەخوێت": "دەخوات", "ئەخوێم": "ئەخۆم", "ئەخوێی": "ئەخۆی",
+    "ناخوێم": "ناخۆم",
+}
+
+# R18/F#46 (Haji Marf 2014, pp. 116-121): in preverbed past transitives
+# the Set 1 clitic sits between preverb and stem (هەڵمانگرت). Nominal
+# lexicalisations that embed a transitive stem are excluded.
+_PREVERBS = ("هەڵ", "دا", "ڕا", "دەر", "وەر", "تێ", "لێ", "پێ")
+_PREVERB_NOMINAL_EXCLUSIONS = ("تێبینی", "دابین", "هەڵوێست", "پێویست",
+                               "ڕاوێژ")
+
+# F#76 (Slevanayi 2001, pp. 16, 72-73): plural vocatives demand a plural
+# imperative. Closed list — ینە is also a feminine name ending (ژینە).
+_PLURAL_VOCATIVES = {"کوڕینە", "کچینە", "هاوڕێینە", "خەڵکینە",
+                     "براینە", "خوشکینە"}
+
+# F#77 (Slevanayi 2001, pp. 87-88): numeral subjects force a plural verb.
+# Time nouns are excluded (duration adverbials: دوو ڕۆژ مایەوە).
+_NUMERALS_PLURAL = ("دوو", "سێ", "چوار", "پێنج", "شەش", "حەوت",
+                    "هەشت", "نۆ", "دە")
+_TIME_NOUNS = ("ڕۆژ", "شەو", "ساڵ", "مانگ", "هەفتە", "کاتژمێر",
+               "خولەک", "چرکە", "جار", "ساعات", "دەقیقە")
+
+# F#10-frame: stop categories for the demonstrative closing-ە rule
+# (pronouns, quantifiers, numerals, titles, connectors).
+_DEM_FRAME_STOP = {
+    "من", "تۆ", "ئەو", "ئێمە", "ئێوە", "ئەوان", "خۆی", "خۆم", "خۆت",
+    "یەک", "هەموو", "هەندێک", "چەند", "زۆر", "کەم", "هەر", "هیچ",
+    "دوو", "سێ", "چوار", "پێنج", "شەش", "حەوت", "هەشت", "نۆ", "دە",
+    "دکتۆر", "مامۆستا", "پرۆفیسۆر", "شێخ", "مەلا", "حاجی", "کاک",
+    "خاتوو", "و", "کە", "یان", "بەڵام",
+}
+# F#123 (Haji Marf 2014, pp. 263-264): lexicalised dem+time compounds.
+_DEM_FUSED_TIME = {"ساڵ": "ئەمساڵ", "شەو": "ئەمشەو", "ڕۆ": "ئەمڕۆ",
+                   "جار": "ئەمجارە"}
+
 
 @dataclass
 class AgreementResult:
@@ -246,6 +368,104 @@ class AgreementChecker:
                     )
                     break
 
+        # F#50 (Haji Marf 2014, pp. 49-50): in verbless (copular) sentences
+        # the Set-2 copular clitic on the predicate must match the subject:
+        # من کوردم / تۆ کوردی(ت) / ئەو کوردە / ئێمە کوردین / ئێوە کوردن.
+        # *من کوردە and *ئێمە کوردن are copular agreement errors.
+        _COPULA_ENDINGS: tuple[tuple[str, frozenset], ...] = (
+            ("ین", frozenset({("1", "pl")})),
+            ("یت", frozenset({("2", "sg")})),
+            ("م", frozenset({("1", "sg")})),
+            ("ی", frozenset({("2", "sg")})),
+            ("ن", frozenset({("2", "pl"), ("3", "pl")})),
+            ("ە", frozenset({("3", "sg")})),
+        )
+        # F#72 (Slevanayi 2001, pp. 75-77): possessive هەبوون agrees with
+        # the POSSESSED noun, never the possessor: کتێبەکانم هەن /
+        # کتێبەکەم هەیە — *کتێبەکانم هەیە is a number clash.
+        _HEBUN_NUMBER = {"هەیە": "sg", "نییە": "sg", "هەن": "pl", "نین": "pl"}
+        for i, word in enumerate(words):
+            num = _HEBUN_NUMBER.get(word)
+            if num is None or i == 0:
+                continue
+            host = words[i - 1]
+            base = host
+            for cl in ("مان", "تان", "یان", "م", "ت", "ی"):
+                if host.endswith(cl) and len(host) > len(cl) + 3:
+                    base = host[: -len(cl)]
+                    break
+            if base.endswith("ەکان"):
+                host_num = "pl"
+            elif base.endswith("ەکە"):
+                host_num = "sg"
+            else:
+                continue
+            applicable = True
+            if host_num != num:
+                violations.append(
+                    f"Possessed-noun agreement: '{host}' ({host_num}) with "
+                    f"'{word}' — هەبوون agrees with the possessed noun "
+                    f"(F#72)"
+                )
+
+        # F#39 tables / F#27 (Academy Committee, pp. 144-156; Rasul 2004):
+        # past intransitives take a Set 2 suffix matching the subject:
+        # من هاتم / تۆ هاتیت / ئەو هات — *من هات and *ئەو ڕۆیشتی clash.
+        # Only the immediately following word is checked, and only in
+        # subject-licensing contexts (بۆ من نارد, براکەی من هات skipped).
+        for i, word in enumerate(words):
+            if word not in _PRONOUN_AGREEMENT or i + 1 >= len(words):
+                continue
+            if i > 0 and words[i - 1] not in _SUBJ_CONTEXT_OK:
+                continue
+            nxt = words[i + 1]
+            parsed = None
+            for stem in _PAST_INTRANS_STEMS_CHECK:
+                if nxt.startswith(stem):
+                    sfx = nxt[len(stem):]
+                    if sfx in _PAST_SET2_SUFFIXES:
+                        parsed = (stem, sfx)
+                    break
+            if parsed is None:
+                continue
+            stem, sfx = parsed
+            expected = _PRONOUN_AGREEMENT[word]
+            applicable = True
+            if expected not in _PAST_SET2_SUFFIXES[sfx]:
+                good = f"{stem}{_PRONOUN_PAST_SUFFIX[expected]}"
+                violations.append(
+                    f"Past subject-verb mismatch: '{word}' with '{nxt}' — "
+                    f"the Set 2 suffix must match the subject ('{good}') "
+                    f"(F#39/F#27)"
+                )
+
+        for i, word in enumerate(words):
+            # ئەو doubles as a demonstrative determiner — too ambiguous.
+            if word not in _PRONOUN_AGREEMENT or word == "ئەو":
+                continue
+            if i + 1 >= len(words):
+                continue
+            pred = words[i + 1]
+            # Copular reading requires the predicate to be clause-final.
+            if i + 2 < len(words) and words[i + 2] not in {"و", "،", ".", "؟", "!"}:
+                continue
+            pf = self._analyzer.analyze_token(pred)
+            if pf.pos == "VERB" or _is_present_verb(pred) or _is_past_verb(pred, pf):
+                continue
+            # Set-1 possessive hosts (ماڵمان) are not copular predicates.
+            if pred.endswith(("مان", "تان", "یان")):
+                continue
+            expected = (_PRONOUN_AGREEMENT[word][0], _PRONOUN_AGREEMENT[word][1])
+            for ending, pns in _COPULA_ENDINGS:
+                if pred.endswith(ending) and len(pred) > len(ending) + 1:
+                    applicable = True
+                    if expected not in pns:
+                        violations.append(
+                            f"Copular clitic mismatch: '{word}' with "
+                            f"predicate '{pred}' (ـ{ending}) (F#50)"
+                        )
+                    break
+
         for i, word in enumerate(words):
             if word not in _PRONOUN_AGREEMENT:
                 continue
@@ -308,10 +528,18 @@ class AgreementChecker:
 
         # F#124 (Haji Marf 2014, pp. 291-293): the possessive pronoun هی/ئی
         # can NEVER host a clitic — *هیم, *هیتان are ungrammatical. The
-        # correct form is هی + independent pronoun (هی من).
+        # correct form is هی + independent pronoun (هی من). The same ban
+        # covers ش/یش (*هیش).
         for word in words:
             if word in CLITIC_BARRED_PRONOUNS:
                 applicable = True     # correct usage present — check applied
+                continue
+            if word in ("هیش", "هییش"):
+                applicable = True
+                violations.append(
+                    f"Clitic-barred pronoun: 'هی' takes neither clitics "
+                    f"nor ش/یش ('{word}') (F#124)"
+                )
                 continue
             for base in CLITIC_BARRED_PRONOUNS:
                 if not word.startswith(base) or word == base:
@@ -327,6 +555,72 @@ class AgreementChecker:
                         f"clitic '{rest}' (F#124)"
                     )
                     break
+
+        # F#52 (Haji Marf 2014, pp. 164-167): Set 2 clitics never stack —
+        # *دەچمین doubles 1sg م and 1pl ین on one present verb.
+        for word in words:
+            for pre in ("دە", "ئە", "نا"):
+                if not word.startswith(pre):
+                    continue
+                rest = word[len(pre):]
+                for stem in _PRESENT_STEMS_NON_B:
+                    if rest.startswith(stem) and rest[len(stem):] == "مین":
+                        applicable = True
+                        violations.append(
+                            f"Double Set 2 clitic: '{word}' — م and ین "
+                            f"cannot stack ('{pre}{stem}م' / "
+                            f"'{pre}{stem}ین') (F#52)"
+                        )
+                        break
+                break
+
+        # F#39 (Academy Committee, pp. 144-156): under negation the Set 1
+        # agent clitic PRECEDES the transitive past stem: نەمگرت, نەیانکرد —
+        # *نەگرتم/*نەکردیان leave the agent slot empty. Perfects (نەگرتوومە)
+        # and subjunctives (نەگرتبام) are skipped because the remainder
+        # after the stem must be exactly a clitic.
+        for word in words:
+            if not word.startswith("نە") or len(word) < 6:
+                continue
+            rest = word[2:]
+            for stem in TRANSITIVE_PAST_STEMS:
+                if len(stem) < 3 or not rest.startswith(stem):
+                    continue
+                suffix = rest[len(stem):]
+                if suffix in ("م", "ی", "ت", "مان", "تان", "یان"):
+                    applicable = True
+                    violations.append(
+                        f"Negated transitive clitic: '{word}' — under "
+                        f"negation the agent clitic precedes the stem "
+                        f"('نە{suffix}{stem}') (F#39)"
+                    )
+                break
+
+        # R18/F#46 (Haji Marf 2014, pp. 116-121): in preverbed past
+        # transitives the Set 1 clitic sits between preverb and stem:
+        # هەڵمانگرت — *هەڵگرتمان strands it. Only the unambiguous
+        # plural clitics are matched; nominal lexicalisations (تێبینی,
+        # پێویست) are excluded.
+        for word in words:
+            if any(word.startswith(x) for x in _PREVERB_NOMINAL_EXCLUSIONS):
+                continue
+            for pv in _PREVERBS:
+                if not word.startswith(pv) or len(word) < len(pv) + 5:
+                    continue
+                rest = word[len(pv):]
+                for stem in TRANSITIVE_PAST_STEMS:
+                    if len(stem) < 3 or not rest.startswith(stem):
+                        continue
+                    sfx = rest[len(stem):]
+                    if sfx in ("مان", "تان", "یان"):
+                        applicable = True
+                        violations.append(
+                            f"Preverb clitic position: '{word}' — the "
+                            f"Set 1 clitic sits between preverb and stem "
+                            f"('{pv}{sfx}{stem}') (R18/F#46)"
+                        )
+                    break
+                break
 
         for word in words:
             # Set 2 verb suffixes (م/ت/ی on دەکەم etc.) are NOT
@@ -377,6 +671,46 @@ class AgreementChecker:
                     f"with {len(distinct_clitics)} distinct forms and "
                     f"{len(persons_seen)} person(s) in one clause (F#133)"
                 )
+
+        # F#127 (Haji Marf 2014, pp. 215-216): with the -ەوە suffix the Set-1
+        # clitic goes BEFORE the suffix — کردمانەوە, never *کردەوەمان.
+        for word in words:
+            for cl in CLITIC_PERSON_MAP:
+                if not word.endswith(cl) or len(word) <= len(cl) + 3:
+                    continue
+                rest = word[: -len(cl)]
+                if not rest.endswith("ەوە"):
+                    continue
+                # Set-1 clitics are past-transitive agents, so the stem before
+                # ەوە must be a transitive past stem (کرد, گرت…). This also
+                # rules out noun hosts like ماڵەوەم (ماڵ is not a past stem).
+                stem = rest[:-3]
+                if _is_transitive_past(stem):
+                    applicable = True
+                    violations.append(
+                        f"Clitic position: '{word}' — clitic must precede ەوە "
+                        f"({stem}{cl}ەوە) (F#127)"
+                    )
+                break
+
+        # F#122 (Haji Marf 2014, pp. 245-263): on demonstratives ش/یش must
+        # precede the clitic — ئەمەشم ✓, *ئەمەمیش ✗. (خۆ alone allows both
+        # orders — خۆشم/خۆمیش — and is not a demonstrative, so unaffected.)
+        _DEM_BASES = ("ئەمانە", "ئەوانە", "ئەمە", "ئەوە", "ئەم", "ئەو")
+        for word in words:
+            for base in _DEM_BASES:
+                if not word.startswith(base) or word == base:
+                    continue
+                rest = word[len(base):]
+                for cl in CLITIC_PERSON_MAP:
+                    if rest == cl + "یش" or rest == cl + "ش":
+                        applicable = True
+                        violations.append(
+                            f"ش/یش order: '{word}' — ش/یش must precede the "
+                            f"clitic on demonstratives ({base}ش{cl}) (F#122)"
+                        )
+                        break
+                break
 
         # Cross-clause covert-subject consistency (F#22, Amin 2016; Rasul
         # 2005 pp. 13-14): و-coordinated clauses sharing a DROPPED subject
@@ -458,7 +792,10 @@ class AgreementChecker:
         # Check demonstrative + definiteness co-occurrence (F#10, Rule R4)
         demonstratives = {"ئەم", "ئەو", "ئەمە", "ئەوە"}
         definite_markers = ("ەکە", "یەکە", "ەکان", "یەکان")
-        indefinite_markers = ("ێک", "یەک", "ێکی")
+        # ێکە covers the frame-final form *ئەم کوڕێکە (ێک + closing ە);
+        # the numeral یەکێک(ە) "one (of)" is a legitimate copular host.
+        indefinite_markers = ("ێک", "یەک", "ێکی", "ێکە")
+        _INDEF_EXEMPT = {"یەکێک", "یەکێکە", "یەکێکیان"}
         
         in_dem_np = False
         dem_word = ""
@@ -475,7 +812,10 @@ class AgreementChecker:
                 dem_words_seen += 1
                 # Within a demonstrative NP, check for prohibited markers
                 has_def = any(word.endswith(m) for m in definite_markers)
-                has_indef = any(word.endswith(m) for m in indefinite_markers)
+                has_indef = (
+                    any(word.endswith(m) for m in indefinite_markers)
+                    and word not in _INDEF_EXEMPT
+                )
                 if has_def:
                     violations.append(
                         f"Demonstrative+definite co-occurrence: '{dem_word}' with "
@@ -547,6 +887,115 @@ class AgreementChecker:
                 f"Pronoun ezafe: '{base}' takes ی-ezafe, never ە (F#49)"
             )
 
+        # F#60 (Mamajalakayi; Ibrahim 1988): definite/indefinite allomorph
+        # selection — ەکە/ێک after consonant-final stems, یەکە/یەک only after
+        # vowel-final stems. *کتێبیەکە and *کتێبیەک are misattachments.
+        for word in words:
+            for suf, correct in (("یەکە", "ەکە"), ("یەک", "ێک")):
+                if not word.endswith(suf) or word == suf:
+                    continue
+                stem = word[: -len(suf)]
+                if len(stem) < 2:
+                    continue
+                if stem[-1] in _vowels:
+                    continue          # vowel-final → ی-allomorph is correct
+                applicable = True
+                violations.append(
+                    f"Determiner allomorph: consonant-final '{stem}' takes "
+                    f"{correct} not {suf} (F#60)"
+                )
+                break
+
+        # F#86 (Slevanayi 2001, pp. 43-44): proper nouns denote a unique
+        # entity and can NEVER take indefinite or plural markers:
+        # *هەولێرێک, *دهۆکان, *هەولێرەکان. Gentilic forms carry a double
+        # یی (هەولێرییەکان "the Erbilites") and are not matched here.
+        for word in words:
+            for name in _PROPER_PLACE_NAMES:
+                if not word.startswith(name) or word == name:
+                    continue
+                rest = word[len(name):]
+                if name[-1] in _vowels:
+                    banned = ("یەک", "یەکان")
+                else:
+                    banned = ("ێک", "ەکان", "ان")
+                if rest in banned:
+                    applicable = True
+                    violations.append(
+                        f"Proper noun morphology: '{word}' — the proper "
+                        f"noun '{name}' cannot take indefinite/plural "
+                        f"markers (F#86)"
+                    )
+                break
+
+        # F#123 (Haji Marf 2014, pp. 263-264): ئەم + time noun is a
+        # lexicalised compound — writing ئەمساڵ/ئەمشەو/ئەمڕۆ as two
+        # words is a segmentation error.
+        for i, word in enumerate(words):
+            if word != "ئەم" or i + 1 >= len(words):
+                continue
+            fused = _DEM_FUSED_TIME.get(words[i + 1])
+            if fused is None:
+                continue
+            if i + 2 < len(words) and words[i + 2] == "و":
+                continue
+            applicable = True
+            violations.append(
+                f"Fused time word: 'ئەم {words[i + 1]}' — lexicalised as "
+                f"one word ('{fused}') (F#123)"
+            )
+
+        # F#10-frame (Amin 1986, pp. 24-25): the demonstrative frame must
+        # close with ە: لەم شارە دەژیم — *لەم شار دەژیم strands it. Bare
+        # ئەم/ئەو additionally require a non-verbal continuation so
+        # pronoun readings with bare objects (ئەو نان دەخوات) stay clean.
+        _verb_like = ("دە", "ئە", "نا", "نە", "مە")
+        for i, word in enumerate(words):
+            if word not in ("لەم", "بەم", "لەو", "بەو", "ئەم", "ئەو"):
+                continue
+            if i + 1 >= len(words):
+                continue
+            w = words[i + 1]
+            if w in _DEM_FRAME_STOP or len(w) < 3:
+                continue
+            if "ە" in w[-3:] or w.endswith(("ی", "ێ")):
+                continue
+            if w.startswith(_verb_like):
+                continue
+            if word in ("ئەم", "ئەو") and w.startswith("ب"):
+                continue
+            # The analyzer misparses some nouns (شوێن) as VERB — rely on
+            # the past-verb detector plus the prefix guards above instead.
+            if _is_past_verb(w, self._analyzer.analyze_token(w)):
+                continue
+            if i + 2 < len(words):
+                after = words[i + 2]
+                if after == "و":
+                    continue
+                if word in ("ئەم", "ئەو") and (
+                        after.startswith(_verb_like)
+                        or _is_past_verb(
+                            after, self._analyzer.analyze_token(after))):
+                    continue
+            elif word in ("ئەم", "ئەو"):
+                continue    # bare dem + clause-final noun: too ambiguous
+            applicable = True
+            linker = "یە" if w[-1] in ("ا", "ۆ", "و") else "ە"
+            violations.append(
+                f"Demonstrative frame: '{word} {w}' — the frame closes "
+                f"with ە ('{w}{linker}') (F#10)"
+            )
+
+        # F#90 (Slevanayi 2001, pp. 47-48): definiteness never doubles —
+        # no word stacks two ەکان sequences.
+        for word in words:
+            if "ەکانەکان" in word:
+                applicable = True
+                violations.append(
+                    f"Double plural-definite: '{word}' — ەکان cannot "
+                    f"stack (F#90)"
+                )
+
         return applicable, violations
     
     def _check_tense_consistency(self, sentence: str) -> tuple[bool, list[str]]:
@@ -607,7 +1056,45 @@ class AgreementChecker:
                         f"Tense sequencing violation: non-past clause followed by "
                         f"past clause in و-coordination (F#254)"
                     )
-        
+
+        # R17/F#40 (Academy Committee, pp. 151-153): the transitive present
+        # perfect requires a final ە after the Set 1 clitic: گرتوومە,
+        # کردوویانە — *گرتووم and *کردووی are missing it. Intransitive
+        # perfects (هاتووم, کەوتووی) use Set 2 without ە and stay clean.
+        for word in words:
+            for cl in ("مان", "تان", "یان", "م", "ت", "ی"):
+                if not word.endswith(cl):
+                    continue
+                rem = word[: -len(cl)]
+                if (len(rem) >= 4 and rem.endswith("وو")
+                        and _is_transitive_past(rem[:-2])):
+                    applicable = True
+                    violations.append(
+                        f"Perfect missing copula: '{word}' — the transitive "
+                        f"perfect requires final ە ('{word}ە') (R17/F#40)"
+                    )
+                break
+
+        # F#35 (Academy Committee, pp. 80-106): happening (ڕوودان) verbs
+        # keep ێ in ALL persons: دەسووتێم/دەسووتێین — *دەسووتم drops it.
+        for word in words:
+            for pre in ("دە", "ئە", "نا", "ب"):
+                if not word.startswith(pre):
+                    continue
+                rest = word[len(pre):]
+                for stem in _RUUDAN_PRESENT_STEMS_CHECK:
+                    if rest.startswith(stem) and rest[len(stem):] in (
+                            "م", "ی", "ین", "ن"):
+                        applicable = True
+                        sfx = rest[len(stem):]
+                        violations.append(
+                            f"Happening-verb conjugation: '{word}' — ڕوودان "
+                            f"verbs take ێ in all persons "
+                            f"('{pre}{stem}ێ{sfx}') (F#35)"
+                        )
+                        break
+                break
+
         return applicable, violations
     
     @staticmethod
@@ -741,25 +1228,281 @@ class AgreementChecker:
                             f"({a}→{b})"
                         )
                         break
+
+        # F#155 (Rasul 2005, p. 21): the perfect-participle morpheme is و in
+        # standard Sorani. The Northern ی and Southern گ allomorphs on a past
+        # stem (*هاتیە, *مردگە) should be the و-form (هاتووە/مردووە).
+        for word in words:
+            for dial in ("یە", "گە"):
+                if not word.endswith(dial) or len(word) <= len(dial) + 2:
+                    continue
+                stem = word[: -len(dial)]
+                sf = self._analyzer.analyze_token(stem)
+                # The remainder must be a bona-fide past stem (هات, مرد, ژیا)
+                # — nouns like کوردیە/بەڵگە never match.
+                if _is_past_verb(stem, sf):
+                    applicable = True
+                    violations.append(
+                        f"Dialectal participle: '{word}' uses the "
+                        f"{dial[0]}-allomorph; standard Sorani is "
+                        f"'{stem}ووە' (F#155)"
+                    )
+                break
+
+        # F#123 (Haji Marf 2014, pp. 263-264): بە/لە contract with a
+        # following demonstrative — the initial ئە drops. Writing *بە ئەم
+        # as two words instead of بەم is a segmentation error.
+        for i in range(len(words) - 1):
+            if words[i] in ("بە", "لە") and words[i + 1] in _DEM_FULL_FORMS:
+                applicable = True
+                contracted = words[i] + words[i + 1][2:]
+                violations.append(
+                    f"Demonstrative contraction: '{words[i]} {words[i + 1]}' "
+                    f"should be '{contracted}' (F#123)"
+                )
+
+        # R19 (Academy Committee): ش before ت in the infinitive becomes ژ
+        # in the present stem — دەکوژم/دەهاوێژم, never *دەکوشم. A ت right
+        # after the stem is the past morpheme (دەیکوشت) and stays clean.
+        for word in words:
+            for pre in ("دە", "ئە", "نا", "نە", "مە", "ب"):
+                if not word.startswith(pre):
+                    continue
+                rest = word[len(pre):]
+                for stem in _SH_ZH_PAST_STEM_PREFIXES:
+                    if not rest.startswith(stem):
+                        continue
+                    after = rest[len(stem):]
+                    if after and not after.startswith("ت"):
+                        applicable = True
+                        fixed = pre + stem[:-1] + "ژ" + after
+                        violations.append(
+                            f"Present stem ش→ژ: '{word}' — the present "
+                            f"stem uses ژ ('{fixed}') (R19)"
+                        )
+                    break
+                break
+
+        # R12 (Academy Committee): ە-final and ۆ-final present stems take
+        # the ات 3sg allomorph (دەکات, دەخوات) — the raw sequences ەێ/ۆێ
+        # (*دەکەێت, *دەخۆێت) are orthographically illegal in Sorani.
+        for word in words:
+            if "ەێ" in word:
+                applicable = True
+                violations.append(
+                    f"3sg allomorph: '{word}' — ە-final stems take ات "
+                    f"('{word.replace('ەێ', 'ا', 1)}') (R12)"
+                )
+            elif "ۆێ" in word:
+                applicable = True
+                violations.append(
+                    f"3sg allomorph: '{word}' — ۆ-final stems take وات "
+                    f"('{word.replace('ۆێ', 'وا', 1)}') (R12)"
+                )
+
+        # R13 (Academy Committee; Farhadi 2013, pp. 38-40): the passive is
+        # built on the PRESENT stem + را/رێ — past-stem passives are
+        # errors: *نووسترا → نووسرا, *کوشترا → کوژرا, *گرترا → گیرا.
+        _PASSIVE_ERRORS = (
+            ("نووسترا", "نووسرا"), ("نووسترێ", "نووسرێ"),
+            ("کوشترا", "کوژرا"), ("کوشترێ", "کوژرێ"),
+            ("فرۆشترا", "فرۆشرا"), ("فرۆشترێ", "فرۆشرێ"),
+            ("گرترا", "گیرا"), ("گرترێ", "گیرێ"),
+        )
+        for word in words:
+            for bad, good in _PASSIVE_ERRORS:
+                if bad in word:
+                    applicable = True
+                    violations.append(
+                        f"Passive formation: '{word}' — the passive uses "
+                        f"the present stem "
+                        f"('{word.replace(bad, good, 1)}') (R13)"
+                    )
+                    break
+
+        # F#164 (Rasul 2004, pp. 125-126): نووسین takes double وو — the
+        # under-doubled *نوسی/*دەنوسم family is a frequent spelling error.
+        _NUS_FORMS = ("نوسین", "نوسیو", "نوسراو", "دەنوس", "بنوس", "نەنوس", "نوسی")
+        for word in words:
+            if "نووس" in word:
+                continue
+            for bad in _NUS_FORMS:
+                if bad in word:
+                    applicable = True
+                    violations.append(
+                        f"و/وو spelling: '{word}' — نووسین takes double وو "
+                        f"('{word.replace('نوس', 'نووس', 1)}') (F#164)"
+                    )
+                    break
+
+        # F#161 (Rasul 2005, pp. 35-46): an ئایا question closed with a
+        # period is a punctuation error — interrogatives take ؟.
+        if "ئایا" in words and sentence.rstrip().endswith("."):
+            applicable = True
+            violations.append(
+                "Interrogative punctuation: ئایا question ends with '.' "
+                "instead of '؟' (F#161)"
+            )
+
+        # F#119 (Farhadi 2013, pp. 49-51): a short sentence-initial
+        # wh-question closed with a period is a punctuation error. Longer
+        # sentences are skipped (free relatives: کێ هات پێی بڵێ).
+        _WH_INITIAL = ("کێ", "چی", "کوا", "کەی", "بۆچی", "چۆن", "کام")
+        content = [w for w in words
+                   if w not in {"،", ".", "؟", "!"} and len(w) > 1]
+        if (content and content[0] in _WH_INITIAL and len(content) <= 3
+                and sentence.rstrip().endswith(".")):
+            applicable = True
+            violations.append(
+                f"Interrogative punctuation: '{content[0]}' question ends "
+                f"with '.' instead of '؟' (F#119)"
+            )
+
+        # F#36 (Academy Committee, pp. 96-107): suppletive causative
+        # pairs — the اندن template never applies to these bases.
+        for word in words:
+            for bad, good in _SUPPLETIVE_CAUSATIVES:
+                if bad in word:
+                    applicable = True
+                    violations.append(
+                        f"Causative formation: '{word}' — this verb has a "
+                        f"suppletive causative "
+                        f"('{word.replace(bad, good, 1)}') (F#36)"
+                    )
+                    break
+
+        # F#168 (Rasul, p. 25): خواردن keeps خۆ/خوا in the present —
+        # *دەخوێم is a regularisation error (base form خوەردن).
+        for word in words:
+            good = _XWARDIN_ERRORS.get(word)
+            if good is not None:
+                applicable = True
+                violations.append(
+                    f"خواردن stem: '{word}' — the present stem is خۆ/خوا "
+                    f"('{good}') (F#168)"
+                )
         return applicable, violations
 
     _NEG_MARKERS = {"نە", "نا", "هیچ", "هەرگیز"}
 
     def _check_negative_concord(self, sentence: str) -> tuple[bool, list[str]]:
-        """Check negative concord: هیچ/هەرگیز require نە/نا on the verb.
+        """Check negation morphology and negative concord.
 
-        In Central Kurdish (Sorani), negative polarity items like هیچ (nothing) and
-        هەرگیز (never) require a negated verb in the same clause. A
-        sentence like *هیچ دەزانم is ungrammatical.
+        Rules enforced:
+        - R14 (Academy Committee): نە/مە REPLACE the subjunctive/imperative
+          ب prefix — they never co-occur (*نەبچم → نەچم).
+        - F#157 (Rasul 2005, pp. 38-41): prohibitive مە is restricted to
+          2nd person; 1st-person forms take نە (*مەنووسم → نەنووسم).
+        - Negative concord: NPIs like هیچ (nothing) and هەرگیز (never)
+          require a negated verb in the same clause (*هیچ دەزانم).
 
-        Applicable when an NPI is present.
+        Applicable when an NPI or a flagged negation form is present.
         """
         violations = []
+        applicable = False
         words = self._analyzer.tokenize(sentence)
+
+        # R14: نەب/مەب + present stem = illegal prefix stacking. بوون
+        # forms (نەبم, نەبێت) and ب-initial roots (نەبەم, نەبینم) never
+        # match because the scan requires a non-ب stem after the ب.
+        for word in words:
+            for neg in ("نە", "مە"):
+                if not word.startswith(neg + "ب"):
+                    continue
+                rest = word[len(neg) + 1:]
+                if any(rest.startswith(s) and len(rest) >= len(s)
+                       for s in _PRESENT_STEMS_NON_B):
+                    applicable = True
+                    violations.append(
+                        f"Negation-ب co-occurrence: '{word}' — نە/مە "
+                        f"replaces ب ('{neg}{rest}') (R14)"
+                    )
+                break
+
+        # F#157: مە + stem + 1st-person ending (م/ین) is a person clash.
+        for word in words:
+            if not word.startswith("مە") or word.startswith("مەب"):
+                continue
+            rest = word[2:]
+            for stem in _PRESENT_STEMS_NON_B:
+                if rest.startswith(stem) and rest[len(stem):] in ("م", "ین"):
+                    applicable = True
+                    violations.append(
+                        f"Prohibitive person restriction: '{word}' — مە is "
+                        f"2nd-person only; use نە ('نە{rest}') (F#157)"
+                    )
+                    break
+
+        # F#158 (Rasul 2005, pp. 40-41): the optative negates with نە,
+        # never مە (*مەچووبام → نەچووبام). مە is imperative-only. The
+        # past-stem guard keeps مە-initial nouns (مەرحەبا) clean.
+        _OPTATIVE_ENDINGS = ("بامایە", "بایتایە", "باینایە", "بانایە",
+                             "بایە", "باین", "بام", "بای", "بان", "با")
+        for word in words:
+            if not word.startswith("مە") or len(word) < 5:
+                continue
+            for end in _OPTATIVE_ENDINGS:
+                if not word.endswith(end):
+                    continue
+                between = word[2: -len(end)]
+                if between:
+                    bf = self._analyzer.analyze_token(between)
+                    if _is_past_verb(between, bf):
+                        applicable = True
+                        violations.append(
+                            f"Optative negation: '{word}' — the optative "
+                            f"negates with نە not مە ('نە{word[2:]}') "
+                            f"(F#158)"
+                        )
+                break
+
+        # F#116 (Farhadi 2013, pp. 37-38): under past-progressive negation
+        # the Set 1 agent clitic moves BEFORE دە: نەمدەزانی, never
+        # *نەدەمزانی. Detection: نەدە + clitic + transitive past stem.
+        for word in words:
+            if not word.startswith("نەدە"):
+                continue
+            rest = word[4:]
+            for cl in ("مان", "تان", "یان", "م", "ت", "ی"):
+                if not rest.startswith(cl):
+                    continue
+                remainder = rest[len(cl):]
+                if remainder and _is_transitive_past(remainder):
+                    applicable = True
+                    violations.append(
+                        f"Negative progressive clitic: '{word}' — the agent "
+                        f"clitic precedes دە under negation "
+                        f"('نە{cl}دە{remainder}') (F#116)"
+                    )
+                break
+
+        # F#169 (Rasul, pp. 50-51): نە + ئە assimilate to نا (ە+ە→ا) —
+        # the unfused *نەئەچم is a spelling error. Joined demonstratives
+        # (نەئەو, نەئەم) are skipped.
+        for word in words:
+            if word.startswith("نەئە") and len(word) >= 6:
+                rest = word[4:]
+                if rest and not rest.startswith(("و", "م")):
+                    applicable = True
+                    violations.append(
+                        f"Unfused negation: '{word}' — نە + ئە fuse to نا "
+                        f"('نا{rest}') (F#169)"
+                    )
+
+        # F#43 (Academy Committee): negation never stacks — *نەنادەچم
+        # doubles نە and نا on one verb.
+        for word in words:
+            if word.startswith("نەنادە") and len(word) >= 8:
+                applicable = True
+                violations.append(
+                    f"Double negation: '{word}' — نە and نا cannot stack "
+                    f"('نا{word[6:]}') (F#43)"
+                )
+
         npi_words = {"هیچ", "هەرگیز", "هیچکەس", "هیچکام"}
         has_npi = any(w in npi_words for w in words)
         if not has_npi:
-            return False, violations
+            return applicable, violations
         has_neg_verb = any(
             w.startswith("نا") or w.startswith("نە") for w in words
         )
@@ -850,6 +1593,47 @@ class AgreementChecker:
                         f"verb, but '{candidate}' is singular"
                     )
                 break
+
+        # F#77 (Slevanayi 2001, pp. 87-88): numeral subjects force a
+        # plural verb: دوو کوڕ هاتن — *دوو کوڕ هات. Restricted to
+        # adjacent intransitive verbs so numeral OBJECTS (دوو سێو
+        # دەخوات) and duration adverbials (دوو ڕۆژ مایەوە) stay clean.
+        for i, word in enumerate(words):
+            if word not in _NUMERALS_PLURAL or i + 2 >= len(words):
+                continue
+            if i > 0 and words[i - 1] not in _SUBJ_CONTEXT_OK:
+                continue
+            noun, verb = words[i + 1], words[i + 2]
+            if noun in _TIME_NOUNS:
+                continue
+            flagged_sg = False
+            good = ""
+            for stem in _PAST_INTRANS_STEMS_CHECK:
+                if verb.startswith(stem):
+                    sfx = verb[len(stem):]
+                    if sfx in _PAST_SET2_SUFFIXES:
+                        applicable = True
+                        flagged_sg = sfx == ""
+                        good = f"{stem}ن"
+                    break
+            if not flagged_sg and not good:
+                for pre in ("دە", "ئە", "نا"):
+                    if not verb.startswith(pre):
+                        continue
+                    rest = verb[len(pre):]
+                    for stem in _INTRANS_PRESENT_STEMS + ("گەڕ",):
+                        if rest.startswith(stem) and rest[len(stem):] in (
+                                "ێت", "ات", "ێ", "ێتەوە", "اتەوە"):
+                            applicable = True
+                            flagged_sg = True
+                            good = f"{pre}{stem}ن"
+                            break
+                    break
+            if flagged_sg:
+                violations.append(
+                    f"Numeral subject: '{word} {noun}' requires plural "
+                    f"verb but '{verb}' is singular ('{good}') (F#77)"
+                )
         return applicable, violations
 
     # Sorani relative clause markers
@@ -941,8 +1725,79 @@ class AgreementChecker:
         if not words:
             return False, violations
 
+        # R15/F#42 (Academy Committee, pp. 182-191): the 2sg imperative of
+        # a consonant-final present stem requires final ە (بنووسە, مەگرە);
+        # a bare *بنووس/*مەگر is an incomplete imperative.
+        for word in words:
+            if word == "بچە":
+                # F#42 exception: the imperative of چوون is بچۆ (irregular).
+                applicable = True
+                violations.append(
+                    "Imperative of چوون: 'بچە' — the standard form is "
+                    "'بچۆ' (F#42)"
+                )
+                continue
+            for pre in ("ب", "مە"):
+                if not word.startswith(pre):
+                    continue
+                if word[len(pre):] in _IMPERATIVE_E_STEMS:
+                    applicable = True
+                    violations.append(
+                        f"Imperative missing ە: '{word}' — the 2sg "
+                        f"imperative of a consonant-final stem requires ە "
+                        f"('{word}ە') (R15/F#42)"
+                    )
+                break
+
+        # F#125 (Haji Marf 2014, p. 192): intransitive imperatives NEVER
+        # host a Set 1 clitic — *بمکەوە/*مەتچۆ are ungrammatical, while
+        # transitive بمگرە (catch me!) is fine. Causatives (بیخەوێنە)
+        # are transitive and exempt via the ێن guard.
+        for word in words:
+            for pre in ("ب", "مە"):
+                if not word.startswith(pre):
+                    continue
+                rest = word[len(pre):]
+                for cl in ("مان", "تان", "یان", "م", "ت", "ی"):
+                    if not rest.startswith(cl):
+                        continue
+                    stem_part = rest[len(cl):]
+                    if ("ێن" not in stem_part
+                            and any(stem_part.startswith(s)
+                                    for s in _INTRANS_PRESENT_STEMS)):
+                        applicable = True
+                        violations.append(
+                            f"Imperative clitic restriction: '{word}' — "
+                            f"intransitive imperatives never host a Set 1 "
+                            f"clitic (F#125)"
+                        )
+                    break
+                break
+
+        # F#76 (Slevanayi 2001, pp. 16, 72-73): a plural vocative (ینە)
+        # demands a plural imperative: کوڕینە بڕۆن — *کوڕینە بڕۆ.
+        if words[0] in _PLURAL_VOCATIVES:
+            for word in words[1:]:
+                imp_stemmed = (
+                    (word.startswith("ب") and any(
+                        word[1:].startswith(s) for s in _PRESENT_STEMS_NON_B))
+                    or (word.startswith("مە") and any(
+                        word[2:].startswith(s) for s in _PRESENT_STEMS_NON_B))
+                )
+                if not imp_stemmed:
+                    continue
+                applicable = True
+                if not word.endswith("ن"):
+                    fix = word[:-1] + "ن" if word.endswith("ە") else word + "ن"
+                    violations.append(
+                        f"Vocative-imperative mismatch: plural vocative "
+                        f"'{words[0]}' but imperative '{word}' is singular "
+                        f"('{fix}') (F#76)"
+                    )
+                break
+
         if words[0] not in self._VOCATIVE_MARKERS:
-            return False, violations
+            return applicable, violations
 
         # Determine addressee number from the noun after vocative marker
         addressee_number: str | None = None
@@ -954,12 +1809,15 @@ class AgreementChecker:
             elif w.endswith("ەکە") or w.endswith("یەکە"):
                 addressee_number = "sg"
                 break
+            elif w in _PLURAL_VOCATIVES:
+                addressee_number = "pl"
+                break
             elif w in _PRONOUN_AGREEMENT:
                 _, addressee_number = _PRONOUN_AGREEMENT[w]
                 break
 
         if addressee_number is None:
-            return False, violations
+            return applicable, violations
 
         # Find imperative verb (ب-prefix)
         for word in words:
@@ -1072,6 +1930,32 @@ class AgreementChecker:
                         f"Compound noun subject: '{words[0]} و {words[2]}' "
                         f"requires plural verb but '{verb_tok}' is singular (F#88)"
                     )
+
+        # F#87 (Slevanayi 2001, pp. 68-69): coordinated subjects follow
+        # the familiarity hierarchy 1st > 2nd > 3rd: من و ئازاد, never
+        # *ئازاد و من. Clause coordination (verb before و) is skipped.
+        for i, word in enumerate(words):
+            if word != "و" or i == 0 or i + 1 >= len(words):
+                continue
+            left, right = words[i - 1], words[i + 1]
+            r_rank = _FAMILIARITY_RANK.get(right)
+            if r_rank is None:
+                continue
+            l_rank = _FAMILIARITY_RANK.get(left)
+            if l_rank is None:
+                lf = self._analyzer.analyze_token(left)
+                if (lf.pos == "VERB" or _is_present_verb(left)
+                        or _is_past_verb(left, lf)):
+                    continue
+                if lf.pos not in ("NOUN", "PROPN"):
+                    continue
+                l_rank = 3
+            noun_coord_applicable = True
+            if l_rank > r_rank:
+                violations.append(
+                    f"Familiarity order: '{left} و {right}' — coordination "
+                    f"follows 1st > 2nd > 3rd ('{right} و {left}') (F#87)"
+                )
 
         # Find coordinated pronoun subjects: pronoun + و + pronoun
         pronouns_found = []
