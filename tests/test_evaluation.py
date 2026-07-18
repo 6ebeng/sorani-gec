@@ -151,7 +151,7 @@ def test_agreement_checker_clitic_consistency():
     """Clitic consistency check runs (no crash) on normal sentence."""
     checker = AgreementChecker()
     result = checker.check_sentence("پارەکەم بردەوە")
-    assert result.checks_total == 15
+    assert result.checks_total == 16
     print(f"  Clitic check: violations={result.violations}")
 
 
@@ -343,8 +343,8 @@ def test_agreement_checker_object_verb_ergative():
     checker = AgreementChecker()
     # Past transitive: object should agree with verb
     result = checker.check_sentence("کتێبەکە بردم")
-    assert result.checks_total == 15, (
-        f"Expected 15 checks (including ergative + new checks), got {result.checks_total}"
+    assert result.checks_total == 16, (
+        f"Expected 16 checks (including ergative + new checks), got {result.checks_total}"
     )
 
 
@@ -388,10 +388,10 @@ def test_compute_f05_balanced():
 
 
 def test_agreement_checker_fourteen_checks_counted():
-    """AgreementChecker must run exactly 15 checks per sentence."""
+    """AgreementChecker must run exactly 16 checks per sentence."""
     checker = AgreementChecker()
     result = checker.check_sentence("من نانم خوارد")
-    assert result.checks_total == 15
+    assert result.checks_total == 16
     print(f"  Fifteen checks confirmed: {result.checks_total}")
 
 

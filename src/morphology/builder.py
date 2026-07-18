@@ -1331,7 +1331,7 @@ def build_agreement_graph(
     # noun after a numeral stays SINGULAR (Maaruf 2010, p. 139):
     #   "دوو کوڕ" not *"دوو کوڕان"
     # Mukriani (2000, pp. 24-26): only PRE-NOMINAL quantifiers trigger
-    # plural verb agreement.  Post-nominal ordinals (e.g. کەسی دووەم)
+    # plural verb agreement.  Post-nominal ordinals (کەسی دووەم)
     # do NOT control verb agreement — the noun controls instead.
     #
     # Mass noun + measure word routing (Slevanayi 2001, pp. 46-47, 57):
@@ -2083,6 +2083,56 @@ def build_agreement_graph(
             tokens[head_idx], head_idx, tok, i,
             "patient" if is_patient_participle else "agent",
             PATIENT_PARTICIPLE_TENSE_RESTRICTION if is_patient_participle else "none",
+        )
+
+    # ------------------------------------------------------------------
+    # Step 13: Cross-clause covert subject tracking (F#22)
+    # ------------------------------------------------------------------
+    # F#22 (Amin 2016; Rasul 2005 pp. 13-14): و-coordinated clauses sharing a
+    # DROPPED subject must mark it consistently.
+    # We identify the covert subject anchor for each clause (either the
+    # verb itself for Law 1, or the clitic host for Law 2) and link them
+    # across clauses to visualize the continuous subject tracking.
+    overt_subj_verbs = {
+        e.target_idx for e in graph.edges
+        if e.agreement_type in (
+            "subject_verb", "passive_subject_verb",
+            "backward_subject_verb", "agent_non_agreeing",
+        )
+    }
+    covert_anchors = []
+    for vi in sorted(verb_info.keys()):
+        if vi in overt_subj_verbs:
+            continue
+        if getattr(features[vi], "voice", "") == "passive":
+            continue
+        # Find the anchor for this covert subject
+        anchor = None
+        if verb_info[vi]["law"] == "law2":
+            # For Law 2, the anchor is the source of the clitic_agent edge
+            for e in graph.edges:
+                if e.agreement_type == "clitic_agent" and e.target_idx == vi:
+                    anchor = e.source_idx
+                    break
+        else:
+            # For Law 1, the anchor is the verb itself (pro-drop)
+            anchor = vi
+        
+        if anchor is not None:
+            covert_anchors.append(anchor)
+
+    # Add edges between sequential covert anchors
+    for i in range(len(covert_anchors) - 1):
+        src = covert_anchors[i]
+        tgt = covert_anchors[i + 1]
+        graph.add_edge(
+            src, tgt,
+            "cross_clause_covert_subject", ["person", "number"],
+            law="law1",
+        )
+        logger.debug(
+            "F#22: Cross-clause covert subject edge: '%s' at %d → '%s' at %d",
+            tokens[src], src, tokens[tgt], tgt,
         )
 
     logger.debug(
