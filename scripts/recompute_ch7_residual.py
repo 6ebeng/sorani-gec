@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.evaluation.f05_scorer import evaluate_corpus, evaluate_corpus_span
-from src.evaluation.agreement_accuracy import (
+from src.evaluation.agreements import (
     evaluate_agreement_accuracy,
     evaluate_agreement_by_check,
 )

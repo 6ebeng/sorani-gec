@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.evaluation.f05_scorer import evaluate_corpus, evaluate_corpus_span
 from src.evaluation.gleu_scorer import compute_gleu
-from src.evaluation.agreement_accuracy import evaluate_agreement_accuracy
+from src.evaluation.agreements import evaluate_agreement_accuracy
 from src.evaluation.bootstrap import paired_bootstrap_f05
 
 ROOT = Path(__file__).resolve().parents[1]

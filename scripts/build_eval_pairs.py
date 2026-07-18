@@ -33,7 +33,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.evaluation.agreement_accuracy import AgreementChecker
+from src.evaluation.agreements import AgreementChecker
 
 MULTISEED_RESULTS = ROOT / "results" / "campaign_2_multiseed"
 EVAL_DIR = ROOT / "results" / "human_eval"

@@ -8,8 +8,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.morphology.analyzer import MorphologicalAnalyzer, MorphFeatures
 from src.morphology.features import FeatureExtractor
-from src.morphology.agreement import AgreementGraph, AgreementEdge, build_agreement_graph
-from src.morphology.agreement import (
+from src.morphology.graph import AgreementGraph, AgreementEdge
+from src.morphology.builder import build_agreement_graph
+from src.morphology.constants import (
     COMPOUND_VERB_PREVERBAL_ELEMENTS,
     DEFAULT_CONSTITUENT_ORDER,
     ATTRIBUTIVE_EZAFE_PROPER_NOUN_RULE,
@@ -409,7 +410,7 @@ def test_analyzer_verb_negated():
 
 def test_clitic_set_constants_defined():
     """CLITIC_SET_1 and CLITIC_SET_2 constants exist with correct entries."""
-    from src.morphology.agreement import CLITIC_SET_1, CLITIC_SET_2
+    from src.morphology.constants import CLITIC_SET_1, CLITIC_SET_2
     assert "م" in CLITIC_SET_1
     assert "مان" in CLITIC_SET_1
     assert CLITIC_SET_1["م"] == ("1", "sg")

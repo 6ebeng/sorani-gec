@@ -26,9 +26,9 @@ from src.errors.noun_adjective import NounAdjectiveErrorGenerator
 from src.errors.clitic import CliticErrorGenerator
 from src.errors.orthography import OrthographicErrorGenerator
 from src.morphology.analyzer import MorphologicalAnalyzer
-from src.morphology.agreement import build_agreement_graph
+from src.morphology.builder import build_agreement_graph
 from src.evaluation.f05_scorer import evaluate_corpus, compute_f05, GECMetrics
-from src.evaluation.agreement_accuracy import AgreementChecker
+from src.evaluation.agreements import AgreementChecker
 
 # ============================================================================
 # Small Corpus Fixture — diverse real Central Kurdish (Sorani) sentences

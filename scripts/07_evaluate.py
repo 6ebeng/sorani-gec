@@ -25,7 +25,7 @@ from src.evaluation.f05_scorer import (
     evaluate_corpus_span,
     evaluate_corpus_with_sentences,
 )
-from src.evaluation.agreement_accuracy import evaluate_agreement_accuracy, evaluate_agreement_by_check
+from src.evaluation.agreements import evaluate_agreement_accuracy, evaluate_agreement_by_check
 from src.evaluation.gleu_scorer import compute_gleu
 from src.evaluation.m2_scorer import evaluate_m2
 

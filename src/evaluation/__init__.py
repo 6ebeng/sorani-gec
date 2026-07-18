@@ -11,7 +11,7 @@ from .f05_scorer import (
     evaluate_sentence,
     span_based_edits,
 )
-from .agreement_accuracy import AgreementChecker
+from .agreements import AgreementChecker
 from .m2_scorer import (
     M2Edit,
     M2Sentence,

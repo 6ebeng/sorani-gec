@@ -20,9 +20,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from src.data.normalizer import SoraniNormalizer, sentence_split, deduplicate_sentences
 from src.data.collector import CorpusCollector
 from src.morphology.analyzer import MorphologicalAnalyzer, MorphFeatures
-from src.morphology.agreement import build_agreement_graph
+from src.morphology.builder import build_agreement_graph
 from src.morphology.graph import AgreementGraph, EDGE_TYPE_ORDER
-from src.evaluation.agreement_accuracy import (
+from src.evaluation.agreements import (
     AgreementChecker,
     AgreementResult,
     evaluate_agreement_accuracy,
@@ -552,7 +552,7 @@ def test_regression_clitic_zero_weights():
 
 def test_regression_graph_size_limit():
     """Regression 1.9: AgreementGraph handles sentences >128 tokens."""
-    from src.morphology.agreement import build_agreement_graph
+    from src.morphology.builder import build_agreement_graph
 
     analyzer = MorphologicalAnalyzer(use_klpt=False)
     long_sentence = " ".join(["کتێب"] * 150)

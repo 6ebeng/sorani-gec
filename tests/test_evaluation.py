@@ -14,7 +14,7 @@ from src.evaluation.f05_scorer import (
     evaluate_sentence,
     span_based_edits,
 )
-from src.evaluation.agreement_accuracy import AgreementChecker, evaluate_agreement_accuracy, evaluate_agreement_by_check
+from src.evaluation.agreements import AgreementChecker, evaluate_agreement_accuracy, evaluate_agreement_by_check
 
 
 # ============================================================================

@@ -24,7 +24,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.evaluation.f05_scorer import evaluate_corpus
-from src.evaluation.agreement_accuracy import evaluate_agreement_accuracy
+from src.evaluation.agreements import evaluate_agreement_accuracy
 from src.evaluation.gleu_scorer import compute_gleu
 
 logging.basicConfig(

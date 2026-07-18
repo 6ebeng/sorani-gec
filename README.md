@@ -128,7 +128,7 @@ sorani-gec/
 │   │   └── ensemble.py          # Majority-vote / best-score ensemble
 │   └── evaluation/
 │       ├── f05_scorer.py        # Span F₀.₅ (precision-weighted)
-│       ├── agreement_accuracy.py# 14 Sorani-specific agreement checks
+│       ├── agreements/            # 16 Sorani-specific agreement checks
 │       ├── gleu_scorer.py       # GLEU with bootstrap confidence intervals
 │       ├── m2_scorer.py         # M² scorer
 │       └── inter_rater.py       # Cohen's κ / Fleiss' κ

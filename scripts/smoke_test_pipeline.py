@@ -540,7 +540,7 @@ def evaluate_test(
 def check_agreement_accuracy(test_tgt: list[str]) -> None:
     """Run agreement accuracy checker on clean test sentences."""
     logger.info("=== Phase 7: Agreement accuracy check ===")
-    from src.evaluation.agreement_accuracy import AgreementChecker
+    from src.evaluation.agreements import AgreementChecker
     from src.morphology.analyzer import MorphologicalAnalyzer
 
     analyzer = MorphologicalAnalyzer(use_klpt=False)
