@@ -8,7 +8,6 @@ brackets, non-prose content, mojibake, and near-duplicates.
 CRIT-2 in gap_analysis_and_missing_features.md.
 """
 
-import hashlib
 import logging
 import re
 from typing import Optional

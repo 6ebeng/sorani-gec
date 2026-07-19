@@ -22,10 +22,7 @@ Error patterns:
 import re
 from typing import Optional
 from .base import BaseErrorGenerator
-from ..morphology.constants import (
-    NEGATION_WITHIN_WA_COORDINATION_PLURAL,
-    PAST_TRANSITIVE_NEGATION_CLITIC_INTERPOSITION,
-)
+
 
 
 class NegativeConcordErrorGenerator(BaseErrorGenerator):

@@ -7,7 +7,7 @@ Cohen's kappa and percentage agreement between rater pairs.
 
 import json
 import logging
-from collections import defaultdict
+
 from pathlib import Path
 from typing import Optional
 

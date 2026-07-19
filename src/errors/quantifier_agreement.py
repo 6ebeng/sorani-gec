@@ -23,7 +23,6 @@ from typing import Optional
 from .base import BaseErrorGenerator
 from ..data.tokenize import sorani_word_tokenize
 from ..morphology.constants import (
-    INDEFINITE_APPROXIMATE_NUMERIC,
     NOUN_SINGULAR_AFTER_CARDINAL,
     QUANTIFIER_FORMS,
 )

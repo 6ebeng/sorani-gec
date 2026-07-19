@@ -14,7 +14,6 @@ extracts a subset of those features into numeric vectors.
 import logging
 from typing import Optional
 from .analyzer import MorphologicalAnalyzer, MorphFeatures
-from .constants import POS_CATEGORIES, SORANI_GENDER_CATEGORIES
 
 logger = logging.getLogger(__name__)
 
